@@ -851,8 +851,9 @@ fn enrich_provinces(provinces: &[Prov], tool_dir: &Path) -> Vec<Enriched> {
 /// matching keys; emitted coordinates are the actual raw vertices.
 fn extract_country_borders(provinces: &[Prov]) -> Vec<Vec<(f32, f32)>> {
     type Q = (i64, i64);
+    type Seg = ((f64, f64), (f64, f64));
     // Segment key -> (owners seen, one representative raw segment).
-    let mut segments: HashMap<(Q, Q), (Vec<&str>, ((f64, f64), (f64, f64)))> = HashMap::new();
+    let mut segments: HashMap<(Q, Q), (Vec<&str>, Seg)> = HashMap::new();
     for p in provinces {
         for ring in &p.rings_raw {
             for w in ring.windows(2) {
@@ -870,7 +871,7 @@ fn extract_country_borders(provinces: &[Prov]) -> Vec<Vec<(f32, f32)>> {
         }
     }
     // Border segments: shared by at least two different owners.
-    let border: HashMap<(Q, Q), ((f64, f64), (f64, f64))> = segments
+    let border: HashMap<(Q, Q), Seg> = segments
         .into_iter()
         .filter(|(_, (owners, _))| owners.len() >= 2)
         .map(|(k, (_, seg))| (k, seg))
