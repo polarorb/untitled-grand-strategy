@@ -4,6 +4,7 @@
     ProvinceDef(
         id: ProvinceId(10),
         name: "Pyongyang",
+        center: (125.75, 39.03),
         owner: CountryTag("PRK"),
         terrain: Urban,
         population_k: 500,
@@ -12,6 +13,7 @@
     ProvinceDef(
         id: ProvinceId(11),
         name: "Wonsan",
+        center: (127.44, 39.15),
         owner: CountryTag("PRK"),
         terrain: Hills,
         population_k: 150,
@@ -20,6 +22,7 @@
     ProvinceDef(
         id: ProvinceId(12),
         name: "Seoul",
+        center: (126.98, 37.57),
         owner: CountryTag("KOR"),
         terrain: Urban,
         population_k: 1446,
@@ -28,6 +31,7 @@
     ProvinceDef(
         id: ProvinceId(13),
         name: "Chuncheon",
+        center: (127.73, 37.88),
         owner: CountryTag("KOR"),
         terrain: Mountain,
         population_k: 90,
@@ -36,6 +40,7 @@
     ProvinceDef(
         id: ProvinceId(14),
         name: "Incheon",
+        center: (126.71, 37.46),
         owner: CountryTag("KOR"),
         terrain: Urban,
         population_k: 265,
@@ -44,6 +49,7 @@
     ProvinceDef(
         id: ProvinceId(15),
         name: "Busan",
+        center: (129.07, 35.18),
         owner: CountryTag("KOR"),
         terrain: Hills,
         population_k: 470,

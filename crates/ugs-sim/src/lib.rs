@@ -13,14 +13,18 @@
 //! "advance one tick".
 
 pub mod calendar;
+pub mod command;
 pub mod rng;
+pub mod tension;
 
 use bevy_app::{App, Plugin};
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ScheduleLabel;
 
 use calendar::GameDate;
+use command::PendingCommands;
 use rng::SimRng;
+use tension::GlobalTension;
 
 /// The schedule that advances the simulation exactly one hour.
 /// Presentation/tests call [`run_ticks`]; nothing in this schedule may read
@@ -78,6 +82,8 @@ impl Plugin for SimPlugin {
         app.init_schedule(SimTick);
         app.insert_resource(SimClock::at_start(self.start_date));
         app.insert_resource(SimRng::seeded(self.seed));
+        app.insert_resource(GlobalTension::new(tension::tuning::START_1950));
+        app.init_resource::<PendingCommands>();
         app.configure_sets(
             SimTick,
             (
@@ -91,6 +97,8 @@ impl Plugin for SimPlugin {
                 .chain(),
         );
         app.add_systems(SimTick, advance_clock.in_set(TickSet::Time));
+        app.add_systems(SimTick, command::apply_commands.in_set(TickSet::Commands));
+        app.add_systems(SimTick, tension::decay_tension.in_set(TickSet::Politics));
     }
 }
 

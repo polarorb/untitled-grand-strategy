@@ -65,6 +65,9 @@ pub struct ProvinceDef {
     pub name: String,
     pub owner: CountryTag,
     pub terrain: Terrain,
+    /// (longitude, latitude) of the province center in degrees. Placeholder
+    /// geometry until real polygons arrive via the mapgen tool.
+    pub center: (f32, f32),
     /// Population in thousands.
     pub population_k: u32,
     pub adjacent: Vec<ProvinceId>,

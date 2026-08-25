@@ -4,6 +4,7 @@
     ProvinceDef(
         id: ProvinceId(1),
         name: "Washington, D.C.",
+        center: (-77.04, 38.91),
         owner: CountryTag("USA"),
         terrain: Urban,
         population_k: 802,
@@ -12,6 +13,7 @@
     ProvinceDef(
         id: ProvinceId(2),
         name: "Moscow",
+        center: (37.62, 55.75),
         owner: CountryTag("SOV"),
         terrain: Urban,
         population_k: 4847,
@@ -20,6 +22,7 @@
     ProvinceDef(
         id: ProvinceId(3),
         name: "Beijing",
+        center: (116.41, 39.9),
         owner: CountryTag("PRC"),
         terrain: Urban,
         population_k: 1671,
