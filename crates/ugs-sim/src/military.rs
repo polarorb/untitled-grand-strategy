@@ -228,9 +228,14 @@ pub fn update_military(
         if enemies.is_empty() {
             continue;
         }
+        // Side A: the first owner plus everyone NOT at war with it
+        // (co-belligerents fight together).
         let side_a: Vec<FormationId> = ids
             .iter()
-            .filter(|i| &military.formations[i].owner == first)
+            .filter(|i| {
+                let o = &military.formations[i].owner;
+                o == first || !military.at_war(first, o)
+            })
             .copied()
             .collect();
         let side_b: Vec<FormationId> = ids

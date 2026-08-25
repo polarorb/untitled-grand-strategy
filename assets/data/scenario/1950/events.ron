@@ -1,9 +1,10 @@
-// Scripted historical events. Dates are (year, month, day, hour) UTC-ish
-// game time. Body text is the teletype voice: terse, clipped, wire-service.
+// Scripted historical events. Body text is the teletype voice: terse,
+// clipped, wire-service. The first option is the historical/default
+// choice, auto-applied when the deciding country's deadline passes.
 [
     EventDef(
         id: "sino-soviet-treaty",
-        date: (1950, 2, 14, 12),
+        trigger: Date((1950, 2, 14, 12)),
         title: "SINO-SOVIET TREATY SIGNED",
         body: "MOSCOW -- FLASH -- USSR AND PEOPLES REPUBLIC OF CHINA SIGN TREATY OF FRIENDSHIP ALLIANCE AND MUTUAL ASSISTANCE. STALIN AND MAO COMMIT TO MUTUAL DEFENSE FOR THIRTY YEARS. SOVIET CREDITS AND TECHNICAL AID TO FOLLOW. THE SOCIALIST CAMP NOW SPANS FROM THE ELBE TO THE SOUTH CHINA SEA.",
         effects: [
@@ -12,13 +13,56 @@
     ),
     EventDef(
         id: "korea-invasion",
-        date: (1950, 6, 25, 4),
+        trigger: Date((1950, 6, 25, 4)),
         title: "NORTH KOREA INVADES SOUTH KOREA",
         body: "SEOUL -- FLASH FLASH FLASH -- KOREAN PEOPLES ARMY CROSSES 38TH PARALLEL IN FORCE AT 0400 LOCAL. ARTILLERY PREPARATION FOLLOWED BY ARMORED COLUMNS ON KAESONG-SEOUL AXIS. ROK POSITIONS OVERRUN AT MULTIPLE POINTS. ATTACK APPEARS GENERAL ALONG ENTIRE PARALLEL. AMBASSADOR MUCCIO CONFIRMS INVASION UNDERWAY. THIS IS NOT A BORDER RAID.",
         effects: [
             DeclareWar(a: ("PRK"), b: ("KOR")),
             SetPosture(country: ("PRK"), enemy: ("KOR"), posture: "Advance"),
             AdjustTension(200),
+        ],
+    ),
+    EventDef(
+        id: "us-intervention",
+        trigger: WarDaysElapsed(a: ("PRK"), b: ("KOR"), days: 5),
+        title: "KOREA: THE PRESIDENT MUST DECIDE",
+        body: "WASHINGTON -- UN SECURITY COUNCIL RESOLUTION 83 RECOMMENDS MEMBERS FURNISH ASSISTANCE TO REPUBLIC OF KOREA TO REPEL ARMED ATTACK. SOVIET DELEGATE ABSENT -- NO VETO. ROK ARMY IN GENERAL RETREAT. SEOUL EXPECTED TO FALL WITHIN DAYS. GENERAL MACARTHUR REPORTS SOUTH WILL COLLAPSE WITHOUT IMMEDIATE COMMITMENT OF US GROUND FORCES FROM JAPAN. THE LINE MUST BE DRAWN SOMEWHERE -- OR NOWHERE.",
+        country: Some(("USA")),
+        deadline_days: 3,
+        options: [
+            EventOption(
+                label: "COMMIT US GROUND FORCES",
+                effects: [
+                    DeclareWar(a: ("USA"), b: ("PRK")),
+                    SetPosture(country: ("USA"), enemy: ("PRK"), posture: "Advance"),
+                    SetPosture(country: ("KOR"), enemy: ("PRK"), posture: "Advance"),
+                    SpawnForces(owner: ("USA"), province_owner: ("KOR"), province: "South Gyeongsang", archetype: "Infantry", divisions: 3, quality: 1250),
+                    SpawnForces(owner: ("USA"), province_owner: ("KOR"), province: "Busan", archetype: "Armor", divisions: 1, quality: 1300),
+                    AdjustTension(100),
+                ],
+            ),
+            EventOption(
+                label: "STAND ASIDE",
+                effects: [
+                    AdjustTension(-30),
+                ],
+            ),
+        ],
+    ),
+    EventDef(
+        id: "chinese-intervention",
+        trigger: ProvincesLost(owner: ("PRK"), count: 3),
+        chance_permille: Some(250),
+        title: "CHINA ENTERS THE WAR",
+        body: "TOKYO -- FLASH -- MASSIVE CHINESE FORCES IDENTIFIED IN CONTACT ACROSS BROAD FRONT. PRISONERS CONFIRM REGULAR PLA FORMATIONS DESIGNATED CHINESE PEOPLES VOLUNTEERS. STRENGTH ESTIMATE REVISED UPWARD REPEATEDLY -- NOW EXCEEDS TWO HUNDRED THOUSAND. UN FORWARD ELEMENTS ENGAGED AND CUT OFF. PEKING RADIO: CHINA WILL NOT STAND IDLY BY WHILE THE FLAMES OF WAR SPREAD TO THE YALU. AN ENTIRELY NEW WAR.",
+        effects: [
+            DeclareWar(a: ("PRC"), b: ("KOR")),
+            DeclareWar(a: ("PRC"), b: ("USA")),
+            SetPosture(country: ("PRC"), enemy: ("KOR"), posture: "Advance"),
+            SetPosture(country: ("PRC"), enemy: ("USA"), posture: "Advance"),
+            SpawnForces(owner: ("PRC"), province_owner: ("PRC"), province: "Liaoning", archetype: "Infantry", divisions: 6, quality: 1050),
+            SpawnForces(owner: ("PRC"), province_owner: ("PRC"), province: "Jilin", archetype: "Infantry", divisions: 2, quality: 1000),
+            AdjustTension(150),
         ],
     ),
 ]

@@ -149,16 +149,48 @@ pub struct NationMeta {
     pub hook: String,
 }
 
-/// A scripted historical event fired by date.
+/// A scripted historical event.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventDef {
     pub id: String,
-    /// (year, month, day, hour) when the event fires.
-    pub date: (i32, u8, u8, u8),
+    pub trigger: EventTrigger,
+    /// Daily chance to fire once the trigger condition holds (permille);
+    /// absent = fires immediately when the condition holds.
+    #[serde(default)]
+    pub chance_permille: Option<u32>,
     pub title: String,
     /// Teletype-voice body text shown to the player.
     pub body: String,
+    /// The country whose decision this is. None = world event
+    /// (effects/options[0] apply immediately on firing).
+    #[serde(default)]
+    pub country: Option<CountryTag>,
+    /// Days the deciding country has before option 0 auto-applies.
+    #[serde(default)]
+    pub deadline_days: u8,
+    /// Choice options; the first is the default/historical choice.
+    /// Events without options use `effects` directly.
+    #[serde(default)]
+    pub options: Vec<EventOption>,
+    #[serde(default)]
     pub effects: Vec<EventEffect>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EventOption {
+    pub label: String,
+    pub effects: Vec<EventEffect>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EventTrigger {
+    /// Fires at (year, month, day, hour).
+    Date((i32, u8, u8, u8)),
+    /// Fires N days after a war begins between the two countries.
+    WarDaysElapsed { a: CountryTag, b: CountryTag, days: u16 },
+    /// Fires when at least `count` of `owner`'s 1950 provinces are held
+    /// by countries at war with `owner`.
+    ProvincesLost { owner: CountryTag, count: u16 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -176,6 +208,16 @@ pub enum EventEffect {
         from: CountryTag,
         to: CountryTag,
         names: Vec<String>,
+    },
+    /// Spawn formations (intervention forces). Province resolved by
+    /// (owner_1950, name).
+    SpawnForces {
+        owner: CountryTag,
+        province_owner: CountryTag,
+        province: String,
+        archetype: String,
+        divisions: u32,
+        quality: u32,
     },
 }
 
@@ -257,7 +299,6 @@ impl ScenarioData {
         let events_path = scenario_dir.join("events.ron");
         if events_path.exists() {
             events = load_ron(&events_path)?;
-            events.sort_by_key(|e| e.date);
         }
         let mut oob: Vec<OobEntry> = Vec::new();
         let oob_path = scenario_dir.join("oob.ron");
@@ -322,11 +363,25 @@ impl ScenarioData {
             }
         }
         for event in &self.events {
-            for effect in &event.effects {
-                if let EventEffect::TransferProvinces { from, names, .. } = effect {
-                    for name in names {
-                        self.province_by_name(from, name)?;
+            let all_effects = event
+                .effects
+                .iter()
+                .chain(event.options.iter().flat_map(|o| o.effects.iter()));
+            for effect in all_effects {
+                match effect {
+                    EventEffect::TransferProvinces { from, names, .. } => {
+                        for name in names {
+                            self.province_by_name(from, name)?;
+                        }
                     }
+                    EventEffect::SpawnForces {
+                        province_owner,
+                        province,
+                        ..
+                    } => {
+                        self.province_by_name(province_owner, province)?;
+                    }
+                    _ => {}
                 }
             }
         }

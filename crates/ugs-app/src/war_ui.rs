@@ -2,11 +2,12 @@
 //! map, and occupation-driven map repainting hooks.
 
 use bevy::prelude::*;
+use ugs_sim::command::{PendingCommands, SimCommand};
 use ugs_sim::events::FiredEvents;
 use ugs_sim::military::Military;
 
 use crate::map::project;
-use crate::{font, AppState, Fonts, GameSpeed, World1950};
+use crate::{font, AppState, Fonts, GameSpeed, PlayerNation, World1950};
 
 const PANEL_BG: Color = Color::srgba(0.07, 0.09, 0.12, 0.97);
 const ACCENT: Color = Color::srgb(0.83, 0.69, 0.36);
@@ -18,6 +19,13 @@ struct EventModal;
 #[derive(Component)]
 struct DismissButton;
 
+/// A choice button: resolves the pending event with this option.
+#[derive(Component)]
+struct ChoiceButton {
+    event_id: String,
+    option: u8,
+}
+
 #[derive(Component)]
 struct FormationMarker;
 
@@ -27,18 +35,27 @@ impl Plugin for WarUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (show_event_popups, dismiss_popup, sync_formation_markers)
+            (
+                show_event_popups,
+                dismiss_popup,
+                choice_buttons,
+                sync_formation_markers,
+            )
                 .run_if(in_state(AppState::InGame)),
         );
     }
 }
 
 /// Pop a teletype modal for each newly fired event; pause the game.
+/// Player-country choice events show option buttons instead of a
+/// dismiss; other pending decisions show as news awaiting the decider.
+#[allow(clippy::too_many_arguments)] // Bevy systems take what they query
 fn show_event_popups(
     mut commands: Commands,
     fired: Res<FiredEvents>,
     world: Res<World1950>,
     fonts: Res<Fonts>,
+    player: Option<Res<PlayerNation>>,
     mut speed: ResMut<GameSpeed>,
     mut seen: Local<usize>,
     existing: Query<(), With<EventModal>>,
@@ -51,6 +68,9 @@ fn show_event_popups(
     let Some(event) = world.0.events.iter().find(|e| &e.id == id) else {
         return;
     };
+    let is_player_choice = fired.is_pending(&event.id)
+        && event.country.is_some()
+        && player.as_ref().map(|p| Some(&p.0) == event.country.as_ref()).unwrap_or(false);
     speed.paused = true;
     commands
         .spawn((
@@ -85,24 +105,85 @@ fn show_event_popups(
                 font(&fonts.mono, 13.5),
                 TextColor(MAIN),
             ));
-            m.spawn((
-                Button,
-                DismissButton,
-                Node {
-                    align_self: AlignSelf::FlexEnd,
-                    padding: UiRect::axes(Val::Px(24.0), Val::Px(8.0)),
-                    ..default()
-                },
-                BackgroundColor(Color::srgb(0.55, 0.44, 0.18)),
-            ))
-            .with_children(|b| {
-                b.spawn((
-                    Text::new("ACKNOWLEDGE"),
-                    font(&fonts.display, 15.0),
-                    TextColor(Color::srgb(0.98, 0.95, 0.88)),
-                ));
-            });
+            if is_player_choice {
+                for (i, option) in event.options.iter().enumerate() {
+                    m.spawn((
+                        Button,
+                        ChoiceButton {
+                            event_id: event.id.clone(),
+                            option: i as u8,
+                        },
+                        Node {
+                            padding: UiRect::axes(Val::Px(20.0), Val::Px(9.0)),
+                            ..default()
+                        },
+                        BackgroundColor(if i == 0 {
+                            Color::srgb(0.55, 0.44, 0.18)
+                        } else {
+                            Color::srgba(0.14, 0.17, 0.21, 0.95)
+                        }),
+                    ))
+                    .with_children(|b| {
+                        b.spawn((
+                            Text::new(option.label.clone()),
+                            font(&fonts.display, 15.0),
+                            TextColor(Color::srgb(0.98, 0.95, 0.88)),
+                        ));
+                    });
+                }
+            } else {
+                if fired.is_pending(&event.id) {
+                    let decider = event
+                        .country
+                        .as_ref()
+                        .map(|c| c.0.clone())
+                        .unwrap_or_default();
+                    m.spawn((
+                        Text::new(format!("DECISION RESTS WITH {decider}")),
+                        font(&fonts.mono, 12.0),
+                        TextColor(Color::srgb(0.62, 0.66, 0.70)),
+                    ));
+                }
+                m.spawn((
+                    Button,
+                    DismissButton,
+                    Node {
+                        align_self: AlignSelf::FlexEnd,
+                        padding: UiRect::axes(Val::Px(24.0), Val::Px(8.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.55, 0.44, 0.18)),
+                ))
+                .with_children(|b| {
+                    b.spawn((
+                        Text::new("ACKNOWLEDGE"),
+                        font(&fonts.display, 15.0),
+                        TextColor(Color::srgb(0.98, 0.95, 0.88)),
+                    ));
+                });
+            }
         });
+}
+
+/// Choice buttons resolve the event through the command queue (so the
+/// decision is part of the save/replay log) and close the modal.
+fn choice_buttons(
+    mut commands: Commands,
+    buttons: Query<(&Interaction, &ChoiceButton), Changed<Interaction>>,
+    mut pending: ResMut<PendingCommands>,
+    modal: Query<Entity, With<EventModal>>,
+) {
+    for (interaction, choice) in &buttons {
+        if *interaction == Interaction::Pressed {
+            pending.push(SimCommand::ResolveEvent {
+                id: choice.event_id.clone(),
+                option: choice.option,
+            });
+            for e in &modal {
+                commands.entity(e).despawn();
+            }
+        }
+    }
 }
 
 fn dismiss_popup(

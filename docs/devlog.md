@@ -7,6 +7,34 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — Intervention: choices, deadlines, and the Yalu tripwire
+
+The escalation systems earn their keep. Events grew from date-fired
+announcements into a real decision engine: **condition triggers**
+(days-into-a-war, provinces-lost tripwires), **daily chance rolls** from
+the seeded RNG, and **choice events with deadlines** — the deciding
+country gets options; if nobody answers in time, the historical default
+applies. Decisions flow through the command queue, so they're part of
+the save/replay log like everything else.
+
+Two events use it to complete the Korea arc. Day 5 of the war,
+Washington gets *"KOREA: THE PRESIDENT MUST DECIDE"* — COMMIT US GROUND
+FORCES or STAND ASIDE. Playing the USA you choose; playing anyone else
+you watch a modal marked "DECISION RESTS WITH USA" and wait. And when
+the UN side pushes north and the KPA starts losing its own provinces,
+the **Chinese intervention tripwire** arms — a daily roll until, one
+morning, the teletype reads *"AN ENTIRELY NEW WAR."*
+
+The test is the whole pitch in one function:
+`the_korean_war_runs_its_historical_arc` — peace until June 24;
+invasion; the US decision fires day 5 and auto-commits at its deadline;
+four American divisions land at Busan; the counterattack retakes the
+south and crosses the parallel; China enters; the war grinds on with
+both coalitions standing. Nobody scripted the sequence — only the
+triggers. And `player_can_stand_aside` proves the counterfactual is one
+button away: option 1, no Americans in Korea, and the peninsula goes
+red. 36 tests green.
+
 ## 2026-08-25 — June 25, 1950
 
 The trigger is pulled. The game now has an **event system** (scripted

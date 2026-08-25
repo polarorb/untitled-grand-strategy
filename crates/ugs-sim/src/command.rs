@@ -13,6 +13,8 @@ use ugs_data::CountryTag;
 
 use crate::agriculture::{self, Agriculture, Quota};
 use crate::planning::{self, Economies, Procurement};
+use crate::demography::SimScenario;
+use crate::events::{self, FiredEvents};
 use crate::military::{Military, Posture};
 use crate::savegame::CommandLog;
 use crate::tension::GlobalTension;
@@ -48,6 +50,8 @@ pub enum SimCommand {
         enemy: CountryTag,
         posture: Posture,
     },
+    /// Resolve a pending choice event with the given option index.
+    ResolveEvent { id: String, option: u8 },
 }
 
 /// Commands queued for the next tick. The presentation layer pushes;
@@ -63,6 +67,7 @@ impl PendingCommands {
     }
 }
 
+#[allow(clippy::too_many_arguments)] // the command hub touches every domain
 pub fn apply_commands(
     clock: Res<SimClock>,
     mut pending: ResMut<PendingCommands>,
@@ -71,6 +76,8 @@ pub fn apply_commands(
     mut econ: ResMut<Economies>,
     mut agri: ResMut<Agriculture>,
     mut military: ResMut<Military>,
+    mut fired: ResMut<FiredEvents>,
+    scenario: Option<Res<SimScenario>>,
 ) {
     for command in pending.queue.drain(..) {
         log.0.push((clock.tick, command.clone()));
@@ -104,6 +111,18 @@ pub fn apply_commands(
             } => {
                 if military.at_war(&country, &enemy) {
                     military.postures.insert((country, enemy), posture);
+                }
+            }
+            SimCommand::ResolveEvent { id, option } => {
+                if let Some(scenario) = &scenario {
+                    events::resolve_event(
+                        &mut fired,
+                        &mut tension,
+                        &mut military,
+                        &scenario.0,
+                        &id,
+                        option,
+                    );
                 }
             }
         }
