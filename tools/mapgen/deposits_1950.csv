@@ -1,0 +1,56 @@
+kind,lon,lat,size,name
+# Major world deposits as exploited/known in 1950. Size 1-10 abstract.
+# Assigned by mapgen to the nearest province. Sources: general historical
+# geography; sizes are game-scale estimates.
+Coal,37.8,48.3,10,Donbas
+Coal,86.1,53.8,8,Kuznetsk Basin
+Coal,73.3,48.6,5,Karaganda
+Coal,7.2,51.5,10,Ruhr
+Coal,19.0,50.2,8,Upper Silesia
+Coal,-81.5,38.5,10,Appalachia
+Coal,-76.0,40.8,6,Pennsylvania Anthracite
+Coal,-89.0,39.5,5,Illinois Basin
+Coal,-1.5,53.5,8,Yorkshire-Midlands
+Coal,-3.8,55.8,4,Scottish Lowlands
+Coal,112.5,37.8,7,Shanxi
+Coal,123.9,41.9,6,Fushun
+Coal,86.4,23.7,6,Jharia
+Coal,149.0,-32.5,5,New South Wales
+Coal,29.2,-26.7,6,Transvaal
+Coal,7.0,49.3,4,Saar
+Coal,13.5,50.5,4,Bohemian Basin
+Coal,4.4,50.4,3,Sambre-Meuse
+Coal,140.7,42.9,3,Hokkaido
+Coal,130.5,33.6,4,Chikuho
+Oil,49.8,40.4,8,Baku
+Oil,52.0,54.0,7,Volga-Urals
+Oil,-98.0,31.5,10,East Texas
+Oil,-97.5,35.5,6,Oklahoma
+Oil,-119.0,35.4,6,California
+Oil,-91.0,30.0,6,Gulf Coast
+Oil,47.9,29.3,8,Kuwait
+Oil,48.5,24.3,8,Dammam-Ghawar
+Oil,49.3,31.5,8,Khuzestan
+Oil,44.4,35.5,7,Kirkuk
+Oil,-71.6,10.0,8,Maracaibo
+Oil,26.0,44.9,4,Ploiesti
+Oil,104.7,-3.0,4,South Sumatra
+Oil,-97.9,22.2,4,Tampico
+Oil,-113.5,53.5,4,Alberta
+Iron,34.2,48.3,8,Krivoy Rog
+Iron,59.0,53.4,7,Magnitogorsk
+Iron,6.1,48.8,7,Lorraine
+Iron,20.2,67.9,6,Kiruna
+Iron,-92.5,47.5,8,Mesabi Range
+Iron,123.0,41.1,5,Anshan
+Iron,85.3,22.8,5,Singhbhum
+Iron,-43.9,-19.9,5,Minas Gerais
+Iron,-1.3,52.5,3,English Midlands
+Uranium,25.7,-10.0,8,Shinkolobwe
+Uranium,12.9,50.37,5,Joachimsthal
+Uranium,12.8,50.6,4,Wismut
+Uranium,-108.5,38.5,5,Colorado Plateau
+Uranium,-118.0,66.1,4,Port Radium
+Uranium,71.0,40.5,3,Fergana Valley
+Uranium,27.7,-26.3,3,Witwatersrand
+Uranium,140.5,-32.5,2,Radium Hill

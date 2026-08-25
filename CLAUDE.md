@@ -121,8 +121,12 @@ finishing any feature:
 - `UGS_SCREEN=select|game` — boot directly into a screen.
 - `UGS_NATION=TAG` — play as a nation (with `UGS_SCREEN=game`).
 - `UGS_MAPMODE=terrain` — boot in terrain map mode.
-- `UGS_SHOT=path.png` — the game screenshots its own window ~2s after
-  boot (use for visual verification; never screencapture the desktop).
+- `UGS_SHOT=path.png` — the game screenshots its own window after
+  `UGS_SHOT_FRAMES` frames (default 120; raise it when the shot needs sim
+  time to pass first). Use for visual verification; never screencapture
+  the desktop.
+- `UGS_SPEED=1..5` — boot unpaused at that speed (e.g. to get past the
+  first month boundary so monthly systems have output).
 
 ## Conventions
 

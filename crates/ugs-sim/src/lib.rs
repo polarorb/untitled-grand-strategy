@@ -15,6 +15,7 @@
 pub mod calendar;
 pub mod command;
 pub mod demography;
+pub mod economy;
 pub mod rng;
 pub mod tension;
 
@@ -87,6 +88,9 @@ impl Plugin for SimPlugin {
         app.init_resource::<PendingCommands>();
         app.init_resource::<demography::Demographics>();
         app.init_resource::<demography::LivingStandards>();
+        app.init_resource::<economy::EconomyStatic>();
+        app.init_resource::<economy::NationalBalances>();
+        app.init_resource::<economy::RegionalPower>();
         app.configure_sets(
             SimTick,
             (
@@ -104,7 +108,9 @@ impl Plugin for SimPlugin {
         app.add_systems(SimTick, tension::decay_tension.in_set(TickSet::Politics));
         app.add_systems(
             SimTick,
-            demography::update_demographics.in_set(TickSet::Economy),
+            (demography::update_demographics, economy::update_economy)
+                .chain()
+                .in_set(TickSet::Economy),
         );
     }
 }

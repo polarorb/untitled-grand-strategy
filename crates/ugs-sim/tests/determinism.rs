@@ -9,6 +9,7 @@ use bevy_app::App;
 use std::sync::Arc;
 use ugs_sim::calendar::GameDate;
 use ugs_sim::demography::{Demographics, SimScenario};
+use ugs_sim::economy::RegionalPower;
 use ugs_sim::command::{PendingCommands, SimCommand};
 use ugs_sim::rng::SimRng;
 use ugs_sim::tension::GlobalTension;
@@ -38,7 +39,7 @@ fn snapshot(app: &App) -> String {
         // desync later. Debug output includes the internal state.
         world.resource::<SimRng>(),
         world.resource::<Demographics>().digest(),
-    )
+    ) + &format!("|pow:{:x}", world.resource::<RegionalPower>().digest())
 }
 
 /// Scripted command stream: (tick, command). Applied identically to both

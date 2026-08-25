@@ -58,6 +58,7 @@ green, East Germany's plain tricolor), and a historic situation briefing.
 - [Intelligence & covert ops](design/systems/espionage.md)
 - [Economy](design/systems/economy.md)
 - [Demography](design/systems/demography.md)
+- [Resources & regional grids](design/systems/resources-and-grids.md)
 - [Military](design/systems/military.md)
 - [Terrain](design/systems/terrain.md)
 - [Time & map](design/systems/time-and-map.md)

@@ -11,6 +11,7 @@ use ugs_data::{CountryTag, ProvinceId, ScenarioData, Terrain};
 use ugs_sim::{
     command::{PendingCommands, SimCommand},
     demography::Demographics,
+    economy::{NationalBalances, RegionalPower},
     tension::GlobalTension,
     SimClock,
 };
@@ -33,6 +34,7 @@ enum MapMode {
     #[default]
     Political,
     Terrain,
+    Power,
 }
 
 /// Marker for spawned map layer entities (fill + borders).
@@ -89,6 +91,7 @@ impl Plugin for MapPlugin {
         // Dev shortcut: UGS_MAPMODE=terrain boots in terrain mode.
         app.insert_resource(match std::env::var("UGS_MAPMODE").as_deref() {
             Ok("terrain") => MapMode::Terrain,
+            Ok("power") => MapMode::Power,
             _ => MapMode::Political,
         });
         // The map underlies both the nation-select screen and the game.
@@ -194,6 +197,17 @@ fn terrain_color(terrain: Terrain, province_id: u32) -> Color {
         Terrain::Tundra => (182, 192, 188),
     };
     wobbled(rgb, province_id)
+}
+
+/// Regional power factor (permille) -> red/amber/green.
+fn power_color(factor_permille: u64, province_id: u32) -> Color {
+    let t = ((factor_permille.clamp(500, 1000) - 500) as f32) / 500.0;
+    let (r, g, b) = (
+        (200.0 - 120.0 * t) as u8,
+        (70.0 + 110.0 * t) as u8,
+        60u8,
+    );
+    wobbled((r, g, b), province_id)
 }
 
 /// Flat quad-strip mesh for a set of polylines (miterless — fine at these
@@ -478,6 +492,8 @@ fn refresh_province_card(
     selected: Res<Selected>,
     world: Res<World1950>,
     demo: Res<Demographics>,
+    power: Res<RegionalPower>,
+    balances: Res<NationalBalances>,
     fonts: Res<crate::Fonts>,
     assets: Res<AssetServer>,
     card: Query<Entity, With<ProvinceCard>>,
@@ -572,6 +588,50 @@ fn refresh_province_card(
                 TextColor(HUD_DIM),
             ));
         }
+        // Region + economy lines (once balances exist, after first month).
+        let region_name = world
+            .0
+            .regions
+            .get(&p.region)
+            .map(|r| r.name.as_str())
+            .unwrap_or("-");
+        if let Some(status) = power.by_region.get(&p.region) {
+            c.spawn((
+                Text::new(format!(
+                    "{} grid  -  power {}%",
+                    region_name,
+                    status.factor_permille / 10
+                )),
+                crate::font(&fonts.body, 12.0),
+                TextColor(HUD_DIM),
+            ));
+        }
+        if let Some(b) = balances.by_country.get(&p.owner) {
+            c.spawn((
+                Text::new(format!(
+                    "grain {}%  coal {}%  oil {}%  steel {}",
+                    b.grain_ratio_permille() / 10,
+                    b.coal_ratio_permille() / 10,
+                    b.oil_ratio_permille() / 10,
+                    b.steel_prod,
+                )),
+                crate::font(&fonts.body, 12.0),
+                TextColor(HUD_DIM),
+            ));
+        }
+        if !p.deposits.is_empty() {
+            let list = p
+                .deposits
+                .iter()
+                .map(|(k, size)| format!("{:?} {}", k, size))
+                .collect::<Vec<_>>()
+                .join(", ");
+            c.spawn((
+                Text::new(format!("deposits: {list}")),
+                crate::font(&fonts.body, 12.0),
+                TextColor(Color::srgb(0.75, 0.68, 0.45)),
+            ));
+        }
     });
 }
 
@@ -610,7 +670,8 @@ fn handle_input(
     if keys.just_pressed(KeyCode::KeyM) {
         *mode = match *mode {
             MapMode::Political => MapMode::Terrain,
-            MapMode::Terrain => MapMode::Political,
+            MapMode::Terrain => MapMode::Power,
+            MapMode::Power => MapMode::Political,
         };
     }
     for (key, level) in [
@@ -692,10 +753,12 @@ fn camera_controls(
 fn apply_map_mode(
     mode: Res<MapMode>,
     world: Res<World1950>,
+    power: Res<RegionalPower>,
     fill: Option<Res<MapFill>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    if !mode.is_changed() {
+    // Repaint on mode change; in Power mode also on monthly updates.
+    if !mode.is_changed() && !(*mode == MapMode::Power && power.is_changed()) {
         return;
     }
     let Some(fill) = fill else { return };
@@ -710,6 +773,14 @@ fn apply_map_mode(
         let color = match *mode {
             MapMode::Political => owner_color(&world.0, &p.owner, *id),
             MapMode::Terrain => terrain_color(p.terrain, *id),
+            MapMode::Power => power_color(
+                power
+                    .by_region
+                    .get(&p.region)
+                    .map(|s| s.factor_permille)
+                    .unwrap_or(1000),
+                *id,
+            ),
         }
         .to_linear()
         .to_f32_array();

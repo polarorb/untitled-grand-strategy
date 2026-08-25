@@ -19,7 +19,7 @@ use std::fs;
 use std::path::Path;
 
 use serde_json::Value;
-use ugs_data::{Alignment, CountryDef, CountryTag, ProvinceDef, ProvinceId, Terrain};
+use ugs_data::{Alignment, CountryDef, CountryTag, DepositKind, ProvinceDef, ProvinceId, RegionDef, RegionId, Terrain};
 
 mod rasters;
 
@@ -508,6 +508,9 @@ fn main() {
     println!("countries: {}", country_defs.len());
 
     // --- Write outputs ---------------------------------------------------
+    let (region_of, region_defs) = build_regions(&provinces, &enriched);
+    let deposits_of = assign_deposits(&provinces, &tool_dir.join("deposits_1950.csv"));
+
     let province_defs: Vec<ProvinceDef> = provinces
         .iter()
         .zip(&enriched)
@@ -519,6 +522,8 @@ fn main() {
             center: p.center,
             population_k: e.population_k,
             urban_k: e.urban_k,
+            region: region_of[&p.id],
+            deposits: deposits_of.get(&p.id).cloned().unwrap_or_default(),
             adjacent: adjacency[(p.id - 1) as usize]
                 .iter()
                 .map(|&i| ProvinceId(i))
@@ -542,6 +547,14 @@ fn main() {
         format!("{header}{}", ron::ser::to_string_pretty(&country_defs, pretty).unwrap()),
     )
     .unwrap();
+
+    let regions_path = root.join("assets/data/scenario/1950/regions.ron");
+    fs::write(
+        &regions_path,
+        format!("{header}{}", ron::ser::to_string_pretty(&region_defs, ron::ser::PrettyConfig::new().depth_limit(2)).unwrap()),
+    )
+    .unwrap();
+    println!("regions: {}", region_defs.len());
 
     fs::create_dir_all(root.join("assets/map")).unwrap();
     let geo_path = root.join("assets/map/world.geo.ron");
@@ -933,4 +946,126 @@ fn extract_country_borders(provinces: &[Prov]) -> Vec<Vec<(f32, f32)>> {
         }
     }
     polylines
+}
+
+// --- Economic regions & deposits ----------------------------------------
+
+/// Cluster provinces into economic regions: per country, bucket by
+/// 15-degree spatial cells, merging small buckets (<3 provinces) into the
+/// nearest same-country bucket. Region name = most populous member.
+fn build_regions(
+    provinces: &[Prov],
+    enriched: &[Enriched],
+) -> (BTreeMap<u32, RegionId>, Vec<RegionDef>) {
+    // country -> cell -> province indices (BTreeMaps for determinism).
+    let mut buckets: BTreeMap<&str, BTreeMap<(i32, i32), Vec<usize>>> = BTreeMap::new();
+    for (i, p) in provinces.iter().enumerate() {
+        let cell = ((p.center.0 / 15.0).floor() as i32, (p.center.1 / 15.0).floor() as i32);
+        buckets
+            .entry(p.owner.as_str())
+            .or_default()
+            .entry(cell)
+            .or_default()
+            .push(i);
+    }
+
+    let centroid = |members: &[usize]| -> (f32, f32) {
+        let n = members.len() as f32;
+        let (sx, sy) = members.iter().fold((0.0, 0.0), |(sx, sy), &i| {
+            (sx + provinces[i].center.0, sy + provinces[i].center.1)
+        });
+        (sx / n, sy / n)
+    };
+
+    let mut region_of: BTreeMap<u32, RegionId> = BTreeMap::new();
+    let mut region_defs: Vec<RegionDef> = Vec::new();
+    for (_country, cells) in buckets {
+        // Merge undersized cells into the nearest sizable same-country cell.
+        let mut merged: Vec<Vec<usize>> = Vec::new();
+        let (big, small): (Vec<_>, Vec<_>) = cells.into_values().partition(|v| v.len() >= 3);
+        merged.extend(big);
+        for orphan in small {
+            if merged.is_empty() {
+                merged.push(orphan);
+                continue;
+            }
+            let (ox, oy) = centroid(&orphan);
+            let nearest = merged
+                .iter()
+                .enumerate()
+                .min_by(|(_, a), (_, b)| {
+                    let da = {
+                        let (x, y) = centroid(a);
+                        (x - ox).powi(2) + (y - oy).powi(2)
+                    };
+                    let db = {
+                        let (x, y) = centroid(b);
+                        (x - ox).powi(2) + (y - oy).powi(2)
+                    };
+                    da.total_cmp(&db)
+                })
+                .map(|(i, _)| i)
+                .unwrap();
+            merged[nearest].extend(orphan);
+        }
+        for members in merged {
+            let id = RegionId((region_defs.len() + 1) as u16);
+            let name_idx = members
+                .iter()
+                .max_by_key(|&&i| enriched[i].population_k)
+                .copied()
+                .unwrap();
+            region_defs.push(RegionDef {
+                id,
+                name: provinces[name_idx].name.clone(),
+            });
+            for i in members {
+                region_of.insert(provinces[i].id, id);
+            }
+        }
+    }
+    (region_of, region_defs)
+}
+
+/// Assign hand-authored deposits to the nearest province by center distance.
+fn assign_deposits(
+    provinces: &[Prov],
+    csv_path: &Path,
+) -> BTreeMap<u32, Vec<(DepositKind, u32)>> {
+    let text = fs::read_to_string(csv_path)
+        .unwrap_or_else(|e| panic!("cannot read {}: {e}", csv_path.display()));
+    let mut out: BTreeMap<u32, Vec<(DepositKind, u32)>> = BTreeMap::new();
+    for (i, line) in text.lines().enumerate() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') || line.starts_with("kind,") {
+            continue;
+        }
+        let cols: Vec<&str> = line.split(',').collect();
+        assert!(cols.len() >= 4, "deposits_1950.csv line {}", i + 1);
+        let kind = match cols[0].trim() {
+            "Coal" => DepositKind::Coal,
+            "Oil" => DepositKind::Oil,
+            "Iron" => DepositKind::Iron,
+            "Uranium" => DepositKind::Uranium,
+            other => panic!("unknown deposit kind {other}"),
+        };
+        let (lon, lat): (f32, f32) = (cols[1].parse().unwrap(), cols[2].parse().unwrap());
+        let size: u32 = cols[3].parse().unwrap();
+        let nearest = provinces
+            .iter()
+            .min_by(|a, b| {
+                let da = (a.center.0 - lon).powi(2) + (a.center.1 - lat).powi(2);
+                let db = (b.center.0 - lon).powi(2) + (b.center.1 - lat).powi(2);
+                da.total_cmp(&db)
+            })
+            .unwrap();
+        out.entry(nearest.id).or_default().push((kind, size));
+        println!(
+            "  deposit {} -> {} ({})",
+            cols.get(4).unwrap_or(&"?"),
+            nearest.name,
+            nearest.owner
+        );
+    }
+    out
 }

@@ -7,6 +7,32 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — Resources, deposits, and the unelectrified world
+
+Step 2 of the economy build order
+([design doc](design/systems/resources-and-grids.md)): the world now has
+**243 economic regions** (spatial clustering of provinces, never crossing
+a country border), **51 hand-placed 1950 resource deposits** — Donbas and
+Ruhr coal, Ghawar and Baku oil, Shinkolobwe uranium correctly in the
+Belgian Congo — and monthly **national balances** for grain, coal, oil,
+and steel plus **regional electricity** where shortage softly throttles
+(never below 50%, per the research).
+
+The new Power map mode is the payoff: press M twice and the 1950 energy
+map appears — the American/European/Soviet industrial cores green, the
+entire decolonizing world red. Nobody scripted that; it falls out of
+industry distribution and urban population. Grain comes from rural
+cohorts × terrain, so the demography system now feeds the economy — the
+first real inter-system dependency. Uranium accumulates into national
+stockpiles, inert until the weapons-program chain lands.
+
+Amusing bug from nearest-province deposit assignment: Saudi oil initially
+went to Bahrain, Katanga's uranium to Northern Rhodesia, and Lorraine's
+iron to Luxembourg — all fixed by nudging coordinates, but a good
+reminder that "nearest center" and "inside the polygon" are different
+questions. 27 tests green, including "the unelectrified world should
+exist" (>20 regions at full power AND >20 starved).
+
 ## 2026-08-25 — First mechanics: demography lands
 
 The economy research locked "population is the universal denominator" as

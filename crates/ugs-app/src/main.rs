@@ -125,10 +125,18 @@ fn main() {
             Ok("game") => AppState::InGame,
             _ => AppState::MainMenu,
         })
-        .insert_resource(GameSpeed {
-            paused: true,
-            level: 1,
-            accumulator: 0.0,
+        // Dev shortcut: UGS_SPEED=1..5 boots unpaused at that speed.
+        .insert_resource(match std::env::var("UGS_SPEED").ok().and_then(|v| v.parse::<u8>().ok()) {
+            Some(level) => GameSpeed {
+                paused: false,
+                level: level.clamp(1, 5),
+                accumulator: 0.0,
+            },
+            None => GameSpeed {
+                paused: true,
+                level: 1,
+                accumulator: 0.0,
+            },
         })
         .insert_resource(ClearColor(Color::srgb(0.09, 0.12, 0.16))) // ocean
         .insert_resource(world)
@@ -159,7 +167,11 @@ fn dev_auto_screenshot(mut frames: Local<u32>, mut done: Local<bool>, mut comman
         return;
     };
     *frames += 1;
-    if *frames == 120 {
+    let target: u32 = std::env::var("UGS_SHOT_FRAMES")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(120);
+    if *frames == target {
         commands.spawn(Screenshot::primary_window()).observe(save_to_disk(path));
         *done = true;
     }
