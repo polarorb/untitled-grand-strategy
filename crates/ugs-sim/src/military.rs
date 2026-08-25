@@ -62,6 +62,18 @@ pub mod tuning {
     }
 }
 
+/// 1 -> "1ST", 2 -> "2ND", 13 -> "13TH".
+fn ordinal_words(n: u64) -> String {
+    let suffix = match (n % 10, n % 100) {
+        (1, 11) | (2, 12) | (3, 13) => "TH",
+        (1, _) => "ST",
+        (2, _) => "ND",
+        (3, _) => "RD",
+        _ => "TH",
+    };
+    format!("{n}{suffix}")
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Archetype {
     Infantry,
@@ -96,6 +108,14 @@ pub struct Formation {
     pub owner: CountryTag,
     pub archetype: Archetype,
     pub location: ProvinceId,
+    /// Vic2's lesson: a division raised from a named place is never
+    /// magic. Casualties debit this province's real population.
+    pub home: ProvinceId,
+    /// "3RD SEOUL INFANTRY" — numbered per home province at raising.
+    pub name: String,
+    /// Where this formation stood before its last move (drawn as a
+    /// movement arrow while `move_cooldown` runs).
+    pub last_location: Option<ProvinceId>,
     /// Fighting spirit, permille. Recovers fast; breaking it wins battles.
     pub cohesion: u64,
     /// Men and equipment, permille. Dies slowly; hitting zero destroys.
@@ -201,6 +221,64 @@ impl Military {
         id
     }
 
+    /// Raise a division from a home province, numbered and named after
+    /// it ("2ND BUSAN ARMOR").
+    #[allow(clippy::too_many_arguments)]
+    pub fn raise(
+        &mut self,
+        data: &ugs_data::ScenarioData,
+        owner: CountryTag,
+        archetype: Archetype,
+        location: ProvinceId,
+        home: ProvinceId,
+        quality: u64,
+    ) -> FormationId {
+        let ordinal = self
+            .formations
+            .values()
+            .filter(|f| f.owner == owner && f.home == home)
+            .count() as u64
+            + 1;
+        let place = data
+            .provinces
+            .get(&home)
+            .map(|p| p.name.to_uppercase())
+            .unwrap_or_else(|| owner.0.clone());
+        let kind = match archetype {
+            Archetype::Infantry => "INFANTRY",
+            Archetype::Motorized => "MOTORIZED",
+            Archetype::Armor => "ARMOR",
+        };
+        let name = format!("{} {place} {kind}", ordinal_words(ordinal));
+        self.spawn(Formation {
+            owner,
+            archetype,
+            location,
+            home,
+            name,
+            last_location: None,
+            cohesion: 1000,
+            strength: 1000,
+            quality,
+            move_cooldown: 0,
+        })
+    }
+
+    /// The most populous province a country owns — where its
+    /// expeditionary divisions are raised from.
+    pub fn heartland_of(
+        data: &ugs_data::ScenarioData,
+        owner: &CountryTag,
+        fallback: ProvinceId,
+    ) -> ProvinceId {
+        data.provinces
+            .values()
+            .filter(|p| &p.owner == owner)
+            .max_by_key(|p| (p.population_k, std::cmp::Reverse(p.id.0)))
+            .map(|p| p.id)
+            .unwrap_or(fallback)
+    }
+
     pub fn has_offered_armistice(&self, country: &CountryTag, enemy: &CountryTag) -> bool {
         self.armistice_offers
             .iter()
@@ -255,7 +333,7 @@ pub fn update_military(
     clock: Res<SimClock>,
     scenario: Option<Res<SimScenario>>,
     player: Res<PlayerCountry>,
-    demo: Res<crate::demography::Demographics>,
+    mut demo: ResMut<crate::demography::Demographics>,
     mut rng: ResMut<SimRng>,
     mut military: ResMut<Military>,
     mut fired: ResMut<crate::events::FiredEvents>,
@@ -271,15 +349,14 @@ pub fn update_military(
                 continue;
             };
             for _ in 0..entry.divisions {
-                military.spawn(Formation {
-                    owner: entry.owner.clone(),
-                    archetype: Archetype::parse(&entry.archetype),
-                    location: province,
-                    cohesion: 1000,
-                    strength: 1000,
-                    quality: entry.quality as u64,
-                    move_cooldown: 0,
-                });
+                military.raise(
+                    data,
+                    entry.owner.clone(),
+                    Archetype::parse(&entry.archetype),
+                    province,
+                    province,
+                    entry.quality as u64,
+                );
             }
         }
         // Seed manpower pools from the real populations: the army is no
@@ -525,7 +602,8 @@ pub fn update_military(
             defender_home,
         });
 
-        let apply = |military: &mut Military, ids: &[FormationId], total: u64| {
+        let mut debits: Vec<(ProvinceId, u64)> = Vec::new();
+        let mut apply = |military: &mut Military, ids: &[FormationId], total: u64| {
             if ids.is_empty() {
                 return;
             }
@@ -536,11 +614,25 @@ pub fn update_military(
                 f.cohesion = f.cohesion.saturating_sub(per);
                 let strength_loss = (per / STRENGTH_DAMAGE_DIVISOR).max(1).min(f.strength);
                 f.strength -= strength_loss;
+                debits.push((f.home, strength_loss * MEN_PER_STRENGTH_POINT));
                 *military.casualties.entry(owner).or_default() += strength_loss;
             }
         };
         apply(&mut military, side_a, damage_to_a);
         apply(&mut military, side_b, damage_to_b);
+        // War dead come off the home province's books: rural first (the
+        // armies of 1950 were drafted off farms), then urban, then
+        // educated.
+        for (home, men) in debits {
+            if let Some(c) = demo.provinces.get_mut(&home) {
+                let from_rural = men.min(c.rural);
+                c.rural -= from_rural;
+                let rest = men - from_rural;
+                let from_urban = rest.min(c.urban);
+                c.urban -= from_urban;
+                c.educated = c.educated.saturating_sub(rest - from_urban);
+            }
+        }
     }
     military.active_battles = battle_views;
 
@@ -587,6 +679,7 @@ pub fn update_military(
             (Some(dest), s) if s > 0 => {
                 let dest = *dest;
                 let f = military.formations.get_mut(&id).unwrap();
+                f.last_location = Some(f.location);
                 f.location = dest;
                 f.move_cooldown = 2;
             }
@@ -682,6 +775,7 @@ pub fn update_military(
         if let Some(dest) = dest {
             let (_, _, days) = military.formations[&id].archetype.stats();
             let f = military.formations.get_mut(&id).unwrap();
+            f.last_location = Some(f.location);
             f.location = dest;
             f.move_cooldown = days;
         }
@@ -948,6 +1042,20 @@ mod tests {
         assert!(
             log.iter().any(|l| l.contains("FORCES TAKE")),
             "captures logged: {log:?}"
+        );
+        // Divisions carry identity and provenance.
+        let scenario = app.world().resource::<SimScenario>().0.clone();
+        for f in military.formations.values() {
+            assert!(!f.name.is_empty(), "division named");
+            assert!(
+                scenario.provinces.contains_key(&f.home),
+                "home province {:?} exists",
+                f.home
+            );
+        }
+        assert!(
+            military.formations.values().any(|f| f.name.contains("1ST")),
+            "ordinal naming"
         );
         let won: u32 = military.battles_won.values().sum();
         let lost: u32 = military.battles_lost.values().sum();

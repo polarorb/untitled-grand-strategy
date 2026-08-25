@@ -7,6 +7,36 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — Divisions get names, homes, and graves
+
+Second legibility pass, straight from the research's "cheapest
+high-impact change" finding: Victoria 2's soldier POPs. **Every division
+is now raised from a named home province and named after it** — the ROK
+fields the 1ST SEOUL INFANTRY, the KPA the 2ND P'YŎNGYANG ARMOR.
+Expeditionary forces raise from their nation's most populous province,
+so American divisions in Korea carry a hometown too. And it isn't
+cosmetic: **war dead debit the home province's actual population**,
+rural cohort first (the armies of 1950 were drafted off farms). The
+demographic ledger and the casualty ledger are now the same ledger.
+
+Divisions in transit trail **movement arrows** on the map (own forces in
+nation color, enemies dim red) — the last teleport perception gone. The
+battle inspector lists your engaged divisions by name with strength and
+cohesion, which reads less like a spreadsheet and more like a casualty
+list being typed somewhere in a basement.
+
+The war room gained the research's **momentum score**: a -100..+100
+tug-of-war bar per war, decomposed into ground (±40), casualty exchange
+(±30), and the run of battles (±15) — every term printed, EU4-style
+trustworthy, plus a generated verdict ("ASSESSMENT: YOU ARE LOSING --
+THE GROUND WAR RUNS AGAINST YOU") and an amber warning when
+the manpower reserve drops below a quarter of fielded strength.
+
+38 tests green. Still deferred, deliberately: pre-battle forecast
+cards, a real intel stat, and the casualty trend chart.
+
+---
+
 ## 2026-08-25 — No more magic armies: the war becomes readable
 
 The director's complaint, verbatim: *"I want way more info when watching

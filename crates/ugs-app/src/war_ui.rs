@@ -7,7 +7,7 @@ use ugs_sim::events::FiredEvents;
 use ugs_sim::military::Military;
 
 use crate::audio::AudioHandles;
-use crate::map::{project, Selected};
+use crate::map::{project, Selected, WORLD_WRAP};
 use crate::{font, AppState, Fonts, GameSpeed, PlayerNation, World1950};
 use bevy::audio::{PlaybackSettings, Volume};
 use ugs_sim::demography::Demographics;
@@ -111,6 +111,7 @@ impl Plugin for WarUiPlugin {
                 sync_formation_markers,
                 pulse_battle_markers,
                 battle_inspector,
+                draw_movement_arrows,
             )
                 .run_if(in_state(AppState::InGame)),
         );
@@ -468,6 +469,54 @@ fn pulse_battle_markers(
     }
 }
 
+/// Divisions in transit trail an arrow from where they came — no more
+/// teleporting armies. Own moves in nation color, enemy moves dim red.
+fn draw_movement_arrows(
+    military: Res<Military>,
+    world: Res<World1950>,
+    player: Option<Res<PlayerNation>>,
+    mut gizmos: Gizmos,
+) {
+    for f in military.formations.values() {
+        if f.move_cooldown == 0 {
+            continue;
+        }
+        let Some(from_id) = f.last_location else { continue };
+        let (Some(from), Some(to)) = (
+            world.0.provinces.get(&from_id),
+            world.0.provinces.get(&f.location),
+        ) else {
+            continue;
+        };
+        let a = project(from.center.0, from.center.1);
+        let b = project(to.center.0, to.center.1);
+        let is_enemy = player
+            .as_ref()
+            .map(|pl| military.at_war(&pl.0, &f.owner))
+            .unwrap_or(false);
+        let color = if is_enemy {
+            Color::srgba(0.8, 0.25, 0.2, 0.55)
+        } else {
+            let rgb = world
+                .0
+                .countries
+                .get(&f.owner)
+                .map(|c| c.color)
+                .unwrap_or((200, 200, 200));
+            Color::srgba(
+                rgb.0 as f32 / 255.0,
+                rgb.1 as f32 / 255.0,
+                rgb.2 as f32 / 255.0,
+                0.8,
+            )
+        };
+        for offset in [-WORLD_WRAP, 0.0, WORLD_WRAP] {
+            let off = Vec2::new(offset, 0.0);
+            gizmos.arrow_2d(a + off, b + off, color);
+        }
+    }
+}
+
 /// The battle inspector: selecting a contested province opens a full
 /// after-action view — both sides' numbers, the modifier ledger, a
 /// break-time projection, and a one-line "why" diagnosis.
@@ -737,6 +786,42 @@ fn battle_inspector(
                     TextColor(Color::srgb(0.9, 0.75, 0.5)),
                 ));
             }
+            // The player's divisions here, by name — raised somewhere
+            // real, dying somewhere real.
+            if let Some(me) = me {
+                let mut mine: Vec<&ugs_sim::military::Formation> = military
+                    .formations
+                    .values()
+                    .filter(|f| f.location == b.province && &f.owner == me)
+                    .collect();
+                mine.sort_by_key(|f| f.name.clone());
+                if !mine.is_empty() {
+                    p.spawn((
+                        Text::new("YOUR DIVISIONS"),
+                        font(&fonts.mono_bold, 11.0),
+                        TextColor(Color::srgb(0.62, 0.66, 0.70)),
+                    ));
+                    for f in mine.iter().take(8) {
+                        p.spawn((
+                            Text::new(format!(
+                                "{}  STR {}%  COH {}%",
+                                f.name,
+                                f.strength / 10,
+                                f.cohesion / 10
+                            )),
+                            font(&fonts.mono, 10.5),
+                            TextColor(MAIN),
+                        ));
+                    }
+                    if mine.len() > 8 {
+                        p.spawn((
+                            Text::new(format!("AND {} MORE", mine.len() - 8)),
+                            font(&fonts.mono, 10.5),
+                            TextColor(Color::srgb(0.62, 0.66, 0.70)),
+                        ));
+                    }
+                }
+            }
         });
 }
 
@@ -951,6 +1036,13 @@ fn refresh_war_panel(
             font(&fonts.mono, 11.5),
             TextColor(MAIN),
         ));
+        if reserve < fielded / 4 {
+            p.spawn((
+                Text::new("WARNING: MANPOWER RESERVE LOW -- REINFORCEMENT WILL STALL"),
+                font(&fonts.mono_bold, 11.0),
+                TextColor(Color::srgb(0.92, 0.65, 0.25)),
+            ));
+        }
         let won = military.battles_won.get(me).copied().unwrap_or(0);
         let lost = military.battles_lost.get(me).copied().unwrap_or(0);
         let static_days = clock.tick.saturating_sub(military.last_line_change_tick) / 24;
@@ -1017,6 +1109,82 @@ fn refresh_war_panel(
                 )),
                 font(&fonts.mono, 11.0),
                 TextColor(Color::srgb(0.75, 0.78, 0.82)),
+            ));
+            // War momentum: a decomposed -100..+100 tug-of-war score.
+            // Every term is printed — the number must explain itself.
+            let mut occ_net: i64 = 0;
+            for (prov, holder) in &military.occupation {
+                let Some(pr) = world.0.provinces.get(prov) else { continue };
+                if holder == me && pr.owner == enemy {
+                    occ_net += 1;
+                } else if *holder == enemy && &pr.owner == me {
+                    occ_net -= 1;
+                }
+            }
+            let occ_term = (occ_net * 4).clamp(-40, 40);
+            let my_cas = military.casualties.get(me).copied().unwrap_or(0) as i64;
+            let en_cas = military.casualties.get(&enemy).copied().unwrap_or(0) as i64;
+            let ex_term = ((en_cas - my_cas) * 30 / (en_cas + my_cas).max(1)).clamp(-30, 30);
+            let bw = military.battles_won.get(me).copied().unwrap_or(0) as i64;
+            let bl = military.battles_lost.get(me).copied().unwrap_or(0) as i64;
+            let battle_term = ((bw - bl) * 15 / (bw + bl).max(1)).clamp(-15, 15);
+            let momentum = (occ_term + ex_term + battle_term).clamp(-100, 100);
+            let share = (momentum + 100) as f32 / 200.0;
+            p.spawn(Node {
+                width: Val::Percent(100.0),
+                height: Val::Px(8.0),
+                ..default()
+            })
+            .with_children(|bar| {
+                bar.spawn((
+                    Node {
+                        width: Val::Percent(share * 100.0),
+                        height: Val::Percent(100.0),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.30, 0.52, 0.34)),
+                ));
+                bar.spawn((
+                    Node {
+                        width: Val::Percent((1.0 - share) * 100.0),
+                        height: Val::Percent(100.0),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.62, 0.24, 0.20)),
+                ));
+            });
+            p.spawn((
+                Text::new(format!(
+                    "MOMENTUM {momentum:+}   GROUND {occ_term:+}  EXCHANGE {ex_term:+}  BATTLES {battle_term:+}"
+                )),
+                font(&fonts.mono, 10.5),
+                TextColor(Color::srgb(0.75, 0.78, 0.82)),
+            ));
+            let assessment = {
+                let terms = [
+                    (occ_term, "GROUND", "THE GROUND WAR"),
+                    (ex_term, "EXCHANGE", "THE CASUALTY EXCHANGE"),
+                    (battle_term, "BATTLES", "THE RUN OF BATTLES"),
+                ];
+                let dominant = terms.iter().max_by_key(|(v, _, _)| v.abs()).unwrap();
+                if momentum > 15 {
+                    format!("ASSESSMENT: YOU ARE WINNING -- {} FAVORS YOU", dominant.2)
+                } else if momentum < -15 {
+                    format!("ASSESSMENT: YOU ARE LOSING -- {} RUNS AGAINST YOU", dominant.2)
+                } else {
+                    "ASSESSMENT: STALEMATE -- NEITHER SIDE HOLDS THE INITIATIVE".to_string()
+                }
+            };
+            p.spawn((
+                Text::new(assessment),
+                font(&fonts.mono_bold, 11.0),
+                TextColor(if momentum > 15 {
+                    Color::srgb(0.55, 0.8, 0.55)
+                } else if momentum < -15 {
+                    Color::srgb(0.9, 0.5, 0.42)
+                } else {
+                    ACCENT
+                }),
             ));
             p.spawn(Node {
                 column_gap: Val::Px(8.0),

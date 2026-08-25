@@ -102,6 +102,14 @@ counters, a wire-service war ticker, and battle win/loss tallies.
 Enemy figures display as monthly-resampled two-significant-figure
 ranges (display-side hash, sim RNG untouched); own losses are exact.
 
+Divisions have identity: each is raised from a home province and named
+for it ("3RD SEOUL INFANTRY" — expeditionary forces raise from their
+nation's most populous province), and its war dead come off that
+province's actual population, rural cohort first. Moving divisions
+trail arrows on the map. Each war carries a decomposed momentum score
+(ground / exchange / battles, every term visible) with a generated
+assessment line.
+
 ## Sequencing (agreed with the research)
 
 1. **Korea slice**: event system, starter formations from archetypes
@@ -109,8 +117,8 @@ ranges (display-side hash, sim RNG untouched); own losses are exact.
    v1, the June 25 invasion. *Done, including armistice at the line of
    control, manpower pools, and the war-legibility layer.*
 2. Equipment designer + production-line integration.
-3. Manpower policy (conscription laws), readiness states, per-division
-   home provinces with local casualty debits.
+3. Manpower policy (conscription laws), readiness states. *(Home
+   provinces with local casualty debits: done.)*
 4. Intel as a real per-country stat driving estimate width; sighting
    staleness; deniable contingents.
 5. Full logistics solver in theaters.

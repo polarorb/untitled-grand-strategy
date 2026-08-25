@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use ugs_data::{EventDef, EventEffect, EventTrigger, ScenarioData};
 
 use crate::demography::SimScenario;
-use crate::military::{Archetype, Formation, Military, Posture};
+use crate::military::{Archetype, Military, Posture};
 use crate::rng::SimRng;
 use crate::tension::GlobalTension;
 use crate::SimClock;
@@ -86,16 +86,16 @@ fn apply_effects(
                         "Armor" => Archetype::Armor,
                         _ => Archetype::Infantry,
                     };
+                    let home = Military::heartland_of(data, owner, location);
                     for _ in 0..*divisions {
-                        military.spawn(Formation {
-                            owner: owner.clone(),
-                            archetype: arch,
+                        military.raise(
+                            data,
+                            owner.clone(),
+                            arch,
                             location,
-                            cohesion: 1000,
-                            strength: 1000,
-                            quality: *quality as u64,
-                            move_cooldown: 0,
-                        });
+                            home,
+                            *quality as u64,
+                        );
                     }
                 }
             }

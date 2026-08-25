@@ -93,16 +93,22 @@ teletype identity exactly.
   days, per-enemy strength & losses as monthly-resampled 2-sig-fig
   ranges (own losses exact), and THE WIRE — the last 8 ticker lines.
 - **HUD**: standing "ARMY 210k / RESERVE 480k" headline.
+- **Division identity & provenance** (second pass, same day): every
+  division is raised from a named home province ("3RD SEOUL INFANTRY"),
+  expeditionary forces from their nation's most populous province, and
+  war dead debit the home province's actual cohorts — rural first.
+  Divisions in transit trail movement arrows; the battle inspector lists
+  your divisions by name.
+- **War momentum**: a decomposed -100..+100 tug-of-war bar per war
+  (ground ±40, casualty exchange ±30, run of battles ±15 — every term
+  printed) with a generated assessment line and a reserve-low warning.
 
 ## Deferred (validated by research, not yet built)
 
-- Transit/provenance arrows for moving divisions; per-division home
-  provinces with Vic2-style named regiments and local casualty debits.
 - Pre-battle forecast card before committing to an attack.
 - Intel as a real 0-100 per-country stat (grown by front contact/recon,
   decayed by time) driving estimate width; sighting staleness with
   ghost markers for off-front enemy stacks.
-- War momentum score (-100..+100 tug-of-war bar with decomposed terms);
-  cumulative dual-line casualty chart; front strength ribbon.
+- Cumulative dual-line casualty chart; front strength ribbon.
 - Aggregated 30-day "assessment" box naming systemic causes across
   battles.
