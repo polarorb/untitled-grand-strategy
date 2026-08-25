@@ -72,6 +72,7 @@ green, East Germany's plain tricolor), and a historic situation briefing.
 - [Audio — sources, licensing, and direction](research/audio.md)
 - [Military mechanics — unit design and limited war](research/military-mechanics.md)
 - [War legibility — making a war readable while you watch it](research/war-legibility.md)
+- [Nuclear weapons — the program, the brink, and the bomb](research/nuclear-weapons.md)
 - [Geodata sources & licensing](research/geodata.md)
 - [The 1950 sovereignty mapping](research/sovereignty-1950.md)
 

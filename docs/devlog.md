@@ -7,6 +7,42 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — The gun on the wall: researching the nuclear pillar
+
+The game's flagship pillar — escalation & nuclear brinkmanship — has
+been a tension meter and a sketch. Time to design it properly. A
+five-analyst swarm covered genre acquisition mechanics, deterrence and
+use design, sourced historical numbers, war-room UI precedents, and
+crisis/brinkmanship theory (Kahn, Schelling, Tannenwald). Write-up in
+[nuclear weapons research](research/nuclear-weapons.md); the
+[escalation design doc](design/systems/escalation.md) is now
+**designed**, not sketch.
+
+The convergent findings that shaped it: the bomb was an *industrial*
+undertaking (63% of the Manhattan Project was Oak Ridge isotope
+separation; enrichment drew whole-gigawatt blocks — our regional grids
+and uranium deposits can model what no other game has); deterrence
+should key off the rival's *estimate* of your arsenal, not the truth
+(the bomber gap was ~10x wrong, the missile gap saw four real Soviet
+ICBMs against NIEs of hundreds — so parade deception becomes a playable
+covert action); crises get Kahn's *firebreaks* without his 44 rungs,
+with Schelling's "threat that leaves something to chance" as a
+deterministic incident hazard that climbs the ladder while you sit at
+altitude; tactical use is the designed trap (the MacArthur chain — it
+wins the battle and breaks the world); and the failure state follows
+Crawford's rule: no mushroom-cloud spectacle, just the teletype
+printing real city names from our real demography until it garbles
+into TRANSMISSION ENDS, an attribution chain from the command log, and
+the date the peace failed. We do not reward failure.
+
+Historical spine locked with sources: US 299 warheads at campaign
+start (mostly unassembled, in civilian custody) vs 5 Soviet; the
+H-bomb decision lands on day 31 of the campaign; Fuchs is arrested
+day 33. The first implementation phase — programs, facilities on real
+grids, the test arcs, NIE cards — is next.
+
+---
+
 ## 2026-08-25 — Divisions get names, homes, and graves
 
 Second legibility pass, straight from the research's "cheapest
