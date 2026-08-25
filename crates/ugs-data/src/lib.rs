@@ -96,12 +96,35 @@ pub struct ScenarioDef {
     pub description: String,
 }
 
+/// Presentation metadata for the nation-select screen. Researched per
+/// nation as of the scenario start date; flag/portrait images live at
+/// `assets/flags/<TAG>.png` and `assets/leaders/<TAG>.png`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NationMeta {
+    pub tag: CountryTag,
+    /// Proper period name, e.g. "Kingdom of Egypt".
+    pub display_name: String,
+    /// De-facto ruler at scenario start (not ceremonial figurehead).
+    pub leader_name: String,
+    pub leader_title: String,
+    pub government: String,
+    /// Two paragraphs of historic-situation text, second person.
+    pub situation: String,
+    /// Featured in the "interesting picks" quick selector.
+    pub interesting: bool,
+    /// One-line pitch for playing this nation.
+    pub hook: String,
+}
+
 /// Everything loaded from disk for one scenario, validated and cross-linked.
 #[derive(Debug, Clone)]
 pub struct ScenarioData {
     pub scenario: ScenarioDef,
     pub countries: BTreeMap<CountryTag, CountryDef>,
     pub provinces: BTreeMap<ProvinceId, ProvinceDef>,
+    /// Nation-select metadata; may be absent for minor tags (screen shows
+    /// a stats-only fallback).
+    pub nations_meta: BTreeMap<CountryTag, NationMeta>,
 }
 
 impl ScenarioData {
@@ -137,16 +160,38 @@ impl ScenarioData {
             }
         }
 
+        // Nation-select metadata is optional: the directory may not exist
+        // yet, and coverage of minor tags may be partial.
+        let mut nations_meta = BTreeMap::new();
+        let nations_dir = scenario_dir.join("nations");
+        if nations_dir.is_dir() {
+            for entry in read_dir_sorted(&nations_dir)? {
+                let metas: Vec<NationMeta> = load_ron(&entry)?;
+                for meta in metas {
+                    nations_meta.insert(meta.tag.clone(), meta);
+                }
+            }
+        }
+
         let data = Self {
             scenario,
             countries,
             provinces,
+            nations_meta,
         };
         data.validate()?;
         Ok(data)
     }
 
     fn validate(&self) -> Result<(), DataError> {
+        for tag in self.nations_meta.keys() {
+            if !self.countries.contains_key(tag) {
+                return Err(DataError::Validation(format!(
+                    "nation meta references undefined country {:?}",
+                    tag
+                )));
+            }
+        }
         for (tag, c) in &self.countries {
             if !self.provinces.contains_key(&c.capital) {
                 return Err(DataError::Validation(format!(

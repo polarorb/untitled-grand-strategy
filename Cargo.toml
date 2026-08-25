@@ -15,7 +15,8 @@ license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 # Presentation layer only (ugs-app). Sim crates must NOT depend on full bevy.
-bevy = { version = "0.19", default-features = true }
+# jpeg: leader portraits from Wikimedia Commons are JPEGs.
+bevy = { version = "0.19", default-features = true, features = ["jpeg"] }
 # Headless ECS + app scheduling for the simulation core.
 bevy_ecs = "0.19"
 bevy_app = "0.19"
