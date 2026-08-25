@@ -546,6 +546,19 @@ fn main() {
     let geo_path = root.join("assets/map/world.geo.ron");
     fs::write(&geo_path, ron::to_string(&geometry).unwrap()).unwrap();
 
+    // --- Country borders --------------------------------------------------
+    // Precise inter-country boundary polylines from the RAW shared-edge
+    // topology (Natural Earth neighbors share identical vertices), chained
+    // and simplified. Rendered as emphasized border lines by the app.
+    let borders = extract_country_borders(&provinces);
+    let border_path = root.join("assets/map/country_borders.ron");
+    fs::write(&border_path, ron::to_string(&borders).unwrap()).unwrap();
+    println!(
+        "country borders: {} polylines, {} points",
+        borders.len(),
+        borders.iter().map(Vec::len).sum::<usize>()
+    );
+
     println!(
         "wrote {} provinces, {} countries, geometry {:.1} MB",
         province_defs.len(),
@@ -829,4 +842,91 @@ fn enrich_provinces(provinces: &[Prov], tool_dir: &Path) -> Vec<Enriched> {
     }
     println!("terrain distribution: {terrain_counts:?}");
     out
+}
+
+// --- Country border extraction ------------------------------------------
+
+/// Segments of raw ring geometry shared by provinces of DIFFERENT owners,
+/// chained into polylines and simplified. Quantized endpoints are the
+/// matching keys; emitted coordinates are the actual raw vertices.
+fn extract_country_borders(provinces: &[Prov]) -> Vec<Vec<(f32, f32)>> {
+    type Q = (i64, i64);
+    // Segment key -> (owners seen, one representative raw segment).
+    let mut segments: HashMap<(Q, Q), (Vec<&str>, ((f64, f64), (f64, f64)))> = HashMap::new();
+    for p in provinces {
+        for ring in &p.rings_raw {
+            for w in ring.windows(2) {
+                let (a, b) = (w[0], w[1]);
+                let (qa, qb) = (quantize(a), quantize(b));
+                if qa == qb {
+                    continue;
+                }
+                let key = if qa < qb { (qa, qb) } else { (qb, qa) };
+                let entry = segments.entry(key).or_insert_with(|| (Vec::new(), (a, b)));
+                if !entry.0.contains(&p.owner.as_str()) {
+                    entry.0.push(&p.owner);
+                }
+            }
+        }
+    }
+    // Border segments: shared by at least two different owners.
+    let border: HashMap<(Q, Q), ((f64, f64), (f64, f64))> = segments
+        .into_iter()
+        .filter(|(_, (owners, _))| owners.len() >= 2)
+        .map(|(k, (_, seg))| (k, seg))
+        .collect();
+
+    // Endpoint -> attached segment keys, for chaining.
+    let mut at_point: HashMap<Q, Vec<(Q, Q)>> = HashMap::new();
+    for &(qa, qb) in border.keys() {
+        at_point.entry(qa).or_default().push((qa, qb));
+        at_point.entry(qb).or_default().push((qa, qb));
+    }
+
+    let mut visited: std::collections::HashSet<(Q, Q)> = Default::default();
+    let mut polylines = Vec::new();
+    let mut keys: Vec<&(Q, Q)> = border.keys().collect();
+    keys.sort(); // deterministic output
+    for &start in &keys {
+        if visited.contains(start) {
+            continue;
+        }
+        // Walk both directions from this segment while the path is
+        // unbranched (endpoint touches exactly 2 border segments).
+        let mut chain: std::collections::VecDeque<Q> = [start.0, start.1].into_iter().collect();
+        visited.insert(*start);
+        for forward in [true, false] {
+            loop {
+                let tip = if forward {
+                    *chain.back().unwrap()
+                } else {
+                    *chain.front().unwrap()
+                };
+                let candidates = &at_point[&tip];
+                if candidates.len() != 2 {
+                    break; // junction or dead end
+                }
+                let Some(next) = candidates.iter().find(|k| !visited.contains(*k)) else {
+                    break;
+                };
+                visited.insert(*next);
+                let far = if next.0 == tip { next.1 } else { next.0 };
+                if forward {
+                    chain.push_back(far);
+                } else {
+                    chain.push_front(far);
+                }
+            }
+        }
+        // Quantized chain -> raw coordinates via representative segments.
+        let pts: Vec<(f64, f64)> = chain
+            .iter()
+            .map(|q| (q.0 as f64 / ADJ_QUANT, q.1 as f64 / ADJ_QUANT))
+            .collect();
+        let simplified = simplify(&pts, 0.02);
+        if simplified.len() >= 2 {
+            polylines.push(simplified.iter().map(|&(x, y)| (round3(x), round3(y))).collect());
+        }
+    }
+    polylines
 }

@@ -34,9 +34,18 @@ enum MapMode {
     Terrain,
 }
 
+/// Marker for spawned map layer entities (fill + borders).
 #[derive(Component)]
-struct ProvinceMarker {
-    id: ProvinceId,
+struct MapLayer;
+
+/// The shared fill mesh and each province's vertex range within it, for
+/// in-place recoloring (map modes, future ownership changes).
+#[derive(Resource)]
+struct MapFill {
+    mesh: Handle<Mesh>,
+    /// province id -> (first vertex, vertex count)
+    ranges: BTreeMap<u32, (usize, usize)>,
+    total_vertices: usize,
 }
 
 #[derive(Component)]
@@ -70,7 +79,11 @@ pub struct MapPlugin;
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Selected>();
-        app.init_resource::<MapMode>();
+        // Dev shortcut: UGS_MAPMODE=terrain boots in terrain mode.
+        app.insert_resource(match std::env::var("UGS_MAPMODE").as_deref() {
+            Ok("terrain") => MapMode::Terrain,
+            _ => MapMode::Political,
+        });
         // The map underlies both the nation-select screen and the game.
         app.add_systems(OnEnter(AppState::NationSelect), (spawn_map, overview_camera));
         app.add_systems(
@@ -175,63 +188,144 @@ fn terrain_color(terrain: Terrain, province_id: u32) -> Color {
     wobbled(rgb, province_id)
 }
 
-fn build_province_mesh(rings: &[Vec<Vec2>]) -> Option<Mesh> {
+/// Flat quad-strip mesh for a set of polylines (miterless — fine at these
+/// widths). `z` orders the layer; color is baked per-vertex.
+fn build_line_mesh(polylines: &[Vec<Vec2>], width: f32, color: [f32; 4], z: f32) -> Mesh {
+    let half = width / 2.0;
     let mut positions: Vec<[f32; 3]> = Vec::new();
     let mut indices: Vec<u32> = Vec::new();
-    for ring in rings {
-        if ring.len() < 3 {
-            continue;
+    for line in polylines {
+        for seg in line.windows(2) {
+            let (a, b) = (seg[0], seg[1]);
+            let dir = b - a;
+            if dir.length_squared() < 1e-9 {
+                continue;
+            }
+            let n = dir.normalize().perp() * half;
+            let base = positions.len() as u32;
+            positions.extend([
+                [a.x + n.x, a.y + n.y, z],
+                [a.x - n.x, a.y - n.y, z],
+                [b.x + n.x, b.y + n.y, z],
+                [b.x - n.x, b.y - n.y, z],
+            ]);
+            indices.extend([base, base + 1, base + 2, base + 2, base + 1, base + 3]);
         }
-        let flat: Vec<f64> = ring.iter().flat_map(|v| [v.x as f64, v.y as f64]).collect();
-        let Ok(tris) = earcutr::earcut(&flat, &[], 2) else {
-            continue;
-        };
-        let base = positions.len() as u32;
-        positions.extend(ring.iter().map(|v| [v.x, v.y, 0.0]));
-        indices.extend(tris.iter().map(|&i| base + i as u32));
     }
-    if indices.is_empty() {
-        return None;
-    }
-    Some(
-        Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
-            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
-            .with_inserted_indices(Indices::U32(indices)),
-    )
+    let count = positions.len();
+    Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, vec![color; count])
+        .with_inserted_indices(Indices::U32(indices))
 }
 
+/// Build the whole political map as ONE vertex-colored mesh (a draw call
+/// per wrap copy instead of thousands of entities), plus faint province
+/// outlines and emphasized country borders.
 fn spawn_map(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     world: Res<World1950>,
     geometry: Res<WorldGeometry>,
-    existing: Query<Entity, With<ProvinceMarker>>,
+    existing: Query<(), With<MapLayer>>,
 ) {
     if !existing.is_empty() {
-        return; // map already spawned (returned to game from menu)
+        return; // map already spawned
     }
     let data = &world.0;
-    for (id, projected) in &geometry.rings {
+
+    // --- Fill mesh with per-province vertex colors -----------------------
+    let mut positions: Vec<[f32; 3]> = Vec::new();
+    let mut colors: Vec<[f32; 4]> = Vec::new();
+    let mut indices: Vec<u32> = Vec::new();
+    let mut ranges = BTreeMap::new();
+    for (id, rings) in &geometry.rings {
         let Some(p) = data.provinces.get(&ProvinceId(*id)) else {
             continue;
         };
-        if let Some(mesh) = build_province_mesh(projected) {
-            // Three copies for east-west wrap; mesh and material handles are
-            // shared, so clones cost only a Transform (and recoloring one
-            // material recolors all copies).
-            let mesh = meshes.add(mesh);
-            let material = materials.add(owner_color(data, &p.owner, *id));
-            for offset in [-WORLD_WRAP, 0.0, WORLD_WRAP] {
-                commands.spawn((
-                    ProvinceMarker { id: ProvinceId(*id) },
-                    Mesh2d(mesh.clone()),
-                    MeshMaterial2d(material.clone()),
-                    Transform::from_xyz(offset, 0.0, 0.0),
-                ));
+        let color = owner_color(data, &p.owner, *id).to_linear().to_f32_array();
+        let start = positions.len();
+        for ring in rings {
+            if ring.len() < 3 {
+                continue;
             }
+            let flat: Vec<f64> = ring.iter().flat_map(|v| [v.x as f64, v.y as f64]).collect();
+            let Ok(tris) = earcutr::earcut(&flat, &[], 2) else {
+                continue;
+            };
+            let base = positions.len() as u32;
+            positions.extend(ring.iter().map(|v| [v.x, v.y, 0.0]));
+            colors.extend(std::iter::repeat_n(color, ring.len()));
+            indices.extend(tris.iter().map(|&i| base + i as u32));
+        }
+        ranges.insert(*id, (start, positions.len() - start));
+    }
+    let total_vertices = positions.len();
+    let fill_mesh = meshes.add(
+        Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+            .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
+            .with_inserted_indices(Indices::U32(indices)),
+    );
+
+    // --- Border layers ---------------------------------------------------
+    // Province outlines: faint, from the simplified rings (double-drawn on
+    // shared borders, which just deepens them slightly).
+    let outline_lines: Vec<Vec<Vec2>> = geometry
+        .rings
+        .values()
+        .flatten()
+        .filter(|r| r.len() >= 2)
+        .map(|r| {
+            let mut line = r.clone();
+            line.push(r[0]);
+            line
+        })
+        .collect();
+    let outline_mesh = meshes.add(build_line_mesh(
+        &outline_lines,
+        0.7,
+        [0.02, 0.025, 0.03, 0.35],
+        1.0,
+    ));
+
+    // Country borders: precise polylines from mapgen's raw topology.
+    let border_lines: Vec<Vec<Vec2>> =
+        std::fs::read_to_string("assets/map/country_borders.ron")
+            .ok()
+            .and_then(|text| ron::from_str::<Vec<Vec<(f32, f32)>>>(&text).ok())
+            .map(|lines| {
+                lines
+                    .iter()
+                    .map(|line| line.iter().map(|&(lon, lat)| project(lon, lat)).collect())
+                    .collect()
+            })
+            .unwrap_or_default();
+    let border_mesh = meshes.add(build_line_mesh(
+        &border_lines,
+        2.2,
+        [0.015, 0.018, 0.022, 0.9],
+        2.0,
+    ));
+
+    let white = materials.add(Color::WHITE);
+    for offset in [-WORLD_WRAP, 0.0, WORLD_WRAP] {
+        for mesh in [&fill_mesh, &outline_mesh, &border_mesh] {
+            commands.spawn((
+                MapLayer,
+                Mesh2d(mesh.clone()),
+                MeshMaterial2d(white.clone()),
+                Transform::from_xyz(offset, 0.0, 0.0),
+            ));
         }
     }
+
+    commands.insert_resource(MapFill {
+        mesh: fill_mesh,
+        ranges,
+        total_vertices,
+    });
 }
 
 fn spawn_hud(mut commands: Commands, fonts: Res<crate::Fonts>, existing: Query<(), With<TopBarText>>) {
@@ -377,28 +471,34 @@ fn camera_controls(
     transform.translation.x = wrap_x(transform.translation.x);
 }
 
-/// Recolor province materials when the map mode changes.
+/// Recolor the shared fill mesh's vertex colors when the map mode changes.
 fn apply_map_mode(
     mode: Res<MapMode>,
     world: Res<World1950>,
-    provinces: Query<(&ProvinceMarker, &MeshMaterial2d<ColorMaterial>)>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    fill: Option<Res<MapFill>>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     if !mode.is_changed() {
         return;
     }
-    for (marker, material) in &provinces {
-        let Some(p) = world.0.provinces.get(&marker.id) else {
+    let Some(fill) = fill else { return };
+    let Some(mut mesh) = meshes.get_mut(&fill.mesh) else {
+        return;
+    };
+    let mut colors = vec![[0.5, 0.5, 0.5, 1.0]; fill.total_vertices];
+    for (id, (start, len)) in &fill.ranges {
+        let Some(p) = world.0.provinces.get(&ProvinceId(*id)) else {
             continue;
         };
         let color = match *mode {
-            MapMode::Political => owner_color(&world.0, &p.owner, marker.id.0),
-            MapMode::Terrain => terrain_color(p.terrain, marker.id.0),
-        };
-        if let Some(mut m) = materials.get_mut(&material.0) {
-            m.color = color;
+            MapMode::Political => owner_color(&world.0, &p.owner, *id),
+            MapMode::Terrain => terrain_color(p.terrain, *id),
         }
+        .to_linear()
+        .to_f32_array();
+        colors[*start..start + len].fill(color);
     }
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
 }
 
 /// Accumulate real time and convert it into whole sim ticks. Capped per
