@@ -1,40 +1,262 @@
 iso_a3,owner_tag,owner_name,status,notes
-# PROVISIONAL table — being replaced by fully-researched version.
-# Unlisted codes default to independent with tag = adm0_a3.
-RUS,SOV,Union of Soviet Socialist Republics,independent,
-UKR,SOV,Union of Soviet Socialist Republics,republic,
-BLR,SOV,Union of Soviet Socialist Republics,republic,
-EST,SOV,Union of Soviet Socialist Republics,republic,annexed 1940
-LVA,SOV,Union of Soviet Socialist Republics,republic,annexed 1940
-LTU,SOV,Union of Soviet Socialist Republics,republic,annexed 1940
-MDA,SOV,Union of Soviet Socialist Republics,republic,
-GEO,SOV,Union of Soviet Socialist Republics,republic,
-ARM,SOV,Union of Soviet Socialist Republics,republic,
-AZE,SOV,Union of Soviet Socialist Republics,republic,
-KAZ,SOV,Union of Soviet Socialist Republics,republic,
-KGZ,SOV,Union of Soviet Socialist Republics,republic,
-TJK,SOV,Union of Soviet Socialist Republics,republic,
-TKM,SOV,Union of Soviet Socialist Republics,republic,
-UZB,SOV,Union of Soviet Socialist Republics,republic,
-CHN,PRC,People's Republic of China,independent,proclaimed Oct 1949
-TWN,CHT,Republic of China,independent,Nationalist redoubt; holds Hainan to Apr 1950
-DEU,FRG,Federal Republic of Germany,divided,East Laender override to GDR in mapgen
-CZE,CZE,Czechoslovakia,independent,
-SVK,CZE,Czechoslovakia,independent,
-SRB,YUG,Federal People's Republic of Yugoslavia,independent,split from Moscow 1948
-HRV,YUG,Federal People's Republic of Yugoslavia,independent,
-BIH,YUG,Federal People's Republic of Yugoslavia,independent,
-SVN,YUG,Federal People's Republic of Yugoslavia,independent,
-MKD,YUG,Federal People's Republic of Yugoslavia,independent,
-MNE,YUG,Federal People's Republic of Yugoslavia,independent,
-KOS,YUG,Federal People's Republic of Yugoslavia,independent,
-VNM,FRA,French Republic,colony,French Indochina; war ongoing
-LAO,FRA,French Republic,colony,French Indochina
-KHM,FRA,French Republic,colony,French Indochina
-DZA,FRA,French Republic,colony,legally part of metropolitan France
-JPN,JAP,Japan,occupied,US occupation until 1952
-MNG,MON,Mongolian People's Republic,independent,
-ROU,ROM,Romania,independent,
-BGR,BUL,Bulgaria,independent,
-PRK,PRK,Democratic People's Republic of Korea,independent,
-KOR,KOR,Republic of Korea,independent,
+# Jan 1, 1950 sovereignty mapping. Researched with sources 2026-08-25 —
+# see docs/research/sovereignty-1950.md for verification notes.
+# Unlisted adm0_a3 codes default to independent with tag = adm0_a3.
+# GAME DEVIATION from research: JPN maps to JAP (own tag, occupied US
+# client) rather than owner USA, so Japan exists as a future actor;
+# regains sovereignty 1952.
+AFG,AFG,Afghanistan,independent,
+ALB,ALB,Albania,independent,Communist; Soviet-aligned after 1948 Tito split
+DZA,FRA,France,colony,Legally integral departments of metropolitan France
+AND,AND,Andorra,independent,Co-principality (France/Urgell)
+AGO,POR,Portugal,colony,
+ATG,GBR,United Kingdom,colony,Leeward Islands; independent 1981
+ARG,ARG,Argentina,independent,
+ARM,SOV,Soviet Union,independent,Armenian SSR
+AUS,AUS,Australia,independent,Commonwealth dominion; administers Papua & New Guinea
+AUT,AUT,Austria,occupied,Elected govt under four-power Allied occupation until 1955
+AZE,SOV,Soviet Union,independent,Azerbaijan SSR
+BHS,GBR,United Kingdom,colony,Independent 1973
+BHR,GBR,United Kingdom,protectorate,British-protected sheikhdom
+BGD,PAK,Pakistan,independent,East Bengal province of Pakistan until 1971
+BRB,GBR,United Kingdom,colony,Independent 1966
+BLR,SOV,Soviet Union,independent,Byelorussian SSR (separate UN seat)
+BEL,BEL,Belgium,independent,
+BLZ,GBR,United Kingdom,colony,British Honduras
+BEN,FRA,France,colony,French Dahomey (French West Africa)
+BTN,BTN,Bhutan,independent,1949 treaty: India guides foreign relations
+BOL,BOL,Bolivia,independent,
+BIH,YUG,Yugoslavia,independent,Constituent republic of communist Yugoslavia
+BWA,GBR,United Kingdom,protectorate,Bechuanaland Protectorate
+BRA,BRA,Brazil,independent,
+BRN,GBR,United Kingdom,protectorate,British-protected sultanate
+BGR,BGR,Bulgaria,independent,Communist; Soviet bloc
+BFA,FRA,France,colony,Upper Volta (reconstituted 1947; French West Africa)
+BDI,BEL,Belgium,trusteeship,Part of UN trust territory Ruanda-Urundi
+CPV,POR,Portugal,colony,
+KHM,FRA,France,protectorate,Associated State of French Union (Nov 1949); Indochina War ongoing
+CMR,FRA,France,trusteeship,French Cameroons UN trust; small British Cameroons strip under GBR
+CAN,CAN,Canada,independent,Commonwealth dominion; Newfoundland joined Mar 1949
+CAF,FRA,France,colony,Ubangi-Shari (French Equatorial Africa)
+TCD,FRA,France,colony,French Equatorial Africa
+CHL,CHL,Chile,independent,
+CHN,PRC,People's Republic of China,independent,Proclaimed 1 Oct 1949; Hainan Nationalist-held until Apr-May 1950; Tibet de facto autonomous until Oct 1950
+COL,COL,Colombia,independent,
+COM,FRA,France,colony,
+COG,FRA,France,colony,Middle Congo (French Equatorial Africa)
+COD,BEL,Belgium,colony,Belgian Congo
+CRI,CRI,Costa Rica,independent,
+CIV,FRA,France,colony,French West Africa
+HRV,YUG,Yugoslavia,independent,Constituent republic of communist Yugoslavia
+CUB,CUB,Cuba,independent,
+CYP,GBR,United Kingdom,colony,Crown colony; independent 1960
+CZE,CSK,Czechoslovakia,independent,Communist since Feb 1948; Soviet bloc
+DNK,DNK,Denmark,independent,Greenland & Faroes are Danish territories
+DJI,FRA,France,colony,French Somaliland
+DMA,GBR,United Kingdom,colony,Windward Islands
+DOM,DOM,Dominican Republic,independent,
+ECU,ECU,Ecuador,independent,
+EGY,EGY,Egypt,independent,Kingdom; British troops in Suez Canal Zone; condominium over Sudan
+SLV,SLV,El Salvador,independent,
+GNQ,ESP,Spain,colony,Spanish Guinea
+ERI,GBR,United Kingdom,occupied,British administration of ex-Italian colony; federated to Ethiopia 1952
+EST,SOV,Soviet Union,independent,Estonian SSR (annexation unrecognized by US/UK)
+SWZ,GBR,United Kingdom,protectorate,Swaziland
+ETH,ETH,Ethiopia,independent,
+FJI,GBR,United Kingdom,colony,Independent 1970
+FIN,FIN,Finland,independent,Neutral; 1948 treaty with USSR
+FRA,FRA,France,independent,Fourth Republic; administers Saar protectorate
+GAB,FRA,France,colony,French Equatorial Africa
+GMB,GBR,United Kingdom,colony,
+GEO,SOV,Soviet Union,independent,Georgian SSR
+DEU,FRG,West Germany (FRG),divided,East Laender override to GDR in mapgen; Saar French protectorate
+GHA,GBR,United Kingdom,colony,Gold Coast; independent 1957
+GRC,GRC,Greece,independent,Civil war ended Oct 1949; US-aligned
+GRD,GBR,United Kingdom,colony,Windward Islands
+GTM,GTM,Guatemala,independent,
+GIN,FRA,France,colony,French West Africa
+GNB,POR,Portugal,colony,Portuguese Guinea
+GUY,GBR,United Kingdom,colony,British Guiana; independent 1966
+HTI,HTI,Haiti,independent,
+HND,HND,Honduras,independent,
+HUN,HUN,Hungary,independent,Communist; Soviet bloc
+ISL,ISL,Iceland,independent,Republic since 1944; NATO founding member
+IND,IND,India,dominion,Independent 1947; republic 26 Jan 1950
+IDN,IDN,Indonesia,independent,Sovereignty transferred 27 Dec 1949; West New Guinea remained Dutch
+IRN,IRN,Iran,independent,
+IRQ,IRQ,Iraq,independent,Hashemite kingdom; British treaty ties
+IRL,IRL,Ireland,independent,Republic; left Commonwealth Apr 1949
+ISR,ISR,Israel,independent,Independent May 1948; 1949 armistice lines
+ITA,ITA,Italy,independent,Republic; Trieste FTT excluded (Zone A/B)
+JAM,GBR,United Kingdom,colony,Independent 1962
+JPN,JAP,Japan,occupied,US-led SCAP occupation until 1952 (game models JAP as own tag)
+JOR,JOR,Jordan,independent,Independent 1946; annexed West Bank Apr 1950
+KAZ,SOV,Soviet Union,independent,Kazakh SSR
+KEN,GBR,United Kingdom,colony,
+KIR,GBR,United Kingdom,colony,Gilbert Islands
+PRK,PRK,North Korea (DPRK),independent,Founded Sep 1948; Soviet-aligned
+KOR,KOR,South Korea (ROK),independent,Founded Aug 1948; US-aligned
+KWT,GBR,United Kingdom,protectorate,British-protected sheikhdom
+KGZ,SOV,Soviet Union,independent,Kirghiz SSR
+LAO,FRA,France,protectorate,Associated State of French Union (Jul 1949)
+LVA,SOV,Soviet Union,independent,Latvian SSR (annexation unrecognized by US/UK)
+LBN,LBN,Lebanon,independent,Independent 1943
+LSO,GBR,United Kingdom,protectorate,Basutoland
+LBR,LBR,Liberia,independent,
+LBY,GBR,United Kingdom,occupied,British admin + French Fezzan; independence set for 1951
+LIE,LIE,Liechtenstein,independent,
+LTU,SOV,Soviet Union,independent,Lithuanian SSR (annexation unrecognized by US/UK)
+LUX,LUX,Luxembourg,independent,
+MDG,FRA,France,colony,1947 uprising suppressed
+MWI,GBR,United Kingdom,protectorate,Nyasaland
+MYS,GBR,United Kingdom,colony,Federation of Malaya + Sarawak & North Borneo; Emergency ongoing
+MDV,GBR,United Kingdom,protectorate,British-protected sultanate
+MLI,FRA,France,colony,French Sudan (French West Africa)
+MLT,GBR,United Kingdom,colony,
+MHL,USA,United States,trusteeship,UN Trust Territory of the Pacific Islands
+MRT,FRA,France,colony,French West Africa
+MUS,GBR,United Kingdom,colony,
+MEX,MEX,Mexico,independent,
+FSM,USA,United States,trusteeship,UN Trust Territory of the Pacific Islands
+MDA,SOV,Soviet Union,independent,Moldavian SSR
+MCO,MCO,Monaco,independent,
+MNG,MNG,Mongolia,independent,Soviet satellite; recognized by USSR/PRC only
+MNE,YUG,Yugoslavia,independent,Constituent republic of communist Yugoslavia
+MAR,FRA,France,protectorate,French protectorate; Spanish zones + Tangier separate
+MOZ,POR,Portugal,colony,
+MMR,MMR,Burma,independent,Independent Jan 1948; internal insurgencies
+NAM,ZAF,South Africa,occupied,South West Africa; ZAF refused UN trusteeship
+NRU,AUS,Australia,trusteeship,UN trust administered by Australia
+NPL,NPL,Nepal,independent,
+NLD,NLD,Netherlands,independent,Retains West New Guinea and Suriname/Antilles
+NZL,NZL,New Zealand,independent,Commonwealth dominion
+NIC,NIC,Nicaragua,independent,
+NER,FRA,France,colony,French West Africa
+NGA,GBR,United Kingdom,colony,Independent 1960
+MKD,YUG,Yugoslavia,independent,Constituent republic of communist Yugoslavia
+NOR,NOR,Norway,independent,NATO founding member
+OMN,OMN,Muscat and Oman,independent,Sultanate; treaty-bound to Britain
+PAK,PAK,Pakistan,dominion,Independent 1947; includes East Bengal
+PLW,USA,United States,trusteeship,UN Trust Territory of the Pacific Islands
+PSE,JOR,Jordan,occupied,West Bank Jordanian-held; Gaza under Egyptian administration
+PAN,PAN,Panama,independent,US-controlled Canal Zone
+PNG,AUS,Australia,colony,Papua (AUS) + New Guinea UN trusteeship (AUS)
+PRY,PRY,Paraguay,independent,
+PER,PER,Peru,independent,
+PHL,PHL,Philippines,independent,Independent from USA 1946; Huk rebellion
+POL,POL,Poland,independent,Communist; Soviet bloc
+PRT,POR,Portugal,independent,Salazar regime; NATO founding member
+QAT,GBR,United Kingdom,protectorate,British-protected sheikhdom
+ROU,ROU,Romania,independent,Communist; Soviet bloc
+RUS,SOV,Soviet Union,independent,Russian SFSR; core of USSR
+RWA,BEL,Belgium,trusteeship,Part of UN trust territory Ruanda-Urundi
+KNA,GBR,United Kingdom,colony,Leeward Islands
+LCA,GBR,United Kingdom,colony,Windward Islands
+VCT,GBR,United Kingdom,colony,Windward Islands
+WSM,NZL,New Zealand,trusteeship,Western Samoa UN trust; independent 1962
+SMR,SMR,San Marino,independent,
+STP,POR,Portugal,colony,
+SAU,SAU,Saudi Arabia,independent,
+SEN,FRA,France,colony,French West Africa (capital Dakar)
+SRB,YUG,Yugoslavia,independent,Seat of Tito's government
+SYC,GBR,United Kingdom,colony,
+SLE,GBR,United Kingdom,colony,
+SGP,GBR,United Kingdom,colony,Crown colony separate from Malaya
+SVK,CSK,Czechoslovakia,independent,Communist since Feb 1948; Soviet bloc
+SVN,YUG,Yugoslavia,independent,Constituent republic of communist Yugoslavia
+SLB,GBR,United Kingdom,protectorate,British Solomon Islands Protectorate
+SOM,ITA,Italy,trusteeship,UN trust assigned to Italy Nov 1949; British admin until Apr 1950
+ZAF,ZAF,South Africa,independent,Commonwealth dominion; apartheid since 1948
+SSD,GBR,United Kingdom,colony,Part of Anglo-Egyptian Sudan condominium
+ESP,ESP,Spain,independent,Franco regime; diplomatically isolated
+LKA,LKA,Ceylon,dominion,Commonwealth dominion since Feb 1948
+SDN,GBR,United Kingdom,colony,Anglo-Egyptian condominium; independent 1956
+SUR,NLD,Netherlands,colony,Dutch Guiana; independent 1975
+SWE,SWE,Sweden,independent,Neutral
+CHE,CHE,Switzerland,independent,Neutral
+SYR,SYR,Syria,independent,Independent 1946; three military coups in 1949
+TWN,ROC,Republic of China,independent,Nationalist govt in Taipei Dec 1949; holds Taiwan + Hainan (to Apr 1950)
+TJK,SOV,Soviet Union,independent,Tajik SSR
+TZA,GBR,United Kingdom,trusteeship,Tanganyika UN trust; Zanzibar separate protectorate
+THA,THA,Thailand,independent,
+TLS,POR,Portugal,colony,Portuguese Timor
+TGO,FRA,France,trusteeship,French Togoland UN trust
+TON,GBR,United Kingdom,protectorate,Self-governing kingdom under British protection
+TTO,GBR,United Kingdom,colony,Independent 1962
+TUN,FRA,France,protectorate,Beylical protectorate; independent 1956
+TUR,TUR,Turkey,independent,US-aligned (Truman Doctrine); joined NATO 1952
+TKM,SOV,Soviet Union,independent,Turkmen SSR
+TUV,GBR,United Kingdom,colony,Ellice Islands
+UGA,GBR,United Kingdom,protectorate,Uganda Protectorate
+UKR,SOV,Soviet Union,independent,Ukrainian SSR (separate UN seat)
+ARE,GBR,United Kingdom,protectorate,Trucial States
+GBR,GBR,United Kingdom,independent,
+USA,USA,United States,independent,
+URY,URY,Uruguay,independent,
+UZB,SOV,Soviet Union,independent,Uzbek SSR
+VUT,GBR,United Kingdom,colony,New Hebrides Anglo-French condominium
+VAT,VAT,Vatican City,independent,
+VEN,VEN,Venezuela,independent,
+VNM,FRA,France,divided,State of Vietnam vs DRV; First Indochina War ongoing
+YEM,YEM,Yemen,independent,Mutawakkilite Kingdom (north); Aden British
+ZMB,GBR,United Kingdom,protectorate,Northern Rhodesia
+ZWE,GBR,United Kingdom,colony,Southern Rhodesia; self-governing since 1923
+KOS,YUG,Yugoslavia,independent,Autonomous region within Serbia
+ESH,ESP,Spain,colony,Spanish Sahara
+# Natural Earth-specific admin-0 codes (not ISO members):
+SOL,GBR,United Kingdom,protectorate,British Somaliland protectorate; independent/united 1960
+CYN,GBR,United Kingdom,colony,Northern Cyprus — part of Cyprus crown colony in 1950
+# Dependencies & NE-specific codes (1950 owners):
+ABW,NLD,Netherlands,colony,Netherlands Antilles
+CUW,NLD,Netherlands,colony,Netherlands Antilles
+SXM,NLD,Netherlands,colony,Netherlands Antilles
+AIA,GBR,United Kingdom,colony,Leeward Islands
+ALD,FIN,Finland,independent,Aland autonomous province
+ASM,USA,United States,colony,American Samoa
+ATC,AUS,Australia,colony,Ashmore & Cartier
+ATF,FRA,France,colony,French Southern Territories
+BLM,FRA,France,colony,Guadeloupe dependency
+BMU,GBR,United Kingdom,colony,
+CLP,FRA,France,colony,Clipperton
+COK,NZL,New Zealand,colony,Cook Islands
+CSI,AUS,Australia,colony,Coral Sea Islands
+CYM,GBR,United Kingdom,colony,Cayman Islands (Jamaica dependency)
+ESB,GBR,United Kingdom,colony,Part of Cyprus crown colony in 1950
+WSB,GBR,United Kingdom,colony,Part of Cyprus crown colony in 1950
+FLK,GBR,United Kingdom,colony,Falkland Islands
+FRO,DNK,Denmark,independent,Faroe Islands home rule 1948
+GGY,GBR,United Kingdom,independent,Crown dependency
+JEY,GBR,United Kingdom,independent,Crown dependency
+IMN,GBR,United Kingdom,independent,Crown dependency
+GIB,GBR,United Kingdom,colony,
+GRL,DNK,Denmark,colony,Colony until 1953 integration
+GUM,USA,United States,colony,Organic Act 1950
+HKG,GBR,United Kingdom,colony,Crown colony
+HMD,AUS,Australia,colony,Heard & McDonald
+IOA,GBR,United Kingdom,colony,Christmas & Cocos under Singapore until 1955/58
+IOT,GBR,United Kingdom,colony,Chagos part of Mauritius colony
+KAB,SOV,Soviet Union,independent,Baikonur area (Kazakh SSR)
+KAS,IND,India,occupied,Siachen/Kashmir disputed with Pakistan
+MAC,POR,Portugal,colony,Macau
+MAF,FRA,France,colony,Guadeloupe dependency
+MNP,USA,United States,trusteeship,UN Trust Territory of the Pacific Islands
+MSR,GBR,United Kingdom,colony,Leeward Islands
+NCL,FRA,France,colony,New Caledonia
+NFK,AUS,Australia,colony,Norfolk Island
+NIU,NZL,New Zealand,colony,Niue
+PCN,GBR,United Kingdom,colony,Pitcairn
+PGA,ROC,Republic of China,occupied,Itu Aba garrison; Spratlys disputed
+PRI,USA,United States,colony,Commonwealth constitution 1952
+PSX,JOR,Jordan,occupied,West Bank (NE code); Gaza split TODO
+PYF,FRA,France,colony,French Oceania
+SAH,ESP,Spain,colony,Spanish Sahara (NE code)
+SDS,GBR,United Kingdom,colony,Anglo-Egyptian Sudan (South Sudan NE code)
+SGS,GBR,United Kingdom,colony,South Georgia
+SHN,GBR,United Kingdom,colony,St Helena
+SPM,FRA,France,colony,St Pierre & Miquelon
+TCA,GBR,United Kingdom,colony,Turks & Caicos (Jamaica dependency)
+UMI,USA,United States,colony,US minor outlying islands
+USG,USA,United States,occupied,Guantanamo Bay lease
+VGB,GBR,United Kingdom,colony,British Virgin Islands
+VIR,USA,United States,colony,US Virgin Islands
+WLF,FRA,France,colony,Wallis & Futuna

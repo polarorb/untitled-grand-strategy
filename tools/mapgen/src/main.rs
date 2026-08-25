@@ -47,7 +47,7 @@ fn notable_countries() -> BTreeMap<&'static str, CountryMeta> {
         ("GBR", (WesternBloc, (-0.13, 51.51), 75, 40, false)),
         ("FRA", (WesternBloc, (2.35, 48.86), 60, 30, false)),
         ("PRC", (EasternBloc, (116.41, 39.90), 60, 15, false)),
-        ("CHT", (WesternBloc, (121.56, 25.03), 50, 3, false)), // ROC on Taiwan
+        ("ROC", (WesternBloc, (121.56, 25.03), 50, 3, false)), // Nationalists on Taiwan
         ("PRK", (EasternBloc, (125.75, 39.03), 70, 8, false)),
         ("KOR", (WesternBloc, (126.98, 37.57), 55, 5, false)),
         ("FRG", (WesternBloc, (7.10, 50.73), 60, 25, false)), // Bonn
@@ -59,12 +59,12 @@ fn notable_countries() -> BTreeMap<&'static str, CountryMeta> {
         ("NLD", (WesternBloc, (4.90, 52.37), 70, 12, false)),
         ("BEL", (WesternBloc, (4.35, 50.85), 70, 12, false)),
         ("POL", (EasternBloc, (21.01, 52.23), 60, 15, false)),
-        ("CZE", (EasternBloc, (14.42, 50.09), 65, 15, false)), // Czechoslovakia
+        ("CSK", (EasternBloc, (14.42, 50.09), 65, 15, false)), // Czechoslovakia
         ("HUN", (EasternBloc, (19.04, 47.50), 60, 8, false)),
-        ("ROM", (EasternBloc, (26.10, 44.43), 60, 8, false)),
-        ("BUL", (EasternBloc, (23.32, 42.70), 60, 5, false)),
+        ("ROU", (EasternBloc, (26.10, 44.43), 60, 8, false)),
+        ("BGR", (EasternBloc, (23.32, 42.70), 60, 5, false)),
         ("ALB", (EasternBloc, (19.82, 41.33), 55, 1, false)),
-        ("MON", (EasternBloc, (106.92, 47.92), 60, 1, false)),
+        ("MNG", (EasternBloc, (106.92, 47.92), 60, 1, false)),
         ("YUG", (NonAligned, (20.46, 44.82), 60, 10, false)), // Tito-Stalin split '48
         ("IND", (NonAligned, (77.21, 28.61), 60, 15, false)),
     ])
