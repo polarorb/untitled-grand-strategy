@@ -76,6 +76,22 @@ fn project(lon: f32, lat: f32) -> Vec2 {
     Vec2::new((lon - 127.3) * 60.0, (lat - 37.5) * 60.0)
 }
 
+/// One full world circumference in world units. The map wraps east-west:
+/// the world is rendered at offsets {-WRAP, 0, +WRAP} and the camera x is
+/// wrapped modulo this, so panning across the Pacific is seamless.
+const WORLD_WRAP: f32 = 360.0 * 60.0;
+
+/// West edge of the canonical (offset 0) copy in world units.
+fn canonical_west() -> f32 {
+    project(-180.0, 0.0).x
+}
+
+/// Wrap an x coordinate into the canonical copy's range.
+fn wrap_x(x: f32) -> f32 {
+    let west = canonical_west();
+    (x - west).rem_euclid(WORLD_WRAP) + west
+}
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -208,12 +224,19 @@ fn setup(
             continue;
         };
         if let Some(mesh) = build_province_mesh(&projected) {
-            commands.spawn((
-                ProvinceMarker { id: ProvinceId(*id) },
-                Mesh2d(meshes.add(mesh)),
-                MeshMaterial2d(materials.add(owner_color(&data, &p.owner, *id))),
-                Transform::IDENTITY,
-            ));
+            // Three copies for east-west wrap; mesh and material handles are
+            // shared, so clones cost only a Transform (and recoloring one
+            // material recolors all copies).
+            let mesh = meshes.add(mesh);
+            let material = materials.add(owner_color(&data, &p.owner, *id));
+            for offset in [-WORLD_WRAP, 0.0, WORLD_WRAP] {
+                commands.spawn((
+                    ProvinceMarker { id: ProvinceId(*id) },
+                    Mesh2d(mesh.clone()),
+                    MeshMaterial2d(material.clone()),
+                    Transform::from_xyz(offset, 0.0, 0.0),
+                ));
+            }
         }
         geometry.bboxes.insert(*id, (lo, hi));
         geometry.rings.insert(*id, projected);
@@ -288,6 +311,7 @@ fn camera_controls(
     mut wheel: MessageReader<MouseWheel>,
     mut motion: MessageReader<MouseMotion>,
     time: Res<Time>,
+    windows: Query<&Window>,
     mut camera: Query<(&mut Transform, &mut Projection), With<Camera2d>>,
 ) {
     let Ok((mut transform, mut projection)) = camera.single_mut() else {
@@ -296,10 +320,17 @@ fn camera_controls(
     let Projection::Orthographic(ortho) = &mut *projection else {
         return;
     };
+    // Never let the viewport span more than one world circumference, or
+    // the wrap illusion breaks at the edges of the three copies.
+    let max_scale = windows
+        .single()
+        .map(|w| (WORLD_WRAP / w.width().max(1.0)).min(40.0))
+        .unwrap_or(12.0);
     for ev in wheel.read() {
         let step = if ev.y > 0.0 { 0.9 } else { 1.1 };
-        ortho.scale = (ortho.scale * step).clamp(0.05, 40.0);
+        ortho.scale = (ortho.scale * step).clamp(0.05, max_scale);
     }
+    ortho.scale = ortho.scale.min(max_scale);
     let mut pan = Vec2::ZERO;
     let pan_speed = 600.0 * ortho.scale * time.delta_secs();
     if keys.pressed(KeyCode::KeyW) || keys.pressed(KeyCode::ArrowUp) {
@@ -323,6 +354,9 @@ fn camera_controls(
         motion.clear();
     }
     transform.translation += pan.extend(0.0);
+    // East-west wrap: crossing the antimeridian teleports the camera one
+    // world-width over; the offset copies make it seamless on screen.
+    transform.translation.x = wrap_x(transform.translation.x);
 }
 
 /// Recolor province materials when the map mode changes. `Res::is_changed`
@@ -408,9 +442,11 @@ fn select_province(
     let Ok((camera, cam_transform)) = camera.single() else {
         return;
     };
-    let Ok(world_pos) = camera.viewport_to_world_2d(cam_transform, cursor) else {
+    let Ok(mut world_pos) = camera.viewport_to_world_2d(cam_transform, cursor) else {
         return;
     };
+    // Clicks on an offset copy hit-test against the canonical geometry.
+    world_pos.x = wrap_x(world_pos.x);
     selected.0 = geometry
         .bboxes
         .iter()
@@ -434,9 +470,12 @@ fn draw_selection_outline(
     };
     for ring in rings {
         if ring.len() >= 2 {
-            let mut pts = ring.clone();
-            pts.push(ring[0]);
-            gizmos.linestrip_2d(pts, Color::srgb(0.98, 0.92, 0.45));
+            for offset in [-WORLD_WRAP, 0.0, WORLD_WRAP] {
+                let mut pts: Vec<Vec2> =
+                    ring.iter().map(|v| Vec2::new(v.x + offset, v.y)).collect();
+                pts.push(pts[0]);
+                gizmos.linestrip_2d(pts, Color::srgb(0.98, 0.92, 0.45));
+            }
         }
     }
 }
