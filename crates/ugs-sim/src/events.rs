@@ -30,6 +30,9 @@ pub struct FiredEvents {
     pub resolved: Vec<(String, u8)>,
     /// Tick when each war began, for WarDaysElapsed triggers.
     pub war_started: Vec<((String, String), u64)>,
+    /// Dynamic notifications (title, body) from sim systems (armistices,
+    /// capitulations) — shown by the UI like events.
+    pub notices: Vec<(String, String)>,
 }
 
 impl FiredEvents {
@@ -347,6 +350,31 @@ mod tests {
                 .values()
                 .any(|f| f.owner.0 == "USA" || f.owner.0 == "KOR");
             assert!(un_alive, "UN side annihilated");
+        }
+
+        // The long grind: with the front frozen, non-player belligerents
+        // reach mutual willingness and the guns fall silent — Korea stays
+        // divided along the line of control.
+        run_ticks(&mut app, 24 * 550);
+        {
+            let military = app.world().resource::<Military>();
+            let fired = app.world().resource::<FiredEvents>();
+            assert!(
+                military.wars.is_empty(),
+                "wars should have ended by early 1952: {:?}",
+                military.wars
+            );
+            assert!(
+                fired
+                    .notices
+                    .iter()
+                    .any(|(t, _)| t.contains("ARMISTICE") || t.contains("RESISTANCE")),
+                "an armistice or capitulation notice should exist"
+            );
+            assert!(
+                !military.occupation.is_empty(),
+                "the line of control persists as the new map"
+            );
         }
     }
 

@@ -10,9 +10,12 @@ use crate::AppState;
 
 /// Preloaded handles so the first click isn't delayed by asset IO.
 #[derive(Resource)]
-struct AudioHandles {
+pub struct AudioHandles {
     menu_music: Handle<AudioSource>,
     click: Handle<AudioSource>,
+    /// Synthesized in-house (tools/audio/synth_sfx.py).
+    pub teletype: Handle<AudioSource>,
+    pub alert: Handle<AudioSource>,
 }
 
 impl FromWorld for AudioHandles {
@@ -21,6 +24,8 @@ impl FromWorld for AudioHandles {
         Self {
             menu_music: assets.load("audio/music/dark_ambient.mp3"),
             click: assets.load("audio/ui/click_001.ogg"),
+            teletype: assets.load("audio/ui/teletype.wav"),
+            alert: assets.load("audio/ui/alert.wav"),
         }
     }
 }

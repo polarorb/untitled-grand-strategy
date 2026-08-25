@@ -71,6 +71,7 @@ pub fn reset_sim(world: &mut World, start_date: GameDate, seed: u64) {
     world.insert_resource(crate::planning::Economies::default());
     world.insert_resource(crate::agriculture::Agriculture::default());
     world.insert_resource(crate::military::Military::default());
+    world.insert_resource(crate::military::PlayerCountry::default());
     world.insert_resource(crate::events::FiredEvents::default());
 }
 

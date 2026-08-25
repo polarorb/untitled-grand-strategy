@@ -33,6 +33,13 @@ pub mod tuning {
     /// Defenders on home (unoccupied) soil fight harder.
     pub const HOME_DEFENSE_PERMILLE: u64 = 1200;
 
+    /// Auto-willingness for armistice: months at war and months of
+    /// front stability required (non-player countries).
+    pub const ARMISTICE_WAR_MONTHS: u64 = 10;
+    pub const ARMISTICE_STALE_MONTHS: u64 = 2;
+    /// Tension released when guns fall silent.
+    pub const ARMISTICE_TENSION_RELIEF: i32 = -50;
+
     pub fn terrain_defense_permille(t: ugs_data::Terrain) -> u64 {
         use ugs_data::Terrain::*;
         match t {
@@ -105,6 +112,14 @@ pub struct Military {
     pub postures: BTreeMap<(CountryTag, CountryTag), Posture>,
     /// Runtime ownership overrides (occupation / transfers).
     pub occupation: BTreeMap<ProvinceId, CountryTag>,
+    /// Tick each war began.
+    pub war_started: BTreeMap<(CountryTag, CountryTag), u64>,
+    /// Cumulative strength points lost, per country.
+    pub casualties: BTreeMap<CountryTag, u64>,
+    /// Last tick any province changed hands.
+    pub last_line_change_tick: u64,
+    /// Standing armistice offers (offerer, enemy).
+    pub armistice_offers: Vec<(CountryTag, CountryTag)>,
     next_id: u32,
 }
 
@@ -133,6 +148,12 @@ impl Military {
         let id = FormationId(self.next_id);
         self.formations.insert(id, formation);
         id
+    }
+
+    pub fn has_offered_armistice(&self, country: &CountryTag, enemy: &CountryTag) -> bool {
+        self.armistice_offers
+            .iter()
+            .any(|(c, e)| c == country && e == enemy)
     }
 
     pub fn posture(&self, country: &CountryTag, enemy: &CountryTag) -> Posture {
@@ -164,12 +185,16 @@ impl Military {
     }
 }
 
-/// Hourly: seed OOB on first tick, fight battles; daily: move, occupy.
+/// Hourly: seed OOB on first tick, fight battles; daily: move, occupy;
+/// monthly: armistice diplomacy.
 pub fn update_military(
     clock: Res<SimClock>,
     scenario: Option<Res<SimScenario>>,
+    player: Res<PlayerCountry>,
     mut rng: ResMut<SimRng>,
     mut military: ResMut<Military>,
+    mut fired: ResMut<crate::events::FiredEvents>,
+    mut tension: ResMut<crate::tension::GlobalTension>,
 ) {
     let Some(scenario) = scenario else { return };
     let data = &scenario.0;
@@ -196,6 +221,17 @@ pub fn update_military(
     }
     if military.wars.is_empty() {
         return; // peace: nothing to simulate hourly (regen is cheap, skip)
+    }
+    let new_pairs: Vec<(CountryTag, CountryTag)> = military
+        .wars
+        .iter()
+        .filter(|p| !military.war_started.contains_key(p))
+        .cloned()
+        .collect();
+    for pair in new_pairs {
+        let tick = clock.tick;
+        military.war_started.insert(pair, tick);
+        military.last_line_change_tick = tick; // new war resets staleness
     }
 
     use tuning::*;
@@ -302,11 +338,12 @@ pub fn update_military(
             }
             let per = (total / ids.len() as u64).max(1);
             for id in ids {
+                let owner = military.formations[id].owner.clone();
                 let f = military.formations.get_mut(id).unwrap();
                 f.cohesion = f.cohesion.saturating_sub(per);
-                f.strength = f
-                    .strength
-                    .saturating_sub((per / STRENGTH_DAMAGE_DIVISOR).max(1));
+                let strength_loss = (per / STRENGTH_DAMAGE_DIVISOR).max(1).min(f.strength);
+                f.strength -= strength_loss;
+                *military.casualties.entry(owner).or_default() += strength_loss;
             }
         };
         apply(&mut military, side_a, damage_to_a);
@@ -423,9 +460,111 @@ pub fn update_military(
             flips.push((*province, occupier.clone()));
         }
     }
+    if !flips.is_empty() {
+        military.last_line_change_tick = clock.tick;
+    }
     for (province, occupier) in flips {
         military.occupation.insert(province, occupier);
     }
+
+    // --- Monthly: armistice diplomacy ------------------------------------
+    if clock.new_month {
+        settle_wars(&clock, data, &player.0, &mut military, &mut fired, &mut tension);
+    }
+}
+
+/// The country the human player controls (None = observer / headless).
+/// Set via `SimCommand::SetPlayerCountry` so it lives in the replay log.
+#[derive(Resource, Debug, Default, Clone, Serialize, Deserialize)]
+pub struct PlayerCountry(pub Option<CountryTag>);
+
+/// End wars at the line of control. Non-player countries become willing
+/// automatically (long war + static front, or a broken army); the player
+/// must offer explicitly. Total collapse (no army, no home provinces)
+/// ends a war unilaterally.
+fn settle_wars(
+    clock: &SimClock,
+    data: &ugs_data::ScenarioData,
+    player: &Option<CountryTag>,
+    military: &mut Military,
+    fired: &mut crate::events::FiredEvents,
+    tension: &mut crate::tension::GlobalTension,
+) {
+    use tuning::*;
+    let pairs: Vec<(CountryTag, CountryTag)> = military.wars.clone();
+    for (a, b) in pairs {
+        let start = military
+            .war_started
+            .get(&(a.clone(), b.clone()))
+            .copied()
+            .unwrap_or(0);
+        let war_months = (clock.tick.saturating_sub(start)) / (24 * 30);
+        let stale_months =
+            (clock.tick.saturating_sub(military.last_line_change_tick)) / (24 * 30);
+
+        let formations_of = |m: &Military, tag: &CountryTag| {
+            m.formations.values().filter(|f| &f.owner == tag).count()
+        };
+        let holds_home = |m: &Military, tag: &CountryTag| {
+            data.provinces
+                .values()
+                .any(|p| p.owner == *tag && m.owner_of(p.id, &p.owner) == *tag)
+        };
+
+        // Total collapse: no army and no home soil — resistance ends.
+        let collapsed = |m: &Military, tag: &CountryTag| {
+            formations_of(m, tag) == 0 && !holds_home(m, tag)
+        };
+        if collapsed(military, &a) || collapsed(military, &b) {
+            let loser = if collapsed(military, &a) { &a } else { &b };
+            end_war(military, &a, &b);
+            fired.notices.push((
+                "RESISTANCE ENDS".into(),
+                format!(
+                    "ORGANIZED RESISTANCE BY {} FORCES HAS CEASED. OCCUPYING AUTHORITIES ASSUME CONTROL. THE GUNS FALL SILENT OVER A CHANGED MAP.",
+                    loser.0
+                ),
+            ));
+            tension.apply(ARMISTICE_TENSION_RELIEF);
+            continue;
+        }
+
+        let willing = |m: &Military, tag: &CountryTag, enemy: &CountryTag| {
+            if player.as_ref() == Some(tag) {
+                m.has_offered_armistice(tag, enemy)
+            } else {
+                m.has_offered_armistice(tag, enemy)
+                    || (war_months >= ARMISTICE_WAR_MONTHS
+                        && stale_months >= ARMISTICE_STALE_MONTHS)
+                    || formations_of(m, tag) == 0
+            }
+        };
+        if willing(military, &a, &b) && willing(military, &b, &a) {
+            end_war(military, &a, &b);
+            fired.notices.push((
+                "ARMISTICE SIGNED".into(),
+                format!(
+                    "{} AND {} SIGN ARMISTICE AGREEMENT. HOSTILITIES SUSPENDED ALONG THE PRESENT LINE OF CONTACT. DEMARCATION LINE FOLLOWS THE FRONT. NO POLITICAL SETTLEMENT REACHED -- THE LINE IS THE BORDER NOW, UNTIL IT ISN'T.",
+                    a.0, b.0
+                ),
+            ));
+            tension.apply(ARMISTICE_TENSION_RELIEF);
+        }
+    }
+}
+
+fn end_war(military: &mut Military, a: &CountryTag, b: &CountryTag) {
+    let pair = if a < b {
+        (a.clone(), b.clone())
+    } else {
+        (b.clone(), a.clone())
+    };
+    military.wars.retain(|w| *w != pair);
+    military.postures.remove(&(a.clone(), b.clone()));
+    military.postures.remove(&(b.clone(), a.clone()));
+    military
+        .armistice_offers
+        .retain(|(c, e)| !((c == a && e == b) || (c == b && e == a)));
 }
 
 /// The next province an advancing formation should step into: an adjacent

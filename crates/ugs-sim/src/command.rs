@@ -15,7 +15,7 @@ use crate::agriculture::{self, Agriculture, Quota};
 use crate::planning::{self, Economies, Procurement};
 use crate::demography::SimScenario;
 use crate::events::{self, FiredEvents};
-use crate::military::{Military, Posture};
+use crate::military::{Military, PlayerCountry, Posture};
 use crate::savegame::CommandLog;
 use crate::tension::GlobalTension;
 use crate::SimClock;
@@ -52,6 +52,15 @@ pub enum SimCommand {
     },
     /// Resolve a pending choice event with the given option index.
     ResolveEvent { id: String, option: u8 },
+    /// Identify the human player's country (part of the replay log so
+    /// armistice AI knows who NOT to auto-decide for).
+    SetPlayerCountry { country: Option<CountryTag> },
+    /// Offer (or retract) an armistice to an enemy.
+    SetArmisticeOffer {
+        country: CountryTag,
+        enemy: CountryTag,
+        offer: bool,
+    },
 }
 
 /// Commands queued for the next tick. The presentation layer pushes;
@@ -77,6 +86,7 @@ pub fn apply_commands(
     mut agri: ResMut<Agriculture>,
     mut military: ResMut<Military>,
     mut fired: ResMut<FiredEvents>,
+    mut player: ResMut<PlayerCountry>,
     scenario: Option<Res<SimScenario>>,
 ) {
     for command in pending.queue.drain(..) {
@@ -111,6 +121,23 @@ pub fn apply_commands(
             } => {
                 if military.at_war(&country, &enemy) {
                     military.postures.insert((country, enemy), posture);
+                }
+            }
+            SimCommand::SetPlayerCountry { country } => {
+                player.0 = country;
+            }
+            SimCommand::SetArmisticeOffer {
+                country,
+                enemy,
+                offer,
+            } => {
+                if military.at_war(&country, &enemy) {
+                    military
+                        .armistice_offers
+                        .retain(|(c, e)| !(c == &country && e == &enemy));
+                    if offer {
+                        military.armistice_offers.push((country, enemy));
+                    }
                 }
             }
             SimCommand::ResolveEvent { id, option } => {

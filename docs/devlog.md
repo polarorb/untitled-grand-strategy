@@ -7,6 +7,34 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — The guns fall silent: armistice, the war room, and the teletype speaks
+
+**Wars now end the way Cold War wars ended** — at the line of control.
+Each month, belligerents weigh willingness: non-player countries become
+ready after ten months of war with a front frozen for two (or with a
+broken army); the player must offer explicitly, from the new **war room
+panel** (R): per-enemy posture toggles (ADVANCE/HOLD) and an OFFER
+ARMISTICE button, all flowing through the command queue. When both
+sides are willing, the wire service reports: *"HOSTILITIES SUSPENDED
+ALONG THE PRESENT LINE OF CONTACT... THE LINE IS THE BORDER NOW, UNTIL
+IT ISN'T."* Occupation freezes into the new map. Total collapse (no
+army, no home provinces) ends a war unilaterally — so a Korea where
+America stood aside also concludes, just differently.
+
+The full-arc test now runs invasion → intervention → Chinese entry →
+**armistice** — Korea ends divided along an emergent line, tension
+bleeding off as the guns stop. Sim knows who the player is via a
+SetPlayerCountry command (in the replay log, so armistice AI never
+auto-decides for a human).
+
+**And the teletype finally speaks.** Per the audio direction, we
+synthesized it rather than sampling: a stdlib-only Python script
+generates the print-head strikes (filtered noise bursts with platen
+thumps over a 50 Hz motor hum) and the EBS-style 853+960 Hz attention
+signal — pure tones and noise, legally bulletproof, seeded for
+reproducible assets. Every FLASH TRAFFIC modal now clatters; war
+declarations add the two-tone alert underneath. 36 tests green.
+
 ## 2026-08-25 — Intervention: choices, deadlines, and the Yalu tripwire
 
 The escalation systems earn their keep. Events grew from date-fired

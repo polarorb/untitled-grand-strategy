@@ -102,6 +102,7 @@ impl Plugin for SimPlugin {
         app.init_resource::<planning::Economies>();
         app.init_resource::<agriculture::Agriculture>();
         app.init_resource::<military::Military>();
+        app.init_resource::<military::PlayerCountry>();
         app.init_resource::<events::FiredEvents>();
         app.configure_sets(
             SimTick,
