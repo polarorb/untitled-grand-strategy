@@ -1,0 +1,5 @@
+ScenarioDef(
+    name: "The Coldest Winter",
+    start_date: (1950, 1, 1),
+    description: "January 1st, 1950. The Iron Curtain has fallen across Europe, Mao has won China, and the Soviet Union has the bomb. In Korea, two rival states glare at each other across the 38th parallel — and in June, one of them will cross it.",
+)

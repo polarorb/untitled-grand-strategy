@@ -1,0 +1,9 @@
+CountryDef(
+    tag: CountryTag("SOV"),
+    name: "Union of Soviet Socialist Republics",
+    alignment: EasternBloc,
+    capital: ProvinceId(2),
+    stability: 80,
+    industry: 70,
+    nuclear_power: true,
+)

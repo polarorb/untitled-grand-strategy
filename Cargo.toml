@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ugs-data",
+    "crates/ugs-map",
+    "crates/ugs-sim",
+    "crates/ugs-app",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# Presentation layer only (ugs-app). Sim crates must NOT depend on full bevy.
+bevy = { version = "0.19", default-features = true }
+# Headless ECS + app scheduling for the simulation core.
+bevy_ecs = "0.19"
+bevy_app = "0.19"
+serde = { version = "1", features = ["derive"] }
+ron = "0.8"
+thiserror = "2"
+
+# Bevy is unusably slow without optimized deps, even in dev.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

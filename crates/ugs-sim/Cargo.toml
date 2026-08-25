@@ -1,0 +1,15 @@
+[package]
+name = "ugs-sim"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# ECS + scheduling only — this crate must stay headless (no rendering,
+# no windowing, no asset server). It is what tests and the future
+# multiplayer/AI harness run.
+bevy_ecs = { workspace = true }
+bevy_app = { workspace = true }
+serde = { workspace = true }
+ugs-data = { path = "../ugs-data" }
+ugs-map = { path = "../ugs-map" }

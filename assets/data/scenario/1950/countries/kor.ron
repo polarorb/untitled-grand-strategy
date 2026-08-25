@@ -1,0 +1,9 @@
+CountryDef(
+    tag: CountryTag("KOR"),
+    name: "Republic of Korea",
+    alignment: WesternBloc,
+    capital: ProvinceId(12),
+    stability: 55,
+    industry: 5,
+    nuclear_power: false,
+)

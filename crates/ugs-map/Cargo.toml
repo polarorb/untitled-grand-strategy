@@ -1,0 +1,8 @@
+[package]
+name = "ugs-map"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ugs-data = { path = "../ugs-data" }

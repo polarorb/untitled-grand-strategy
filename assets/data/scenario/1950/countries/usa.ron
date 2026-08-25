@@ -1,0 +1,9 @@
+CountryDef(
+    tag: CountryTag("USA"),
+    name: "United States of America",
+    alignment: WesternBloc,
+    capital: ProvinceId(1),
+    stability: 85,
+    industry: 100,
+    nuclear_power: true,
+)

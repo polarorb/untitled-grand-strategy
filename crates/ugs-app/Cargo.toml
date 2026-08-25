@@ -1,0 +1,19 @@
+[package]
+name = "ugs-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "ugs"
+path = "src/main.rs"
+
+[dependencies]
+bevy = { workspace = true }
+ugs-data = { path = "../ugs-data" }
+ugs-map = { path = "../ugs-map" }
+ugs-sim = { path = "../ugs-sim" }
+
+[features]
+# `cargo run -p ugs-app --features fast-compile` for quicker iteration.
+fast-compile = ["bevy/dynamic_linking"]
