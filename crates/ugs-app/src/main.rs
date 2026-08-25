@@ -3,6 +3,7 @@
 //! depend on anything in this crate. All sim mutations go through
 //! `PendingCommands` — never write sim resources directly from here.
 
+mod econ_ui;
 mod map;
 mod menu;
 
@@ -143,7 +144,7 @@ fn main() {
         .insert_resource(geometry)
         .insert_resource(ugs_sim::demography::SimScenario(scenario))
         .add_systems(Update, dev_auto_screenshot)
-        .add_plugins((menu::MenuPlugin, map::MapPlugin));
+        .add_plugins((menu::MenuPlugin, map::MapPlugin, econ_ui::EconUiPlugin));
     // Spawn the camera before the first state transition: initial OnEnter
     // systems (screen framing) run before Startup would.
     app.world_mut().spawn(Camera2d);

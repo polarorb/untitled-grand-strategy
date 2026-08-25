@@ -9,13 +9,29 @@
 
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
+use ugs_data::CountryTag;
 
+use crate::planning::{self, Economies, Procurement};
 use crate::tension::GlobalTension;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SimCommand {
     /// Debug/cheat: adjust global tension by internal tenths.
     DebugAdjustTension(i32),
+    /// Planned economies: set output quotas (permille, must sum to 1000).
+    SetPlannedAllocation {
+        country: CountryTag,
+        consumer: u16,
+        investment: u16,
+        military: u16,
+    },
+    /// Market economies: set the policy levers.
+    SetMarketPolicy {
+        country: CountryTag,
+        interest_bp: u16,
+        tax_permille: u16,
+        procurement: Procurement,
+    },
 }
 
 /// Commands queued for the next tick. The presentation layer pushes;
@@ -34,10 +50,27 @@ impl PendingCommands {
 pub fn apply_commands(
     mut pending: ResMut<PendingCommands>,
     mut tension: ResMut<GlobalTension>,
+    mut econ: ResMut<Economies>,
 ) {
     for command in pending.queue.drain(..) {
         match command {
             SimCommand::DebugAdjustTension(delta) => tension.apply(delta),
+            SimCommand::SetPlannedAllocation {
+                country,
+                consumer,
+                investment,
+                military,
+            } => planning::set_planned_allocation(
+                &mut econ, &country, consumer, investment, military,
+            ),
+            SimCommand::SetMarketPolicy {
+                country,
+                interest_bp,
+                tax_permille,
+                procurement,
+            } => planning::set_market_policy(
+                &mut econ, &country, interest_bp, tax_permille, procurement,
+            ),
         }
     }
 }

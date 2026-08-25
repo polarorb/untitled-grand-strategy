@@ -7,6 +7,34 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — The thesis becomes playable: two planning interfaces
+
+Step 3, and the reason this game exists
+([design doc](design/systems/planning-interfaces.md)): every country now
+runs one of two economic systems over the same production substrate.
+Monthly output — throttled by regional power and coal — splits into
+consumer goods, investment, and military. **Planned economies set the
+quantities**: quota rows in 5% steps, and their statistics bureau pads
+disappointing results (the player's own dashboard shows *reported*
+industry, capped at +15% above reality — the espionage pillar will
+eventually let rivals know your economy better than you do). **Market
+economies set the parameters**: interest, taxes, procurement; firms
+decide the split, statistics are honest, and loose money shows up as
+inflation that eats living standards.
+
+The loop is closed: allocation → consumer goods → standard of living →
+birth rates, urbanization, education. Guns-versus-butter now has
+demographic teeth. Press E in-game: Stalin gets STATE PLANNING with
+"(figures as reported by Gosplan)"; Truman gets ECONOMIC POLICY with
+"firms set output; you set the terms". Same panel skeleton, different
+verbs — the first-hour difference the research demanded.
+
+The five new tests read like the design goals: heavier investment grows
+industry faster; cheap money boosts growth *and* inflation; planned
+statistics pad but stay capped; market statistics never lie; commands
+aimed at the wrong interface are rejected. 32 tests green, economy
+digest in the determinism suite.
+
 ## 2026-08-25 — Resources, deposits, and the unelectrified world
 
 Step 2 of the economy build order
