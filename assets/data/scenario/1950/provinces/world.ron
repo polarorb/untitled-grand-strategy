@@ -1997,7 +1997,7 @@
         id: (140),
         name: "Erevan",
         owner: ("SOV"),
-        terrain: Hills,
+        terrain: Urban,
         center: (44.533, 40.147),
         population_k: 264,
         adjacent: [
@@ -5193,7 +5193,7 @@
         id: (358),
         name: "Grad Sofiya",
         owner: ("BGR"),
-        terrain: Plains,
+        terrain: Urban,
         center: (23.357, 42.679),
         population_k: 1049,
         adjacent: [
@@ -8528,7 +8528,7 @@
         id: (596),
         name: "Basel-Stadt",
         owner: ("CHE"),
-        terrain: Plains,
+        terrain: Urban,
         center: (7.59, 47.561),
         population_k: 155,
         adjacent: [
@@ -8883,7 +8883,7 @@
         id: (621),
         name: "Beijing",
         owner: ("PRC"),
-        terrain: Hills,
+        terrain: Urban,
         center: (116.389, 39.949),
         population_k: 2306,
         adjacent: [
@@ -9193,7 +9193,7 @@
         id: (639),
         name: "Tianjin",
         owner: ("PRC"),
-        terrain: Plains,
+        terrain: Urban,
         center: (117.347, 39.371),
         population_k: 2367,
         adjacent: [
@@ -9235,7 +9235,7 @@
         id: (642),
         name: "Shanghai",
         owner: ("PRC"),
-        terrain: Plains,
+        terrain: Urban,
         center: (121.409, 31.091),
         population_k: 5805,
         adjacent: [
@@ -13764,7 +13764,7 @@
         id: (957),
         name: "Al Gharbiyah",
         owner: ("EGY"),
-        terrain: Desert,
+        terrain: Plains,
         center: (31.029, 30.85),
         population_k: 2464,
         adjacent: [
@@ -13806,7 +13806,7 @@
         id: (960),
         name: "Al Qahirah",
         owner: ("EGY"),
-        terrain: Desert,
+        terrain: Urban,
         center: (31.579, 29.98),
         population_k: 2021,
         adjacent: [
@@ -16460,7 +16460,7 @@
         id: (1142),
         name: "Hauts-de-Seine",
         owner: ("FRA"),
-        terrain: Plains,
+        terrain: Urban,
         center: (2.197, 48.856),
         population_k: 543,
         adjacent: [
@@ -24462,7 +24462,7 @@
         id: (1698),
         name: "Jakarta Raya",
         owner: ("IDN"),
-        terrain: Jungle,
+        terrain: Urban,
         center: (106.837, -6.225),
         population_k: 3490,
         adjacent: [
@@ -24830,7 +24830,7 @@
         id: (1729),
         name: "Delhi",
         owner: ("IND"),
-        terrain: Plains,
+        terrain: Urban,
         center: (77.086, 28.69),
         population_k: 1858,
         adjacent: [
@@ -25493,7 +25493,7 @@
         id: (1775),
         name: "Dún Laoghaire–Rathdown",
         owner: ("IRL"),
-        terrain: Plains,
+        terrain: Urban,
         center: (-6.188, 53.26),
         population_k: 374,
         adjacent: [
@@ -29128,7 +29128,7 @@
         id: (2022),
         name: "Fukui",
         owner: ("JAP"),
-        terrain: Hills,
+        terrain: Urban,
         center: (136.316, 35.93),
         population_k: 4162,
         adjacent: [
@@ -29185,7 +29185,7 @@
         id: (2026),
         name: "Ōsaka",
         owner: ("JAP"),
-        terrain: Plains,
+        terrain: Urban,
         center: (135.519, 34.599),
         population_k: 4122,
         adjacent: [
@@ -29253,7 +29253,7 @@
         id: (2031),
         name: "Kanagawa",
         owner: ("JAP"),
-        terrain: Plains,
+        terrain: Urban,
         center: (139.344, 35.438),
         population_k: 2466,
         adjacent: [
@@ -29295,7 +29295,7 @@
         id: (2034),
         name: "Tokyo",
         owner: ("JAP"),
-        terrain: Hills,
+        terrain: Urban,
         center: (139.407, 35.658),
         population_k: 6223,
         adjacent: [
@@ -30555,7 +30555,7 @@
         id: (2122),
         name: "Incheon",
         owner: ("KOR"),
-        terrain: Plains,
+        terrain: Urban,
         center: (126.507, 37.498),
         population_k: 557,
         adjacent: [
@@ -30580,7 +30580,7 @@
         id: (2124),
         name: "Seoul",
         owner: ("KOR"),
-        terrain: Plains,
+        terrain: Urban,
         center: (126.994, 37.541),
         population_k: 2885,
         adjacent: [
@@ -30623,7 +30623,7 @@
         id: (2127),
         name: "Gwangju",
         owner: ("KOR"),
-        terrain: Plains,
+        terrain: Urban,
         center: (126.929, 35.199),
         population_k: 727,
         adjacent: [
@@ -30649,7 +30649,7 @@
         id: (2129),
         name: "Daejeon",
         owner: ("KOR"),
-        terrain: Plains,
+        terrain: Urban,
         center: (127.401, 36.356),
         population_k: 574,
         adjacent: [
@@ -30662,7 +30662,7 @@
         id: (2130),
         name: "Daegu",
         owner: ("KOR"),
-        terrain: Plains,
+        terrain: Urban,
         center: (128.631, 35.903),
         population_k: 947,
         adjacent: [
@@ -30701,7 +30701,7 @@
         id: (2133),
         name: "Busan",
         owner: ("KOR"),
-        terrain: Plains,
+        terrain: Urban,
         center: (129.082, 35.193),
         population_k: 1420,
         adjacent: [
@@ -35111,7 +35111,7 @@
         id: (2430),
         name: "Grand Casablanca",
         owner: ("FRA"),
-        terrain: Plains,
+        terrain: Urban,
         center: (-7.556, 33.545),
         population_k: 1519,
         adjacent: [
@@ -36700,7 +36700,7 @@
         id: (2547),
         name: "Distrito Federal",
         owner: ("MEX"),
-        terrain: Mountain,
+        terrain: Urban,
         center: (-99.137, 19.327),
         population_k: 2468,
         adjacent: [
@@ -40230,7 +40230,7 @@
         id: (2792),
         name: "Maputo",
         owner: ("POR"),
-        terrain: Plains,
+        terrain: Urban,
         center: (32.583, -25.949),
         population_k: 227,
         adjacent: [
@@ -40614,7 +40614,7 @@
         id: (2821),
         name: "Rivière Noire",
         owner: ("GBR"),
-        terrain: Jungle,
+        terrain: Urban,
         center: (57.415, -20.342),
         population_k: 429,
         adjacent: [
@@ -45798,7 +45798,7 @@
         id: (3202),
         name: "Quezon City",
         owner: ("PHL"),
-        terrain: Jungle,
+        terrain: Urban,
         center: (121.067, 14.671),
         population_k: 1093,
         adjacent: [
@@ -45858,7 +45858,7 @@
         id: (3206),
         name: "Makati",
         owner: ("PHL"),
-        terrain: Plains,
+        terrain: Urban,
         center: (121.035, 14.552),
         population_k: 486,
         adjacent: [
@@ -45885,7 +45885,7 @@
         id: (3208),
         name: "Paranaque",
         owner: ("PHL"),
-        terrain: Plains,
+        terrain: Urban,
         center: (121.016, 14.49),
         population_k: 276,
         adjacent: [
@@ -55564,7 +55564,7 @@
         id: (3881),
         name: "Damascus",
         owner: ("SYR"),
-        terrain: Plains,
+        terrain: Urban,
         center: (36.29, 33.51),
         population_k: 216,
         adjacent: [
@@ -56661,7 +56661,7 @@
         id: (3956),
         name: "Bangkok Metropolis",
         owner: ("THA"),
-        terrain: Plains,
+        terrain: Urban,
         center: (100.626, 13.793),
         population_k: 1696,
         adjacent: [
@@ -57907,7 +57907,7 @@
         id: (4044),
         name: "Tunis",
         owner: ("FRA"),
-        terrain: Plains,
+        terrain: Urban,
         center: (10.172, 36.779),
         population_k: 353,
         adjacent: [
@@ -59423,7 +59423,7 @@
         id: (4145),
         name: "Hsinchu City",
         owner: ("ROC"),
-        terrain: Plains,
+        terrain: Urban,
         center: (120.959, 24.776),
         population_k: 239,
         adjacent: [
@@ -59465,7 +59465,7 @@
         id: (4148),
         name: "Keelung City",
         owner: ("ROC"),
-        terrain: Plains,
+        terrain: Urban,
         center: (121.704, 25.113),
         population_k: 113,
         adjacent: [
@@ -59489,7 +59489,7 @@
         id: (4150),
         name: "Taipei City",
         owner: ("ROC"),
-        terrain: Plains,
+        terrain: Urban,
         center: (121.559, 25.09),
         population_k: 648,
         adjacent: [
@@ -59648,7 +59648,7 @@
         id: (4162),
         name: "Kinmen",
         owner: ("ROC"),
-        terrain: Plains,
+        terrain: Urban,
         center: (118.368, 24.454),
         population_k: 830,
         adjacent: [],

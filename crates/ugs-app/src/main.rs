@@ -10,7 +10,7 @@ use bevy::asset::RenderAssetUsages;
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
-use ugs_data::{CountryTag, ProvinceId, ScenarioData};
+use ugs_data::{CountryTag, ProvinceId, ScenarioData, Terrain};
 use ugs_sim::{
     calendar::GameDate,
     command::{PendingCommands, SimCommand},
@@ -53,11 +53,15 @@ struct WorldGeometry {
 #[derive(Resource, Default)]
 struct Selected(Option<ProvinceId>);
 
+#[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq)]
+enum MapMode {
+    #[default]
+    Political,
+    Terrain,
+}
+
 #[derive(Component)]
 struct ProvinceMarker {
-    /// Used for ownership-change recoloring (next up); marker also drives
-    /// hit-test debugging.
-    #[allow(dead_code)]
     id: ProvinceId,
 }
 
@@ -92,6 +96,7 @@ fn main() {
         })
         .insert_resource(ClearColor(Color::srgb(0.09, 0.12, 0.16))) // ocean
         .init_resource::<Selected>()
+        .init_resource::<MapMode>()
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -99,6 +104,7 @@ fn main() {
                 handle_input,
                 camera_controls,
                 drive_sim,
+                apply_map_mode,
                 select_province,
                 draw_selection_outline,
                 update_ui_text,
@@ -108,20 +114,42 @@ fn main() {
         .run();
 }
 
-/// National color from data, with a slight per-province lightness wobble in
-/// lieu of border lines (cheap, replaced by real borders later).
-fn owner_color(data: &ScenarioData, tag: &CountryTag, province_id: u32) -> Color {
-    let (r, g, b) = data
-        .countries
-        .get(tag)
-        .map(|c| c.color)
-        .unwrap_or((128, 128, 128));
+/// Per-province lightness wobble in lieu of border lines (cheap, replaced
+/// by real borders later).
+fn wobbled(rgb: (u8, u8, u8), province_id: u32) -> Color {
+    let (r, g, b) = rgb;
     let wobble = (((province_id.wrapping_mul(2654435761)) >> 8) % 13) as f32 * 0.012 - 0.07;
     Color::srgb(
         (r as f32 / 255.0 * (1.0 + wobble)).clamp(0.0, 1.0),
         (g as f32 / 255.0 * (1.0 + wobble)).clamp(0.0, 1.0),
         (b as f32 / 255.0 * (1.0 + wobble)).clamp(0.0, 1.0),
     )
+}
+
+/// National color from data.
+fn owner_color(data: &ScenarioData, tag: &CountryTag, province_id: u32) -> Color {
+    let rgb = data
+        .countries
+        .get(tag)
+        .map(|c| c.color)
+        .unwrap_or((128, 128, 128));
+    wobbled(rgb, province_id)
+}
+
+/// Atlas-style terrain palette.
+fn terrain_color(terrain: Terrain, province_id: u32) -> Color {
+    let rgb = match terrain {
+        Terrain::Plains => (163, 168, 118),
+        Terrain::Forest => (86, 118, 80),
+        Terrain::Hills => (172, 144, 96),
+        Terrain::Mountain => (128, 116, 106),
+        Terrain::Desert => (216, 192, 134),
+        Terrain::Jungle => (58, 100, 64),
+        Terrain::Urban => (110, 106, 118),
+        Terrain::Marsh => (108, 138, 120),
+        Terrain::Tundra => (182, 192, 188),
+    };
+    wobbled(rgb, province_id)
 }
 
 fn build_province_mesh(rings: &[Vec<Vec2>]) -> Option<Mesh> {
@@ -207,7 +235,7 @@ fn setup(
     commands.spawn((
         SelectionText,
         Text::new(
-            "Click a province. Space: pause · 1-5: speed · WASD/drag: pan · scroll: zoom · T/G: tension +/-",
+            "Click a province. Space: pause · 1-5: speed · M: map mode · WASD/drag: pan · scroll: zoom · T/G: tension +/-",
         ),
         Node {
             position_type: PositionType::Absolute,
@@ -222,9 +250,16 @@ fn handle_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut speed: ResMut<GameSpeed>,
     mut pending: ResMut<PendingCommands>,
+    mut mode: ResMut<MapMode>,
 ) {
     if keys.just_pressed(KeyCode::Space) {
         speed.paused = !speed.paused;
+    }
+    if keys.just_pressed(KeyCode::KeyM) {
+        *mode = match *mode {
+            MapMode::Political => MapMode::Terrain,
+            MapMode::Terrain => MapMode::Political,
+        };
     }
     for (key, level) in [
         (KeyCode::Digit1, 1),
@@ -288,6 +323,32 @@ fn camera_controls(
         motion.clear();
     }
     transform.translation += pan.extend(0.0);
+}
+
+/// Recolor province materials when the map mode changes. `Res::is_changed`
+/// is true on the first frame too, which harmlessly repaints the colors
+/// that setup already applied.
+fn apply_map_mode(
+    mode: Res<MapMode>,
+    world: Res<World1950>,
+    provinces: Query<(&ProvinceMarker, &MeshMaterial2d<ColorMaterial>)>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    if !mode.is_changed() {
+        return;
+    }
+    for (marker, material) in &provinces {
+        let Some(p) = world.0.provinces.get(&marker.id) else {
+            continue;
+        };
+        let color = match *mode {
+            MapMode::Political => owner_color(&world.0, &p.owner, marker.id.0),
+            MapMode::Terrain => terrain_color(p.terrain, marker.id.0),
+        };
+        if let Some(mut m) = materials.get_mut(&material.0) {
+            m.color = color;
+        }
+    }
 }
 
 /// Accumulate real time and convert it into whole sim ticks. Capped per
@@ -380,10 +441,12 @@ fn draw_selection_outline(
     }
 }
 
+#[allow(clippy::too_many_arguments)] // Bevy systems take what they query
 fn update_ui_text(
     clock: Res<SimClock>,
     speed: Res<GameSpeed>,
     tension: Res<GlobalTension>,
+    mode: Res<MapMode>,
     selected: Res<Selected>,
     world: Res<World1950>,
     mut top: Query<&mut Text, (With<TopBarText>, Without<SelectionText>)>,
@@ -396,11 +459,12 @@ fn update_ui_text(
     };
     for mut text in &mut top {
         text.0 = format!(
-            "{}  [{}]    Tension: {:.1} ({})",
+            "{}  [{}]    Tension: {:.1} ({})    Map: {:?}",
             clock.date,
             state,
             tension.displayed(),
             tension.band(),
+            *mode,
         );
     }
     for mut text in &mut bottom {

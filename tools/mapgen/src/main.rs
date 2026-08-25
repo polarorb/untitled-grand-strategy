@@ -646,7 +646,15 @@ fn classify(
     pop_density_km2: f64,
     urban_share: f64,
 ) -> Terrain {
-    if pop_density_km2 > 400.0 && urban_share > 0.45 {
+    // Urban by three routes, because HYDE's 1950 urban fractions run low
+    // outside the West: strongly-urbanized (Western capitals), dense with
+    // some urbanization (Shanghai at ~920/km²), or overwhelming raw
+    // density (Seoul >4000/km²). Densest purely-rural provinces (Nile,
+    // Java, Bengal) run 300-1000/km² with near-zero urban share.
+    if (pop_density_km2 > 400.0 && urban_share > 0.45)
+        || (pop_density_km2 > 900.0 && urban_share > 0.15)
+        || pop_density_km2 > 1500.0
+    {
         return Terrain::Urban;
     }
     if elev_mean > 2000.0 || elev_std > 650.0 {
@@ -672,6 +680,23 @@ fn classify(
         }
         _ => Terrain::Plains,
     }
+}
+
+/// Hand overrides for provinces the heuristic gets wrong, by NE admin-1
+/// name. Keep short; justify each entry.
+fn terrain_overrides() -> &'static [(&'static str, Terrain)] {
+    &[
+        // Chinese municipalities: HYDE 1950 urban shares for China run
+        // near zero, and Beijing's NW mountains skew elevation sigma.
+        ("Shanghai", Terrain::Urban),
+        ("Beijing", Terrain::Urban),
+        ("Tianjin", Terrain::Urban),
+        // Cairo governorate: ~2M in 1950, reads Desert from surrounding
+        // Köppen cells.
+        ("Al Qahirah", Terrain::Urban),
+        // Nile delta farmland governorate that trips the density gate.
+        ("Al Gharbiyah", Terrain::Plains),
+    ]
 }
 
 fn enrich_provinces(provinces: &[Prov], tool_dir: &Path) -> Vec<Enriched> {
@@ -789,7 +814,13 @@ fn enrich_provinces(provinces: &[Prov], tool_dir: &Path) -> Vec<Enriched> {
         let urban_share = if pop_sum[i] > 0.0 { urb_sum[i] / pop_sum[i] } else { 0.0 };
         out.push(Enriched {
             population_k: (pop_sum[i] / 1000.0).round() as u32,
-            terrain: classify(elev_mean, elev_std, koppen_major, density, urban_share),
+            terrain: terrain_overrides()
+                .iter()
+                .find(|(name, _)| *name == p.name)
+                .map(|(_, t)| *t)
+                .unwrap_or_else(|| {
+                    classify(elev_mean, elev_std, koppen_major, density, urban_share)
+                }),
         });
     }
     let mut terrain_counts: BTreeMap<String, usize> = BTreeMap::new();
