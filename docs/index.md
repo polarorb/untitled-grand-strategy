@@ -70,6 +70,7 @@ green, East Germany's plain tricolor), and a historic situation briefing.
 
 - [Economy mechanics — what the genre teaches](research/economy-mechanics.md)
 - [Audio — sources, licensing, and direction](research/audio.md)
+- [Military mechanics — unit design and limited war](research/military-mechanics.md)
 - [Geodata sources & licensing](research/geodata.md)
 - [The 1950 sovereignty mapping](research/sovereignty-1950.md)
 

@@ -7,6 +7,38 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — Saves in kilobytes, and the shape of war
+
+**Save/load shipped** — and the day-one architecture bet paid off: a
+save is just (seed, start date, tick, command log), a few kilobytes of
+RON no matter how long the campaign. Loading resets the sim and replays
+every tick, re-applying your commands on their original hours; the test
+proves the replayed world matches the original's full state digest
+exactly, then keeps matching as both run onward. F5/F9 in game. The
+same machinery is a replay viewer and the multiplayer-lockstep join
+path, whenever we want them.
+
+**The military research swarm reported** — 8 analysts across HoI4's
+designers and combat math, Rule the Waves, Wargame/WARNO, AGEOD, Unity
+of Command, Victoria 3's front failures, Victory Games' 1986 Korean War
+board game, and logistics models
+([readup](research/military-mechanics.md)). The convergence was even
+stronger than the economy swarm: **design deep, command high**.
+Equipment design is the player's deep layer (Rule the Waves-style
+generations under real budget constraints — and every HoI4 degenerate
+meta traced to root causes we can spec away: hidden cliffs, non-additive
+stat aggregation, deterministic targeting). Formations are curated
+doctrine archetypes, not width puzzles. Combat keeps HoI4's proven
+cohesion-vs-strength skeleton. Wars end at the line of control with
+armistice as a negotiation state, the escalation ceiling is priced
+inside the war (a 1986 board game solved this), and deniability is a
+stat espionage can strip. Favorite finding: obsolescence as a cascade —
+your retiring T-54s automatically flow to reserves, then to arms
+exports, then to proxies. Arming the world with your old tanks isn't
+flavor; it's the influence war. The
+[military design doc](design/systems/military.md) now carries the
+locked architecture, Korea slice first.
+
 ## 2026-08-25 — Famine, weather, and the sound of the war room
 
 **Step 4: agriculture** ([design doc](design/systems/agriculture.md)).
