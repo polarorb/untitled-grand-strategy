@@ -12,10 +12,10 @@ use serde::{Deserialize, Serialize};
 use ugs_data::CountryTag;
 
 use crate::agriculture::{self, Agriculture, Quota};
-use crate::planning::{self, Economies, Procurement};
 use crate::demography::SimScenario;
 use crate::events::{self, FiredEvents};
 use crate::military::{Military, PlayerCountry, Posture};
+use crate::planning::{self, Economies, Procurement};
 use crate::savegame::CommandLog;
 use crate::tension::GlobalTension;
 use crate::SimClock;
@@ -61,6 +61,20 @@ pub enum SimCommand {
         enemy: CountryTag,
         offer: bool,
     },
+    /// Found a national nuclear weapons program.
+    FoundNuclearProgram { country: CountryTag, route: String },
+    /// Set a nuclear program's secrecy/speed posture.
+    SetProgramPosture {
+        country: CountryTag,
+        posture: String,
+    },
+    /// Queue construction of a fissile-production facility.
+    ExpandNuclearFacility { country: CountryTag, kind: String },
+    /// Parade deception: inflate rival estimates of this arsenal.
+    /// Works — and provokes (the bomber gap drove real procurement).
+    SetParadeDeception { country: CountryTag, on: bool },
+    /// Strategic-forces alert level 0-3.
+    SetAlertLevel { country: CountryTag, level: u8 },
 }
 
 /// Commands queued for the next tick. The presentation layer pushes;
@@ -87,6 +101,8 @@ pub fn apply_commands(
     mut military: ResMut<Military>,
     mut fired: ResMut<FiredEvents>,
     mut player: ResMut<PlayerCountry>,
+    mut nuclear: ResMut<crate::nuclear::NuclearPrograms>,
+    deterrence: Res<crate::deterrence::Deterrence>,
     scenario: Option<Res<SimScenario>>,
 ) {
     for command in pending.queue.drain(..) {
@@ -107,7 +123,11 @@ pub fn apply_commands(
                 tax_permille,
                 procurement,
             } => planning::set_market_policy(
-                &mut econ, &country, interest_bp, tax_permille, procurement,
+                &mut econ,
+                &country,
+                interest_bp,
+                tax_permille,
+                procurement,
             ),
             SimCommand::SetAgriPolicy {
                 country,
@@ -146,10 +166,43 @@ pub fn apply_commands(
                         &mut fired,
                         &mut tension,
                         &mut military,
+                        &mut nuclear,
+                        &deterrence,
                         &scenario.0,
+                        clock.tick,
                         &id,
                         option,
                     );
+                }
+            }
+            SimCommand::FoundNuclearProgram { country, route } => {
+                nuclear.found(country, crate::nuclear::Route::parse(&route));
+            }
+            SimCommand::SetProgramPosture { country, posture } => {
+                crate::nuclear::set_posture(&mut nuclear, &country, &posture);
+            }
+            SimCommand::ExpandNuclearFacility { country, kind } => {
+                crate::nuclear::expand_facility(&mut nuclear, &country, &kind);
+            }
+            SimCommand::SetParadeDeception { country, on } => {
+                if let Some(p) = nuclear.programs.get_mut(&country) {
+                    if p.deception != on {
+                        p.deception = on;
+                        if on {
+                            tension.apply(10);
+                        }
+                    }
+                }
+            }
+            SimCommand::SetAlertLevel { country, level } => {
+                if let Some(p) = nuclear.programs.get_mut(&country) {
+                    let level = level.min(3);
+                    if level > p.alert {
+                        tension.apply(
+                            crate::nuclear::tuning::ALERT_RAISE_TENSION * (level - p.alert) as i32,
+                        );
+                    }
+                    p.alert = level;
                 }
             }
         }

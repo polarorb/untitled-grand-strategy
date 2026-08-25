@@ -37,6 +37,8 @@ enum MapMode {
     Political,
     Terrain,
     Power,
+    /// The big board: dark phosphor restyle, strike-reach washes.
+    Strategic,
 }
 
 /// Marker for spawned map layer entities (fill + borders).
@@ -98,10 +100,14 @@ impl Plugin for MapPlugin {
         app.insert_resource(match std::env::var("UGS_MAPMODE").as_deref() {
             Ok("terrain") => MapMode::Terrain,
             Ok("power") => MapMode::Power,
+            Ok("strategic") => MapMode::Strategic,
             _ => MapMode::Political,
         });
         // The map underlies both the nation-select screen and the game.
-        app.add_systems(OnEnter(AppState::NationSelect), (spawn_map, overview_camera));
+        app.add_systems(
+            OnEnter(AppState::NationSelect),
+            (spawn_map, overview_camera),
+        );
         app.add_systems(
             OnEnter(AppState::InGame),
             (spawn_map, spawn_hud, focus_player_camera).chain(),
@@ -210,11 +216,7 @@ fn terrain_color(terrain: Terrain, province_id: u32) -> Color {
 /// Regional power factor (permille) -> red/amber/green.
 fn power_color(factor_permille: u64, province_id: u32) -> Color {
     let t = ((factor_permille.clamp(500, 1000) - 500) as f32) / 500.0;
-    let (r, g, b) = (
-        (200.0 - 120.0 * t) as u8,
-        (70.0 + 110.0 * t) as u8,
-        60u8,
-    );
+    let (r, g, b) = ((200.0 - 120.0 * t) as u8, (70.0 + 110.0 * t) as u8, 60u8);
     wobbled((r, g, b), province_id)
 }
 
@@ -243,10 +245,13 @@ fn build_line_mesh(polylines: &[Vec<Vec2>], width: f32, color: [f32; 4], z: f32)
         }
     }
     let count = positions.len();
-    Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, vec![color; count])
-        .with_inserted_indices(Indices::U32(indices))
+    Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::default(),
+    )
+    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+    .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, vec![color; count])
+    .with_inserted_indices(Indices::U32(indices))
 }
 
 /// Build the whole political map as ONE vertex-colored mesh (a draw call
@@ -293,10 +298,13 @@ fn spawn_map(
     }
     let total_vertices = positions.len();
     let fill_mesh = meshes.add(
-        Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
-            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
-            .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
-            .with_inserted_indices(Indices::U32(indices)),
+        Mesh::new(
+            PrimitiveTopology::TriangleList,
+            RenderAssetUsages::default(),
+        )
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
+        .with_inserted_indices(Indices::U32(indices)),
     );
 
     // --- Border layers ---------------------------------------------------
@@ -321,17 +329,16 @@ fn spawn_map(
     ));
 
     // Country borders: precise polylines from mapgen's raw topology.
-    let border_lines: Vec<Vec<Vec2>> =
-        std::fs::read_to_string("assets/map/country_borders.ron")
-            .ok()
-            .and_then(|text| ron::from_str::<Vec<Vec<(f32, f32)>>>(&text).ok())
-            .map(|lines| {
-                lines
-                    .iter()
-                    .map(|line| line.iter().map(|&(lon, lat)| project(lon, lat)).collect())
-                    .collect()
-            })
-            .unwrap_or_default();
+    let border_lines: Vec<Vec<Vec2>> = std::fs::read_to_string("assets/map/country_borders.ron")
+        .ok()
+        .and_then(|text| ron::from_str::<Vec<Vec<(f32, f32)>>>(&text).ok())
+        .map(|lines| {
+            lines
+                .iter()
+                .map(|line| line.iter().map(|&(lon, lat)| project(lon, lat)).collect())
+                .collect()
+        })
+        .unwrap_or_default();
     let border_mesh = meshes.add(build_line_mesh(
         &border_lines,
         2.2,
@@ -389,7 +396,10 @@ fn spawn_hud(
                     .unwrap_or_default(),
                 {
                     let path = format!("flags/{}.png", p.0 .0);
-                    std::path::Path::new("assets").join(&path).exists().then_some(path)
+                    std::path::Path::new("assets")
+                        .join(&path)
+                        .exists()
+                        .then_some(path)
                 },
             )
         }
@@ -497,6 +507,7 @@ fn spawn_hud(
                 (MapMode::Political, "ui/icon_political.jpg", "POLITICAL"),
                 (MapMode::Terrain, "ui/icon_terrain.jpg", "TERRAIN"),
                 (MapMode::Power, "ui/icon_power.jpg", "POWER"),
+                (MapMode::Strategic, "ui/icon_strategic.jpg", "STRATEGIC"),
             ] {
                 bar.spawn((
                     Button,
@@ -598,7 +609,10 @@ fn refresh_province_card(
     let pop = persons(cohorts.total().max(p.population_k as u64 * 1000));
     let flag = {
         let path = format!("flags/{}.png", p.owner.0);
-        std::path::Path::new("assets").join(&path).exists().then_some(path)
+        std::path::Path::new("assets")
+            .join(&path)
+            .exists()
+            .then_some(path)
     };
 
     commands.entity(card).despawn_related::<Children>();
@@ -730,7 +744,8 @@ fn handle_input(
         *mode = match *mode {
             MapMode::Political => MapMode::Terrain,
             MapMode::Terrain => MapMode::Power,
-            MapMode::Power => MapMode::Political,
+            MapMode::Power => MapMode::Strategic,
+            MapMode::Strategic => MapMode::Political,
         };
     }
     for (key, level) in [
@@ -830,11 +845,14 @@ fn map_mode_buttons(
 }
 
 /// Recolor the shared fill mesh's vertex colors when the map mode changes.
+#[allow(clippy::too_many_arguments)] // Bevy systems take what they query
 fn apply_map_mode(
     mode: Res<MapMode>,
     world: Res<World1950>,
     power: Res<RegionalPower>,
     military: Res<Military>,
+    deterrence: Res<ugs_sim::deterrence::Deterrence>,
+    player: Option<Res<PlayerNation>>,
     fill: Option<Res<MapFill>>,
     mut occupation_hash: Local<u64>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -853,16 +871,40 @@ fn apply_map_mode(
     if occupation_changed {
         *occupation_hash = occ_hash;
     }
-    // Repaint on mode change; Power mode monthly; occupation on conquest.
+    // Repaint on mode change; Power mode monthly; occupation on conquest;
+    // Strategic when the deterrence picture shifts.
     if !mode.is_changed()
         && !(*mode == MapMode::Power && power.is_changed())
         && !(*mode == MapMode::Political && occupation_changed)
+        && !(*mode == MapMode::Strategic && deterrence.is_changed())
     {
         return;
     }
     let Some(fill) = fill else { return };
     let Some(mut mesh) = meshes.get_mut(&fill.mesh) else {
         return;
+    };
+    // Strategic mode precomputation: what the player can strike, and
+    // what can strike the player (sets for O(1) lookup below).
+    let (my_reach, enemy_reach_home): (
+        std::collections::BTreeSet<u32>,
+        std::collections::BTreeSet<u32>,
+    ) = if *mode == MapMode::Strategic {
+        let me = player.as_ref().map(|p| p.0.clone());
+        let mine = me
+            .as_ref()
+            .and_then(|m| deterrence.reach.get(m))
+            .map(|v| v.iter().map(|p| p.0).collect())
+            .unwrap_or_default();
+        let theirs = deterrence
+            .reach
+            .iter()
+            .filter(|(tag, _)| Some(*tag) != me.as_ref())
+            .flat_map(|(_, v)| v.iter().map(|p| p.0))
+            .collect();
+        (mine, theirs)
+    } else {
+        Default::default()
     };
     let mut colors = vec![[0.5, 0.5, 0.5, 1.0]; fill.total_vertices];
     for (id, (start, len)) in &fill.ranges {
@@ -881,6 +923,22 @@ fn apply_map_mode(
                     .unwrap_or(1000),
                 *id,
             ),
+            MapMode::Strategic => {
+                let me = player.as_ref().map(|pl| &pl.0);
+                let is_mine = me == Some(&effective_owner);
+                let in_my_reach = my_reach.contains(id);
+                let under_their_guns = enemy_reach_home.contains(id);
+                let rgb = if is_mine && under_their_guns {
+                    (86, 30, 26) // home soil inside enemy strike radius
+                } else if is_mine {
+                    (30, 42, 54) // home soil, out of reach
+                } else if in_my_reach {
+                    (96, 78, 30) // phosphor wash: we can put a bomber here
+                } else {
+                    (14, 17, 21) // beyond everyone's reach: dark board
+                };
+                wobbled(rgb, *id)
+            }
         }
         .to_linear()
         .to_f32_array();
@@ -897,7 +955,9 @@ fn dev_autoload(world: &mut World, done: &mut bool) {
         return;
     }
     *done = true;
-    let Ok(path) = std::env::var("UGS_LOAD") else { return };
+    let Ok(path) = std::env::var("UGS_LOAD") else {
+        return;
+    };
     let Ok(text) = std::fs::read_to_string(&path) else {
         warn!("UGS_LOAD: cannot read {path}");
         return;
@@ -1052,6 +1112,7 @@ fn update_ui_text(
     speed: Res<GameSpeed>,
     tension: Res<GlobalTension>,
     military: Res<Military>,
+    nukes: Res<ugs_sim::nuclear::NuclearPrograms>,
     player: Option<Res<PlayerNation>>,
     mode: Res<MapMode>,
     mut clock_text: Query<&mut Text, (With<ClockText>, Without<TensionText>)>,
@@ -1090,10 +1151,17 @@ fn update_ui_text(
                 }
             })
             .unwrap_or_default();
+        let atomic = player
+            .as_ref()
+            .and_then(|p| nukes.programs.get(&p.0))
+            .filter(|prog| prog.stockpile > 0)
+            .map(|prog| format!("ATOMIC {:04}    ", prog.assembled))
+            .unwrap_or_default();
         text.0 = format!(
-            "{}{}TENSION {:.1} ({})    MAP: {:?}",
+            "{}{}{}TENSION {:.1} ({})    MAP: {:?}",
             wars,
             army,
+            atomic,
             tension.displayed(),
             tension.band(),
             *mode

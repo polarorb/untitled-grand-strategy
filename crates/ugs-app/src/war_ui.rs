@@ -84,7 +84,10 @@ fn fmt_men(n: u64) -> String {
 fn est_men_range(true_men: u64, seed: u64) -> (u64, u64) {
     let factor = 800 + mix(seed) % 500; // 0.80x .. 1.30x
     let center = true_men * factor / 1000;
-    (round_sig2(center * 85 / 100), round_sig2(center * 115 / 100))
+    (
+        round_sig2(center * 85 / 100),
+        round_sig2(center * 115 / 100),
+    )
 }
 
 /// Estimated enemy division count band.
@@ -102,6 +105,7 @@ impl Plugin for WarUiPlugin {
             (
                 announce_player_country,
                 show_event_popups,
+                show_dynamic_popups,
                 show_notices,
                 dismiss_popup,
                 choice_buttons,
@@ -143,7 +147,10 @@ fn show_event_popups(
     };
     let is_player_choice = fired.is_pending(&event.id)
         && event.country.is_some()
-        && player.as_ref().map(|p| Some(&p.0) == event.country.as_ref()).unwrap_or(false);
+        && player
+            .as_ref()
+            .map(|p| Some(&p.0) == event.country.as_ref())
+            .unwrap_or(false);
     speed.paused = true;
     commands.spawn((
         AudioPlayer::new(audio.teletype.clone()),
@@ -342,7 +349,12 @@ fn sync_formation_markers(
     for f in military.formations.values() {
         let e = stacks
             .entry((f.location.0, f.owner.0.clone()))
-            .or_insert(Stack { count: 0, men: 0, strength: 0, cohesion: 0 });
+            .or_insert(Stack {
+                count: 0,
+                men: 0,
+                strength: 0,
+                cohesion: 0,
+            });
         e.count += 1;
         e.men += f.strength * tuning::MEN_PER_STRENGTH_POINT;
         e.strength += f.strength;
@@ -459,10 +471,7 @@ fn sync_formation_markers(
 }
 
 /// Battles breathe: scale-pulse so the eye finds the fighting.
-fn pulse_battle_markers(
-    time: Res<Time>,
-    mut markers: Query<&mut Transform, With<BattleMarker>>,
-) {
+fn pulse_battle_markers(time: Res<Time>, mut markers: Query<&mut Transform, With<BattleMarker>>) {
     let s = 1.0 + 0.22 * (time.elapsed_secs() * 4.0).sin();
     for mut t in &mut markers {
         t.scale = Vec3::splat(s);
@@ -481,7 +490,9 @@ fn draw_movement_arrows(
         if f.move_cooldown == 0 {
             continue;
         }
-        let Some(from_id) = f.last_location else { continue };
+        let Some(from_id) = f.last_location else {
+            continue;
+        };
         let (Some(from), Some(to)) = (
             world.0.provinces.get(&from_id),
             world.0.provinces.get(&f.location),
@@ -580,9 +591,8 @@ fn battle_inspector(
     };
 
     // Projection: hours until each side's average division breaks.
-    let to_break = |cohesion: u64, loss: u64| {
-        cohesion.saturating_sub(tuning::RETREAT_COHESION) / loss.max(1)
-    };
+    let to_break =
+        |cohesion: u64, loss: u64| cohesion.saturating_sub(tuning::RETREAT_COHESION) / loss.max(1);
     let att_breaks = to_break(b.attacker_cohesion, b.attacker_hourly_loss);
     let def_breaks = to_break(b.defender_cohesion, b.defender_hourly_loss);
     let projection = if def_breaks < att_breaks {
@@ -617,7 +627,10 @@ fn battle_inspector(
                 reasons.push((20, "ENEMY FIGHTING ON HOME GROUND (+20%)".into()));
             }
             if qual_gap < -30 {
-                reasons.push((-qual_gap / 10, format!("ENEMY QUALITY EDGE ({:+}%)", -qual_gap / 10)));
+                reasons.push((
+                    -qual_gap / 10,
+                    format!("ENEMY QUALITY EDGE ({:+}%)", -qual_gap / 10),
+                ));
             }
             if b.defender_men > b.attacker_men {
                 reasons.push((
@@ -627,7 +640,10 @@ fn battle_inspector(
             }
         } else {
             if qual_gap > 30 {
-                reasons.push((qual_gap / 10, format!("ENEMY QUALITY EDGE ({:+}%)", qual_gap / 10)));
+                reasons.push((
+                    qual_gap / 10,
+                    format!("ENEMY QUALITY EDGE ({:+}%)", qual_gap / 10),
+                ));
             }
             if b.attacker_men > b.defender_men {
                 reasons.push((
@@ -841,6 +857,133 @@ fn announce_player_country(
     });
 }
 
+/// Sim-generated decisions (crises, commander requests): the teletype
+/// modal with live option buttons, resolved through the command log.
+#[allow(clippy::too_many_arguments)] // Bevy systems take what they query
+fn show_dynamic_popups(
+    mut commands: Commands,
+    fired: Res<FiredEvents>,
+    fonts: Res<Fonts>,
+    audio: Res<AudioHandles>,
+    player: Option<Res<PlayerNation>>,
+    clock: Res<ugs_sim::SimClock>,
+    mut speed: ResMut<GameSpeed>,
+    mut shown: Local<Vec<String>>,
+    existing: Query<(), With<EventModal>>,
+) {
+    if !existing.is_empty() {
+        return;
+    }
+    let Some(choice) = fired
+        .dynamic
+        .iter()
+        .find(|d| !shown.iter().any(|s| s == &d.id))
+    else {
+        return;
+    };
+    shown.push(choice.id.clone());
+    shown.retain(|s| s == &choice.id || fired.dynamic.iter().any(|d| &d.id == s));
+    let is_mine = player
+        .as_ref()
+        .map(|p| p.0 == choice.country)
+        .unwrap_or(false);
+    speed.paused = true;
+    commands.spawn((
+        AudioPlayer::new(audio.alert.clone()),
+        PlaybackSettings::DESPAWN.with_volume(Volume::Linear(0.4)),
+    ));
+    let hours_left = choice.deadline_tick.saturating_sub(clock.tick);
+    commands
+        .spawn((
+            EventModal,
+            Interaction::default(),
+            Node {
+                position_type: PositionType::Absolute,
+                left: Val::Percent(50.0),
+                top: Val::Percent(20.0),
+                margin: UiRect::left(Val::Px(-270.0)),
+                width: Val::Px(540.0),
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(12.0),
+                padding: UiRect::all(Val::Px(22.0)),
+                ..default()
+            },
+            BackgroundColor(PANEL_BG),
+        ))
+        .with_children(|m| {
+            m.spawn((
+                Text::new("*** CRITIC / FLASH ***"),
+                font(&fonts.mono_bold, 13.0),
+                TextColor(Color::srgb(0.9, 0.4, 0.35)),
+            ));
+            m.spawn((
+                Text::new(choice.title.clone()),
+                font(&fonts.display, 22.0),
+                TextColor(MAIN),
+            ));
+            m.spawn((
+                Text::new(choice.body.clone()),
+                font(&fonts.mono, 13.5),
+                TextColor(MAIN),
+            ));
+            m.spawn((
+                Text::new(format!("RESPONSE REQUIRED WITHIN {hours_left} HOURS")),
+                font(&fonts.mono, 11.5),
+                TextColor(Color::srgb(0.62, 0.66, 0.70)),
+            ));
+            if is_mine {
+                for (i, label) in choice.options.iter().enumerate() {
+                    m.spawn((
+                        Button,
+                        ChoiceButton {
+                            event_id: choice.id.clone(),
+                            option: i as u8,
+                        },
+                        Node {
+                            padding: UiRect::axes(Val::Px(20.0), Val::Px(9.0)),
+                            ..default()
+                        },
+                        BackgroundColor(if label.contains("ESCALATE") {
+                            Color::srgb(0.5, 0.22, 0.18)
+                        } else {
+                            Color::srgba(0.14, 0.17, 0.21, 0.95)
+                        }),
+                    ))
+                    .with_children(|b| {
+                        b.spawn((
+                            Text::new(label.clone()),
+                            font(&fonts.display, 15.0),
+                            TextColor(Color::srgb(0.98, 0.95, 0.88)),
+                        ));
+                    });
+                }
+            } else {
+                m.spawn((
+                    Text::new(format!("DECISION RESTS WITH {}", choice.country.0)),
+                    font(&fonts.mono, 12.0),
+                    TextColor(Color::srgb(0.62, 0.66, 0.70)),
+                ));
+                m.spawn((
+                    Button,
+                    DismissButton,
+                    Node {
+                        align_self: AlignSelf::FlexEnd,
+                        padding: UiRect::axes(Val::Px(24.0), Val::Px(8.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.55, 0.44, 0.18)),
+                ))
+                .with_children(|b| {
+                    b.spawn((
+                        Text::new("ACKNOWLEDGE"),
+                        font(&fonts.display, 15.0),
+                        TextColor(Color::srgb(0.98, 0.95, 0.88)),
+                    ));
+                });
+            }
+        });
+}
+
 /// Dynamic notices (armistices, capitulations) get the same teletype
 /// treatment as scripted events.
 #[allow(clippy::too_many_arguments)] // Bevy systems take what they query
@@ -886,7 +1029,11 @@ fn show_notices(
                 font(&fonts.mono_bold, 13.0),
                 TextColor(ACCENT),
             ));
-            m.spawn((Text::new(title), font(&fonts.display, 22.0), TextColor(MAIN)));
+            m.spawn((
+                Text::new(title),
+                font(&fonts.display, 22.0),
+                TextColor(MAIN),
+            ));
             m.spawn((Text::new(body), font(&fonts.mono, 13.5), TextColor(MAIN)));
             m.spawn((
                 Button,
@@ -950,6 +1097,7 @@ fn refresh_war_panel(
     military: Res<Military>,
     world: Res<World1950>,
     demo: Res<Demographics>,
+    crises: Res<ugs_sim::crisis::Crises>,
     clock: Res<SimClock>,
     fonts: Res<Fonts>,
     player: Option<Res<PlayerNation>>,
@@ -961,7 +1109,9 @@ fn refresh_war_panel(
     if !rebuild {
         return;
     }
-    let Ok(panel) = panel_any.single() else { return };
+    let Ok(panel) = panel_any.single() else {
+        return;
+    };
     commands.entity(panel).despawn_related::<Children>();
     commands.entity(panel).with_children(|p| {
         p.spawn((Text::new("WAR ROOM"), font(&fonts.display, 18.0), TextColor(MAIN)));
@@ -1057,6 +1207,32 @@ fn refresh_war_panel(
             TextColor(MAIN),
         ));
         let month = clock.tick / (24 * 30);
+        for c in &crises.active {
+            let ours = crises.resolve_of(me);
+            let theirs = crises.resolve_of(&c.other(me));
+            let seed = c.id as u64 ^ month;
+            let (lo, hi) = {
+                let center = (theirs
+                    + ((mix(seed) % 21) as i64 - 10))
+                    .clamp(5, 95);
+                ((center - 10).max(0), (center + 10).min(100))
+            };
+            p.spawn((
+                Text::new(format!(
+                    "CRISIS: {} -- RUNG {}/8 -- MOVE: {}",
+                    c.title, c.rung, c.ball.0
+                )),
+                font(&fonts.mono_bold, 11.0),
+                TextColor(Color::srgb(0.9, 0.45, 0.4)),
+            ));
+            p.spawn((
+                Text::new(format!(
+                    "  OUR RESOLVE {ours} (EXACT)   THEIRS EST {lo}-{hi}"
+                )),
+                font(&fonts.mono, 10.5),
+                TextColor(Color::srgb(0.75, 0.78, 0.82)),
+            ));
+        }
         for enemy in my_wars {
             let enemy_name = world
                 .0

@@ -3,6 +3,38 @@
 // choice, auto-applied when the deciding country's deadline passes.
 [
     EventDef(
+        id: "hbomb-decision",
+        trigger: Date((1950, 1, 31, 12)),
+        title: "THE SUPER: THE PRESIDENT MUST DECIDE",
+        body: "WASHINGTON -- SPECIAL COMMITTEE OF THE NATIONAL SECURITY COUNCIL RECOMMENDS PROCEEDING WITH DEVELOPMENT OF THE HYDROGEN BOMB. GENERAL ADVISORY COMMITTEE MAJORITY REPORT OPPOSES -- OPPENHEIMER AND CONANT CALL THE SUPER A WEAPON OF GENOCIDE. SOVIET ATOMIC TEST HAS CHANGED EVERY CALCULATION. AEC AWAITS DECISION.",
+        country: Some(("USA")),
+        deadline_days: 7,
+        options: [
+            EventOption(
+                label: "PROCEED WITH THE SUPER",
+                effects: [
+                    AuthorizeThermonuclear(country: ("USA")),
+                    AdjustTension(30),
+                ],
+            ),
+            EventOption(
+                label: "DECLINE -- FISSION IS ENOUGH",
+                effects: [
+                    AdjustTension(-10),
+                ],
+            ),
+        ],
+    ),
+    EventDef(
+        id: "fuchs-arrest",
+        trigger: Date((1950, 2, 2, 12)),
+        title: "ATOMIC SCIENTIST ARRESTED AS SOVIET SPY",
+        body: "LONDON -- DR KLAUS FUCHS, HEAD OF THEORETICAL PHYSICS AT HARWELL AND VETERAN OF LOS ALAMOS, ARRESTED UNDER THE OFFICIAL SECRETS ACT. CONFESSION INDICATES WEAPON DESIGN DATA PASSED TO SOVIET INTELLIGENCE SINCE 1944. THE SOVIET BOMB DID NOT COME FROM NOWHERE. DAMAGE ASSESSMENT UNDERWAY.",
+        effects: [
+            AdjustTension(20),
+        ],
+    ),
+    EventDef(
         id: "sino-soviet-treaty",
         trigger: Date((1950, 2, 14, 12)),
         title: "SINO-SOVIET TREATY SIGNED",
@@ -50,6 +82,17 @@
         ],
     ),
     EventDef(
+        id: "inchon-landing",
+        trigger: WarDaysElapsed(a: ("USA"), b: ("PRK"), days: 80),
+        title: "LANDING AT INCHON",
+        body: "TOKYO -- FLASH -- X CORPS ASHORE AT INCHON AGAINST LIGHT OPPOSITION. TIDES RAN THIRTY FEET AND THE PLAN WORKED ANYWAY. ENEMY SUPPLY LINES TO THE SOUTH CUT. GENERAL MACARTHUR OBSERVED THE LANDING FROM MOUNT MCKINLEY. THE WAR HAS A SECOND FRONT.",
+        effects: [
+            SpawnForces(owner: ("USA"), province_owner: ("KOR"), province: "Gyeonggi", archetype: "Infantry", divisions: 3, quality: 1250),
+            SpawnForces(owner: ("USA"), province_owner: ("KOR"), province: "Gyeonggi", archetype: "Armor", divisions: 1, quality: 1300),
+            AdjustTension(20),
+        ],
+    ),
+    EventDef(
         id: "chinese-intervention",
         trigger: ProvincesLost(owner: ("PRK"), count: 3),
         chance_permille: Some(250),
@@ -60,9 +103,21 @@
             DeclareWar(a: ("PRC"), b: ("USA")),
             SetPosture(country: ("PRC"), enemy: ("KOR"), posture: "Advance"),
             SetPosture(country: ("PRC"), enemy: ("USA"), posture: "Advance"),
+            SetPosture(country: ("USA"), enemy: ("PRK"), posture: "Hold"),
+            SetPosture(country: ("KOR"), enemy: ("PRK"), posture: "Hold"),
             SpawnForces(owner: ("PRC"), province_owner: ("PRC"), province: "Liaoning", archetype: "Infantry", divisions: 6, quality: 1050),
             SpawnForces(owner: ("PRC"), province_owner: ("PRC"), province: "Jilin", archetype: "Infantry", divisions: 2, quality: 1000),
             AdjustTension(150),
+        ],
+    ),
+    EventDef(
+        id: "un-second-wind",
+        trigger: WarDaysElapsed(a: ("PRC"), b: ("USA"), days: 25),
+        title: "EIGHTH ARMY REBUILDS THE LINE",
+        body: "SEOUL -- UN FORCES COMPLETE WITHDRAWAL TO DEFENSIBLE POSITIONS. REINFORCEMENTS AND REBUILT ROK DIVISIONS ENTER THE LINE. RIDGWAY: THERE WILL BE NO MORE RETREATING. GENERAL WALKER DEAD IN A JEEP ACCIDENT. THE FRONT WILL HOLD WHERE IT STANDS.",
+        effects: [
+            SpawnForces(owner: ("USA"), province_owner: ("KOR"), province: "South Gyeongsang", archetype: "Infantry", divisions: 4, quality: 1200),
+            SpawnForces(owner: ("KOR"), province_owner: ("KOR"), province: "Busan", archetype: "Infantry", divisions: 4, quality: 950),
         ],
     ),
 ]

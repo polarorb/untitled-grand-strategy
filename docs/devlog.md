@@ -7,6 +7,64 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — The bomb, in four movements
+
+The flagship pillar went from designed to playing in one long push —
+all four phases of the [escalation design](design/systems/escalation.md).
+
+**The program.** Nuclear weapons are an industrial project now, not a
+research bar: fissile grams per month from enrichment and reactor
+levels, throttled by your regional grid (the complex visibly loads it —
+Oak Ridge style) and by uranium feed drawn from the same deposit stocks
+the economy mines. The 1950 seeds are sourced: the US at 299 warheads
+(only 60 assembled — cores sat in civilian custody), the USSR at 5,
+Britain mid-program with Windscale under construction. Left alone, the
+sim produces Hurricane off the coast of Australia around 1952-53 and
+Ivy Mike on schedule, each detected by sampling flights and announced
+on the wire. The H-bomb decision lands on campaign day 31; Fuchs is
+arrested on day 33. The atomic dossier (B) shows your program exactly
+and everyone else's as National Intelligence Estimate cards that are
+allowed to be wrong.
+
+**Deterrence.** What deters is what the rival *believes* you can land:
+believed-deliverable = assembled × an opacity bias (estimates run high,
+per the bomber-gap record; parade deception inflates them further, at
+a price) × physical reach — integer great-circle math from real basing
+provinces against real cities. In 1950 the dyad is ONE-SIDED (SAC
+reaches Moscow via UK basing; Tu-4s reach CONUS only one-way); as
+bomber generations improve it turns MUTUAL mid-decade, and from that
+moment war between the peers stops being declarable. The strategic map
+mode is the dark phosphor big board: amber wash where your bombers
+reach, red where theirs do.
+
+**Crises.** Kahn's ladder, kept to its firebreaks: 8 rungs, incidents
+rolling in basis points per hour while you sit at altitude (multiplied
+by alert levels — Schelling's threat that leaves something to chance),
+resolve as the currency of backing down, the ball passing with each
+escalation, deadlines that default to the cautious option. Berlin,
+the Taiwan Strait, and the Turkish Straits are authored flashpoints;
+under mutual deterrence they come twice as often.
+
+**The trap, and the end.** When your front collapses and the bomb is
+available, the theater commander *asks*. Battlefield use works — it
+shatters the divisions in the target province — and that is the trap:
+civilians die out of the real cohorts, the taboo breaks for everyone
+forever, and the enemy's patron opens an ultimatum crisis at the
+nuclear rung. Climb past it and the campaign ends: the teletype prints
+the cities from the real demography, the exact dead (there is no one
+left to estimate), the attribution from the command log, and how long
+the peace held. We do not reward failure.
+
+Getting the Korea arc to survive the new physics forced two events
+history was owed anyway: the Inchon landing and Ridgway's Eighth Army
+rebuild — the arc test now runs invasion → Inchon → Chinese
+intervention → stalemate → armistice with the crisis engine live.
+48 tests green, determinism suite intact (one lesson: `SimRng::fork`
+advances the parent stream, so quiet systems must not fork "just in
+case" — rolls you don't take still change the war).
+
+---
+
 ## 2026-08-25 — The gun on the wall: researching the nuclear pillar
 
 The game's flagship pillar — escalation & nuclear brinkmanship — has

@@ -73,6 +73,10 @@ pub fn reset_sim(world: &mut World, start_date: GameDate, seed: u64) {
     world.insert_resource(crate::military::Military::default());
     world.insert_resource(crate::military::PlayerCountry::default());
     world.insert_resource(crate::events::FiredEvents::default());
+    world.insert_resource(crate::nuclear::NuclearPrograms::default());
+    world.insert_resource(crate::deterrence::Deterrence::default());
+    world.insert_resource(crate::crisis::Crises::default());
+    world.remove_resource::<crate::crisis::GameOver>();
 }
 
 /// Rebuild the world from a save: reset, then replay every tick with the
@@ -135,15 +139,14 @@ mod tests {
     fn save_and_replay_reproduces_state_exactly() {
         let mut original = app_with_scenario();
         run_ticks(&mut original, 24 * 45);
-        original
-            .world_mut()
-            .resource_mut::<PendingCommands>()
-            .push(SimCommand::SetPlannedAllocation {
+        original.world_mut().resource_mut::<PendingCommands>().push(
+            SimCommand::SetPlannedAllocation {
                 country: CountryTag("SOV".into()),
                 consumer: 250,
                 investment: 550,
                 military: 200,
-            });
+            },
+        );
         run_ticks(&mut original, 24 * 100);
         original
             .world_mut()

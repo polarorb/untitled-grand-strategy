@@ -100,6 +100,9 @@ mod tests {
             assert_eq!(fa.next_u64(), fb.next_u64());
         }
         let mut other = SimRng::seeded(9).fork(b"elections");
-        assert_ne!(other.next_u64(), SimRng::seeded(9).fork(b"combat").next_u64());
+        assert_ne!(
+            other.next_u64(),
+            SimRng::seeded(9).fork(b"combat").next_u64()
+        );
     }
 }

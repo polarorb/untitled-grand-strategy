@@ -50,8 +50,8 @@ impl<T: Copy + PartialEq> Grid<T> {
 
 /// ESRI ASCII grid (HYDE). Header then rows north-to-south.
 pub fn read_asc(path: &Path) -> Grid<f32> {
-    let text = fs::read_to_string(path)
-        .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+    let text =
+        fs::read_to_string(path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
     let mut lines = text.lines();
     let mut header = std::collections::HashMap::new();
     let mut data_start = String::new();
@@ -69,10 +69,18 @@ pub fn read_asc(path: &Path) -> Grid<f32> {
     let nrows = header["nrows"] as usize;
     let nodata = *header.get("nodata_value").unwrap_or(&-9999.0) as f32;
     let mut data = Vec::with_capacity(ncols * nrows);
-    for line in data_start.split_whitespace().chain(lines.flat_map(str::split_whitespace)) {
+    for line in data_start
+        .split_whitespace()
+        .chain(lines.flat_map(str::split_whitespace))
+    {
         data.push(line.parse::<f32>().unwrap_or(nodata));
     }
-    assert_eq!(data.len(), ncols * nrows, "asc size mismatch in {}", path.display());
+    assert_eq!(
+        data.len(),
+        ncols * nrows,
+        "asc size mismatch in {}",
+        path.display()
+    );
     Grid {
         ncols,
         nrows,
@@ -128,8 +136,8 @@ pub fn read_koppen(path: &Path) -> Grid<u8> {
         }
     }
     assert!(patched, "photometric tag not found in {}", path.display());
-    let mut decoder = tiff::decoder::Decoder::new(std::io::Cursor::new(bytes))
-        .expect("tiff decoder");
+    let mut decoder =
+        tiff::decoder::Decoder::new(std::io::Cursor::new(bytes)).expect("tiff decoder");
     let (w, h) = decoder.dimensions().expect("tiff dims");
     let data = match decoder.read_image().expect("tiff read") {
         tiff::decoder::DecodingResult::U8(v) => v,

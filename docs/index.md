@@ -47,6 +47,13 @@ green, East Germany's plain tricolor), and a historic situation briefing.
 ![Country borders along the Yalu and the 38th parallel](media/korea-borders.png)
 ![Terrain map mode](media/terrain-mode.png)
 
+The escalation pillar is live: nuclear programs as industrial projects
+(uranium, grids, fissile throughput), deterrence computed from what
+rivals *believe* via biased intelligence estimates, crisis ladders with
+Kahn's firebreaks and Schelling's incident hazard, the MacArthur
+temptation, and a failure state that prints real city names and how
+long the peace held.
+
 **[Development log →](devlog.md)** — how it's being built, newest first.
 
 ## Design documents

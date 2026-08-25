@@ -1,0 +1,61 @@
+// Nuclear-program states on January 1st, 1950. Sourced (Norris &
+// Kristensen, Bulletin of the Atomic Scientists 2010; docs/research/
+// nuclear-weapons.md): US stockpile 299 — most cores unassembled in AEC
+// civilian custody; USSR ~5 after RDS-1 (Aug 1949), plutonium route via
+// Mayak; UK mid-program (High Explosive Research), Windscale reactors
+// under construction, first device Oct 1952.
+[
+    NuclearSeedDef(
+        country: ("USA"),
+        stage: "Tested",
+        route: "Both",
+        stockpile: 299,
+        assembled: 60,
+        enrichment_level: 8,
+        reactor_level: 6,
+        scientists: 24,
+        building_reactor_months: 0,
+        thermonuclear_authorized: false, // the Jan 31 decision
+        // SAC: ~520 B-29/B-50/B-36 under LeMay; UK basing since 1948.
+        bombers: 520,
+        bomber_range_km: 5000,
+        one_way_extra_km: 0,
+        basing_rights: [("GBR")],
+        range_growth_km_per_year: 550, // B-47 fleet -> B-52 by 1955
+    ),
+    NuclearSeedDef(
+        country: ("SOV"),
+        stage: "Tested",
+        route: "Plutonium",
+        stockpile: 5,
+        assembled: 1,
+        enrichment_level: 0,
+        reactor_level: 1,
+        scientists: 16,
+        building_reactor_months: 14, // Mayak expansion underway
+        thermonuclear_authorized: true, // Sakharov's group already at work
+        // Tu-4 force: Europe/Japan two-way; CONUS only one-way.
+        bombers: 300,
+        bomber_range_km: 3000,
+        one_way_extra_km: 3200,
+        basing_rights: [],
+        range_growth_km_per_year: 700, // Tu-16 1954, Tu-95 1956
+    ),
+    NuclearSeedDef(
+        country: ("GBR"),
+        stage: "Producing",
+        route: "Plutonium",
+        stockpile: 0,
+        assembled: 0,
+        enrichment_level: 0,
+        reactor_level: 0,
+        scientists: 10,
+        building_reactor_months: 20, // Windscale piles complete late 1951
+        thermonuclear_authorized: false,
+        bombers: 40, // Washingtons (lend-lease B-29s)
+        bomber_range_km: 3000,
+        one_way_extra_km: 0,
+        basing_rights: [],
+        range_growth_km_per_year: 300, // V-bombers mid-50s
+    ),
+]

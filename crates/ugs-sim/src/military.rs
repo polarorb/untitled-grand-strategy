@@ -98,9 +98,7 @@ impl Archetype {
     }
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct FormationId(pub u32);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -315,8 +313,7 @@ impl Military {
         }
         for (p, tag) in &self.occupation {
             h = (h ^ p.0 as u64).wrapping_mul(0x0000_0100_0000_01b3);
-            h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>())
-                .wrapping_mul(0x0000_0100_0000_01b3);
+            h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>()).wrapping_mul(0x0000_0100_0000_01b3);
         }
         for (tag, men) in &self.manpower {
             h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>() ^ men)
@@ -411,7 +408,9 @@ pub fn update_military(
             o.dedup();
             o
         };
-        let Some(first) = owners.first() else { continue };
+        let Some(first) = owners.first() else {
+            continue;
+        };
         let enemies: Vec<&CountryTag> = owners
             .iter()
             .skip(1)
@@ -450,7 +449,11 @@ pub fn update_military(
             }
             let present: Vec<CountryTag> = by_province
                 .get(&old.province)
-                .map(|ids| ids.iter().map(|i| military.formations[i].owner.clone()).collect())
+                .map(|ids| {
+                    ids.iter()
+                        .map(|i| military.formations[i].owner.clone())
+                        .collect()
+                })
                 .unwrap_or_default();
             let att = old.attacker_owners.iter().any(|o| present.contains(o));
             let def = old.defender_owners.iter().any(|o| present.contains(o));
@@ -478,7 +481,10 @@ pub fn update_military(
             let victors: Vec<&str> = winners.iter().map(|t| t.0.as_str()).collect();
             military.log(
                 clock.tick,
-                format!("BATTLE OF {name} ENDS AFTER {hours}H -- {} HOLD THE FIELD", victors.join("/")),
+                format!(
+                    "BATTLE OF {name} ENDS AFTER {hours}H -- {} HOLD THE FIELD",
+                    victors.join("/")
+                ),
             );
         }
     }
@@ -722,8 +728,7 @@ pub fn update_military(
             }
         }
         for (tag, pop) in pop_by_country {
-            *military.manpower.entry(tag).or_default() +=
-                pop * MOBILIZE_PERMILLE_PER_MONTH / 1000;
+            *military.manpower.entry(tag).or_default() += pop * MOBILIZE_PERMILLE_PER_MONTH / 1000;
         }
     }
 
@@ -760,9 +765,7 @@ pub fn update_military(
         .formations
         .iter()
         .filter(|(id, f)| {
-            f.move_cooldown == 0
-                && f.cohesion >= RETREAT_COHESION
-                && !in_battle.contains(id)
+            f.move_cooldown == 0 && f.cohesion >= RETREAT_COHESION && !in_battle.contains(id)
         })
         .map(|(id, _)| *id)
         .collect();
@@ -780,7 +783,6 @@ pub fn update_military(
             f.move_cooldown = days;
         }
     }
-
 
     // Occupation: sole military presence in a province you're at war with
     // its holder flips it to you.
@@ -820,7 +822,14 @@ pub fn update_military(
 
     // --- Monthly: armistice diplomacy ------------------------------------
     if clock.new_month {
-        settle_wars(&clock, data, &player.0, &mut military, &mut fired, &mut tension);
+        settle_wars(
+            &clock,
+            data,
+            &player.0,
+            &mut military,
+            &mut fired,
+            &mut tension,
+        );
     }
 }
 
@@ -850,8 +859,7 @@ fn settle_wars(
             .copied()
             .unwrap_or(0);
         let war_months = (clock.tick.saturating_sub(start)) / (24 * 30);
-        let stale_months =
-            (clock.tick.saturating_sub(military.last_line_change_tick)) / (24 * 30);
+        let stale_months = (clock.tick.saturating_sub(military.last_line_change_tick)) / (24 * 30);
 
         let formations_of = |m: &Military, tag: &CountryTag| {
             m.formations.values().filter(|f| &f.owner == tag).count()
@@ -863,9 +871,8 @@ fn settle_wars(
         };
 
         // Total collapse: no army and no home soil — resistance ends.
-        let collapsed = |m: &Military, tag: &CountryTag| {
-            formations_of(m, tag) == 0 && !holds_home(m, tag)
-        };
+        let collapsed =
+            |m: &Military, tag: &CountryTag| formations_of(m, tag) == 0 && !holds_home(m, tag);
         if collapsed(military, &a) || collapsed(military, &b) {
             let loser = if collapsed(military, &a) { &a } else { &b };
             end_war(military, &a, &b);
@@ -932,13 +939,11 @@ fn find_advance_step(
     let is_target = |id: ProvinceId| {
         data.provinces.get(&id).is_some_and(|p| {
             let holder = military.owner_of(id, &p.owner);
-            military.at_war(owner, &holder)
-                && military.posture(owner, &holder) == Posture::Advance
+            military.at_war(owner, &holder) && military.posture(owner, &holder) == Posture::Advance
         })
     };
     let mut visited: BTreeSet<ProvinceId> = BTreeSet::from([location]);
-    let mut queue: VecDeque<(ProvinceId, Option<ProvinceId>)> =
-        VecDeque::from([(location, None)]);
+    let mut queue: VecDeque<(ProvinceId, Option<ProvinceId>)> = VecDeque::from([(location, None)]);
     let mut expanded = 0usize;
     while let Some((current, first_hop)) = queue.pop_front() {
         expanded += 1;
@@ -1006,7 +1011,12 @@ mod tests {
         assert_eq!(count("KOR"), 8, "ROK divisions");
         assert!(military.wars.is_empty(), "peace at campaign start");
         assert!(
-            military.manpower.get(&CountryTag("KOR".into())).copied().unwrap_or(0) > 100_000,
+            military
+                .manpower
+                .get(&CountryTag("KOR".into()))
+                .copied()
+                .unwrap_or(0)
+                > 100_000,
             "ROK manpower pool seeded from population"
         );
     }
@@ -1059,9 +1069,16 @@ mod tests {
         );
         let won: u32 = military.battles_won.values().sum();
         let lost: u32 = military.battles_lost.values().sum();
-        assert!(won > 0 && lost > 0, "battle outcomes tallied ({won}W/{lost}L)");
+        assert!(
+            won > 0 && lost > 0,
+            "battle outcomes tallied ({won}W/{lost}L)"
+        );
         // Mobilization grows the belligerents' pools while neutral pools hold.
-        let prk = military.manpower.get(&CountryTag("PRK".into())).copied().unwrap();
+        let prk = military
+            .manpower
+            .get(&CountryTag("PRK".into()))
+            .copied()
+            .unwrap();
         assert!(prk > 0, "KPA still has a manpower pool");
     }
 }

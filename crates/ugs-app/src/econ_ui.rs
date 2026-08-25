@@ -7,7 +7,7 @@ use ugs_sim::{
     agriculture::{Agriculture, Quota},
     command::{PendingCommands, SimCommand},
     demography::LivingStandards,
-    planning::{Economies, EconomicSystem, Policy, Procurement},
+    planning::{EconomicSystem, Economies, Policy, Procurement},
 };
 
 use crate::{font, AppState, Fonts, PlayerNation, World1950};
@@ -44,7 +44,9 @@ pub struct EconUiPlugin;
 impl Plugin for EconUiPlugin {
     fn build(&self, app: &mut App) {
         // Dev shortcut: UGS_PANEL=econ boots with the panel open.
-        app.insert_resource(PanelOpen(std::env::var("UGS_PANEL").as_deref() == Ok("econ")));
+        app.insert_resource(PanelOpen(
+            std::env::var("UGS_PANEL").as_deref() == Ok("econ"),
+        ));
         app.add_systems(OnEnter(AppState::InGame), spawn_panel);
         app.add_systems(
             Update,
@@ -207,7 +209,11 @@ fn refresh_panel(
 
     let Some(player) = player else {
         commands.entity(panel).with_children(|p| {
-            p.spawn((Text::new("OBSERVER - no nation"), font(&fonts.display, 16.0), TextColor(DIM)));
+            p.spawn((
+                Text::new("OBSERVER - no nation"),
+                font(&fonts.display, 16.0),
+                TextColor(DIM),
+            ));
         });
         return;
     };
@@ -232,11 +238,16 @@ fn refresh_panel(
             Some(EconomicSystem::Market) => "ECONOMIC POLICY",
             None => "ECONOMY",
         };
-        p.spawn((Text::new(title), font(&fonts.display, 18.0), TextColor(MAIN)));
+        p.spawn((
+            Text::new(title),
+            font(&fonts.display, 18.0),
+            TextColor(MAIN),
+        ));
         p.spawn((Text::new(name), font(&fonts.body, 12.0), TextColor(DIM)));
 
         // Stat rows.
-        let growth_pct = st.last_growth_centi as f64 * 12.0 / (st.actual_centi.max(1)) as f64 * 100.0;
+        let growth_pct =
+            st.last_growth_centi as f64 * 12.0 / (st.actual_centi.max(1)) as f64 * 100.0;
         let mut stats: Vec<(&str, String)> = vec![
             ("INDUSTRY", format!("{:.1}", dashboard as f64 / 100.0)),
             ("GROWTH /yr", format!("{growth_pct:+.1}%")),
@@ -255,7 +266,11 @@ fn refresh_panel(
                 ..default()
             })
             .with_children(|row| {
-                row.spawn((Text::new(label), font(&fonts.body_medium, 12.0), TextColor(DIM)));
+                row.spawn((
+                    Text::new(label),
+                    font(&fonts.body_medium, 12.0),
+                    TextColor(DIM),
+                ));
                 row.spawn((Text::new(value), font(&fonts.mono, 13.0), TextColor(MAIN)));
             });
         }
@@ -273,7 +288,11 @@ fn refresh_panel(
                 ..default()
             })
             .with_children(|row| {
-                row.spawn((Text::new(label.to_string()), font(&fonts.body_medium, 13.0), TextColor(ACCENT)));
+                row.spawn((
+                    Text::new(label.to_string()),
+                    font(&fonts.body_medium, 13.0),
+                    TextColor(ACCENT),
+                ));
                 row.spawn(Node {
                     column_gap: Val::Px(6.0),
                     align_items: AlignItems::Center,
@@ -282,7 +301,11 @@ fn refresh_panel(
                 .with_children(|c| {
                     for (b, txt) in [(down, "-"), (up, "+")] {
                         if txt == "-" {
-                            c.spawn((Text::new(value.clone()), font(&fonts.mono, 14.0), TextColor(MAIN)));
+                            c.spawn((
+                                Text::new(value.clone()),
+                                font(&fonts.mono, 14.0),
+                                TextColor(MAIN),
+                            ));
                         }
                         c.spawn((
                             Button,
@@ -294,7 +317,11 @@ fn refresh_panel(
                             BackgroundColor(BG_LIGHT),
                         ))
                         .with_children(|bb| {
-                            bb.spawn((Text::new(txt.to_string()), font(&fonts.body_medium, 15.0), TextColor(MAIN)));
+                            bb.spawn((
+                                Text::new(txt.to_string()),
+                                font(&fonts.body_medium, 15.0),
+                                TextColor(MAIN),
+                            ));
                         });
                     }
                 });
@@ -356,7 +383,11 @@ fn refresh_panel(
                     ..default()
                 })
                 .with_children(|row| {
-                    row.spawn((Text::new("PROCUREMENT"), font(&fonts.body_medium, 13.0), TextColor(ACCENT)));
+                    row.spawn((
+                        Text::new("PROCUREMENT"),
+                        font(&fonts.body_medium, 13.0),
+                        TextColor(ACCENT),
+                    ));
                     row.spawn((
                         Button,
                         EconButton::ProcCycle,
@@ -401,10 +432,7 @@ fn refresh_panel(
             ));
             if status.famine {
                 p.spawn((
-                    Text::new(format!(
-                        "FAMINE - {} dead",
-                        status.famine_deaths
-                    )),
+                    Text::new(format!("FAMINE - {} dead", status.famine_deaths)),
                     font(&fonts.mono_bold, 12.0),
                     TextColor(Color::srgb(0.9, 0.35, 0.3)),
                 ));
@@ -416,7 +444,11 @@ fn refresh_panel(
                     ..default()
                 })
                 .with_children(|row| {
-                    row.spawn((Text::new("GRAIN QUOTA"), font(&fonts.body_medium, 13.0), TextColor(ACCENT)));
+                    row.spawn((
+                        Text::new("GRAIN QUOTA"),
+                        font(&fonts.body_medium, 13.0),
+                        TextColor(ACCENT),
+                    ));
                     row.spawn((
                         Button,
                         EconButton::QuotaCycle,

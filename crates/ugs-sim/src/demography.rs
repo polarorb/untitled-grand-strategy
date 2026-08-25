@@ -163,8 +163,12 @@ pub fn update_demographics(
         let natural_ppm = |pop: u64| {
             monthly(pop, births_pm * 1000) as i64 - monthly(pop, deaths_pm * 1000) as i64
         };
-        cohorts.rural = cohorts.rural.saturating_add_signed(natural_ppm(cohorts.rural));
-        cohorts.urban = cohorts.urban.saturating_add_signed(natural_ppm(cohorts.urban));
+        cohorts.rural = cohorts
+            .rural
+            .saturating_add_signed(natural_ppm(cohorts.rural));
+        cohorts.urban = cohorts
+            .urban
+            .saturating_add_signed(natural_ppm(cohorts.urban));
         cohorts.educated = cohorts
             .educated
             .saturating_add_signed(natural_ppm(cohorts.educated));
@@ -212,7 +216,10 @@ mod tests {
         run_ticks(&mut app, 1);
         let world_pop = app.world().resource::<Demographics>().world_population();
         // HYDE 1950 total ≈ 2.53B.
-        assert!((2_300_000_000..2_700_000_000).contains(&world_pop), "{world_pop}");
+        assert!(
+            (2_300_000_000..2_700_000_000).contains(&world_pop),
+            "{world_pop}"
+        );
     }
 
     #[test]
@@ -236,8 +243,18 @@ mod tests {
         run_ticks(&mut app, 1);
         let sol = app.world().resource::<LivingStandards>();
         let get = |t: &str| sol.by_country[&CountryTag(t.into())];
-        assert!(get("USA") > get("SOV"), "USA {} vs SOV {}", get("USA"), get("SOV"));
-        assert!(get("SOV") > get("IND"), "SOV {} vs IND {}", get("SOV"), get("IND"));
+        assert!(
+            get("USA") > get("SOV"),
+            "USA {} vs SOV {}",
+            get("USA"),
+            get("SOV")
+        );
+        assert!(
+            get("SOV") > get("IND"),
+            "SOV {} vs IND {}",
+            get("SOV"),
+            get("IND")
+        );
         assert!(get("GBR") > get("IND"));
     }
 

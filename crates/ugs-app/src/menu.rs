@@ -93,7 +93,10 @@ fn despawn_all<M: Component>(mut commands: Commands, roots: Query<Entity, With<M
 
 fn flag_path(tag: &CountryTag) -> Option<String> {
     let p = format!("flags/{}.png", tag.0);
-    std::path::Path::new("assets").join(&p).exists().then_some(p)
+    std::path::Path::new("assets")
+        .join(&p)
+        .exists()
+        .then_some(p)
 }
 
 fn leader_path(tag: &CountryTag) -> Option<String> {
@@ -180,7 +183,10 @@ fn spawn_main_menu(mut commands: Commands, assets: Res<AssetServer>, fonts: Res<
                 ..default()
             },
         ));
-        for (label, action) in [("NEW GAME", MenuButton::NewGame), ("QUIT", MenuButton::Quit)] {
+        for (label, action) in [
+            ("NEW GAME", MenuButton::NewGame),
+            ("QUIT", MenuButton::Quit),
+        ] {
             root.spawn((
                 Button,
                 action,
@@ -193,7 +199,11 @@ fn spawn_main_menu(mut commands: Commands, assets: Res<AssetServer>, fonts: Res<
                 BackgroundColor(PANEL_BG_LIGHT),
             ))
             .with_children(|b| {
-                b.spawn((Text::new(label), font(&fonts.display, 19.0), TextColor(TEXT_MAIN)));
+                b.spawn((
+                    Text::new(label),
+                    font(&fonts.display, 19.0),
+                    TextColor(TEXT_MAIN),
+                ));
             });
         }
     });
@@ -269,7 +279,11 @@ fn spawn_nation_select(
                     BackgroundColor(PANEL_BG_LIGHT),
                 ))
                 .with_children(|b| {
-                    b.spawn((Text::new("BACK"), font(&fonts.display, 15.0), TextColor(TEXT_DIM)));
+                    b.spawn((
+                        Text::new("BACK"),
+                        font(&fonts.display, 15.0),
+                        TextColor(TEXT_DIM),
+                    ));
                 });
             });
 
@@ -392,10 +406,7 @@ fn nation_map_click(
 }
 
 /// Show/hide the dossier without rebuilding it.
-fn apply_info_visibility(
-    open: Res<InfoOpen>,
-    mut panel: Query<&mut Node, With<DetailsPanel>>,
-) {
+fn apply_info_visibility(open: Res<InfoOpen>, mut panel: Query<&mut Node, With<DetailsPanel>>) {
     if !open.is_changed() {
         return;
     }
@@ -499,7 +510,11 @@ fn refresh_details(
                 BackgroundColor(PANEL_BG_LIGHT),
             ))
             .with_children(|b| {
-                b.spawn((Text::new("X"), font(&fonts.body_medium, 16.0), TextColor(TEXT_DIM)));
+                b.spawn((
+                    Text::new("X"),
+                    font(&fonts.body_medium, 16.0),
+                    TextColor(TEXT_DIM),
+                ));
             });
         });
 
@@ -573,7 +588,10 @@ fn refresh_details(
             ugs_data::Alignment::NonAligned => "Non-Aligned".to_string(),
         };
         let stats = [
-            ("POPULATION", format!("{:.1}M", population_k as f64 / 1000.0)),
+            (
+                "POPULATION",
+                format!("{:.1}M", population_k as f64 / 1000.0),
+            ),
             ("INDUSTRY", country.industry.to_string()),
             ("STABILITY", format!("{}%", country.stability)),
             ("PROVINCES", province_count.to_string()),
@@ -581,7 +599,11 @@ fn refresh_details(
             ("BLOC", alignment),
             (
                 "NUCLEAR",
-                if country.nuclear_power { "YES".into() } else { "no".into() },
+                if country.nuclear_power {
+                    "YES".into()
+                } else {
+                    "no".into()
+                },
             ),
         ];
         d.spawn(Node {
@@ -598,8 +620,16 @@ fn refresh_details(
                     ..default()
                 })
                 .with_children(|col| {
-                    col.spawn((Text::new(label), font(&fonts.body_medium, 11.0), TextColor(TEXT_DIM)));
-                    col.spawn((Text::new(value), font(&fonts.body, 17.0), TextColor(TEXT_MAIN)));
+                    col.spawn((
+                        Text::new(label),
+                        font(&fonts.body_medium, 11.0),
+                        TextColor(TEXT_DIM),
+                    ));
+                    col.spawn((
+                        Text::new(value),
+                        font(&fonts.body, 17.0),
+                        TextColor(TEXT_MAIN),
+                    ));
                 });
             }
         });

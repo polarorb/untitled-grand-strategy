@@ -115,9 +115,11 @@ impl Economies {
     /// The industry figure this country's own dashboard shows.
     pub fn dashboard_industry_centi(&self, tag: &CountryTag) -> u64 {
         match self.system.get(tag) {
-            Some(EconomicSystem::Planned) => {
-                self.industry.get(tag).map(|s| s.reported_centi).unwrap_or(0)
-            }
+            Some(EconomicSystem::Planned) => self
+                .industry
+                .get(tag)
+                .map(|s| s.reported_centi)
+                .unwrap_or(0),
             _ => self.industry.get(tag).map(|s| s.actual_centi).unwrap_or(0),
         }
     }
@@ -153,8 +155,7 @@ fn split(policy: &Policy) -> (u64, u64, u64) {
             ..
         } => {
             let invest = (MARKET_INVEST_BASE
-                + (MARKET_INVEST_PIVOT_BP - *interest_bp as i64) * MARKET_INVEST_SLOPE_CENTI
-                    / 100)
+                + (MARKET_INVEST_PIVOT_BP - *interest_bp as i64) * MARKET_INVEST_SLOPE_CENTI / 100)
                 .clamp(MARKET_INVEST_MIN, MARKET_INVEST_MAX) as u64;
             let military = PROCUREMENT_PERMILLE[*procurement as usize] as u64;
             let consumer = 1000u64.saturating_sub(invest + military);
@@ -280,16 +281,16 @@ pub fn update_production(
                     ),
                     _ => unreachable!(),
                 };
-                let target = (INFLATION_RATE_PIVOT - interest_bp / 2).max(0)
-                    + (proc - tax_pm).max(0);
+                let target =
+                    (INFLATION_RATE_PIVOT - interest_bp / 2).max(0) + (proc - tax_pm).max(0);
                 st.inflation = (st.inflation * 9 + target) / 10;
                 st.reported_centi = st.actual_centi; // honest statistics
             }
             EconomicSystem::Planned => {
                 // Expectation implied by the investment quota; shortfall is
                 // partially papered over, capped relative to actual.
-                let expected = (st.actual_centi * invest_pm / 1000 * INVEST_CONVERT_PERMILLE
-                    / 1000) as i64;
+                let expected =
+                    (st.actual_centi * invest_pm / 1000 * INVEST_CONVERT_PERMILLE / 1000) as i64;
                 let shortfall = (expected - growth).max(0) as u64;
                 let padding = shortfall * MISREPORT_PAD_PERMILLE / 1000;
                 let cap = st.actual_centi * (1000 + MISREPORT_CAP_PERMILLE) / 1000;
@@ -407,14 +408,14 @@ mod tests {
             run_ticks(&mut app, 1);
             let military = 200;
             let consumer = 1000 - investment - military;
-            app.world_mut()
-                .resource_mut::<PendingCommands>()
-                .push(SimCommand::SetPlannedAllocation {
+            app.world_mut().resource_mut::<PendingCommands>().push(
+                SimCommand::SetPlannedAllocation {
                     country: sov(),
                     consumer,
                     investment,
                     military,
-                });
+                },
+            );
             run_ticks(&mut app, 24 * 366 * 2);
             app.world().resource::<Economies>().industry[&sov()].actual_centi
         };
@@ -442,8 +443,14 @@ mod tests {
         };
         let (loose_ind, loose_infl) = run(100);
         let (tight_ind, tight_infl) = run(900);
-        assert!(loose_ind > tight_ind, "loose {loose_ind} vs tight {tight_ind}");
-        assert!(loose_infl > tight_infl, "inflation {loose_infl} vs {tight_infl}");
+        assert!(
+            loose_ind > tight_ind,
+            "loose {loose_ind} vs tight {tight_ind}"
+        );
+        assert!(
+            loose_infl > tight_infl,
+            "inflation {loose_infl} vs {tight_infl}"
+        );
     }
 
     #[test]
@@ -452,7 +459,10 @@ mod tests {
         run_ticks(&mut app, 24 * 366 * 3);
         let econ = app.world().resource::<Economies>();
         let st = &econ.industry[&sov()];
-        assert!(st.reported_centi >= st.actual_centi, "reported below actual");
+        assert!(
+            st.reported_centi >= st.actual_centi,
+            "reported below actual"
+        );
         assert!(
             st.reported_centi <= st.actual_centi * 1150 / 1000,
             "padding exceeded cap: {} vs {}",

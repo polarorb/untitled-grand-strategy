@@ -19,7 +19,10 @@ use std::fs;
 use std::path::Path;
 
 use serde_json::Value;
-use ugs_data::{Alignment, CountryDef, CountryTag, DepositKind, ProvinceDef, ProvinceId, RegionDef, RegionId, Terrain};
+use ugs_data::{
+    Alignment, CountryDef, CountryTag, DepositKind, ProvinceDef, ProvinceId, RegionDef, RegionId,
+    Terrain,
+};
 
 mod rasters;
 
@@ -104,8 +107,8 @@ fn national_colors() -> BTreeMap<&'static str, (u8, u8, u8)> {
         ("BGR", (110, 140, 110)),
         ("ALB", (150, 76, 62)),
         ("MNG", (168, 118, 152)),
-        ("IND", (222, 146, 70)),  // saffron
-        ("PAK", (66, 122, 94)),   // pakistan green
+        ("IND", (222, 146, 70)), // saffron
+        ("PAK", (66, 122, 94)),  // pakistan green
         ("IDN", (172, 84, 78)),
         ("TUR", (158, 104, 72)),
         ("IRN", (140, 152, 110)),
@@ -157,8 +160,8 @@ struct OwnerRow {
 /// adm0_a3 -> 1950 sovereign. Unlisted codes default to themselves
 /// (tag = adm0_a3, name = Natural Earth admin name).
 fn load_owners(path: &Path) -> HashMap<String, OwnerRow> {
-    let text = fs::read_to_string(path)
-        .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+    let text =
+        fs::read_to_string(path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
     let mut map = HashMap::new();
     for (i, line) in text.lines().enumerate() {
         let line = line.trim();
@@ -301,7 +304,10 @@ struct Prov {
 }
 
 fn quantize(p: (f64, f64)) -> (i64, i64) {
-    ((p.0 * ADJ_QUANT).round() as i64, (p.1 * ADJ_QUANT).round() as i64)
+    (
+        (p.0 * ADJ_QUANT).round() as i64,
+        (p.1 * ADJ_QUANT).round() as i64,
+    )
 }
 
 fn round3(v: f64) -> f32 {
@@ -379,12 +385,24 @@ fn main() {
         let center = (
             f["properties"]["longitude"]
                 .as_f64()
-                .or_else(|| f["properties"]["longitude"].as_str().and_then(|s| s.parse().ok()))
-                .unwrap_or_else(|| exterior[0].iter().map(|p| p.0).sum::<f64>() / exterior[0].len() as f64),
+                .or_else(|| {
+                    f["properties"]["longitude"]
+                        .as_str()
+                        .and_then(|s| s.parse().ok())
+                })
+                .unwrap_or_else(|| {
+                    exterior[0].iter().map(|p| p.0).sum::<f64>() / exterior[0].len() as f64
+                }),
             f["properties"]["latitude"]
                 .as_f64()
-                .or_else(|| f["properties"]["latitude"].as_str().and_then(|s| s.parse().ok()))
-                .unwrap_or_else(|| exterior[0].iter().map(|p| p.1).sum::<f64>() / exterior[0].len() as f64),
+                .or_else(|| {
+                    f["properties"]["latitude"]
+                        .as_str()
+                        .and_then(|s| s.parse().ok())
+                })
+                .unwrap_or_else(|| {
+                    exterior[0].iter().map(|p| p.1).sum::<f64>() / exterior[0].len() as f64
+                }),
         );
         let mut adj_points: Vec<(i64, i64)> = all.iter().flatten().map(|&p| quantize(p)).collect();
         adj_points.sort_unstable();
@@ -413,7 +431,10 @@ fn main() {
         }
         for a in 0..owners_at.len() {
             for b in (a + 1)..owners_at.len() {
-                let key = (owners_at[a].min(owners_at[b]), owners_at[a].max(owners_at[b]));
+                let key = (
+                    owners_at[a].min(owners_at[b]),
+                    owners_at[a].max(owners_at[b]),
+                );
                 *pair_counts.entry(key).or_insert(0) += 1;
             }
         }
@@ -452,7 +473,12 @@ fn main() {
             let simplified = simplify(ring, SIMPLIFY_TOLERANCE_DEG);
             if simplified.len() >= MIN_RING_POINTS || i == largest {
                 total_pts += simplified.len();
-                rings_out.push(simplified.iter().map(|&(x, y)| (round3(x), round3(y))).collect());
+                rings_out.push(
+                    simplified
+                        .iter()
+                        .map(|&(x, y)| (round3(x), round3(y)))
+                        .collect(),
+                );
             }
         }
         geometry.insert(p.id, rings_out);
@@ -468,9 +494,10 @@ fn main() {
     for (tag_idx, tag) in tags.into_iter().enumerate() {
         // Golden-angle hue walk for countries without a hand color, muted
         // saturation so hand-picked majors stay visually dominant.
-        let color = colors.get(tag.as_str()).copied().unwrap_or_else(|| {
-            hsl_to_rgb(tag_idx as f64 * 137.508, 0.32, 0.55)
-        });
+        let color = colors
+            .get(tag.as_str())
+            .copied()
+            .unwrap_or_else(|| hsl_to_rgb(tag_idx as f64 * 137.508, 0.32, 0.55));
         let provs: Vec<&Prov> = provinces.iter().filter(|p| &p.owner == tag).collect();
         if provs.is_empty() {
             continue;
@@ -537,21 +564,31 @@ fn main() {
     let prov_path = root.join("assets/data/scenario/1950/provinces/world.ron");
     fs::write(
         &prov_path,
-        format!("{header}{}", ron::ser::to_string_pretty(&province_defs, pretty.clone()).unwrap()),
+        format!(
+            "{header}{}",
+            ron::ser::to_string_pretty(&province_defs, pretty.clone()).unwrap()
+        ),
     )
     .unwrap();
 
     let country_path = root.join("assets/data/scenario/1950/countries/generated.ron");
     fs::write(
         &country_path,
-        format!("{header}{}", ron::ser::to_string_pretty(&country_defs, pretty).unwrap()),
+        format!(
+            "{header}{}",
+            ron::ser::to_string_pretty(&country_defs, pretty).unwrap()
+        ),
     )
     .unwrap();
 
     let regions_path = root.join("assets/data/scenario/1950/regions.ron");
     fs::write(
         &regions_path,
-        format!("{header}{}", ron::ser::to_string_pretty(&region_defs, ron::ser::PrettyConfig::new().depth_limit(2)).unwrap()),
+        format!(
+            "{header}{}",
+            ron::ser::to_string_pretty(&region_defs, ron::ser::PrettyConfig::new().depth_limit(2))
+                .unwrap()
+        ),
     )
     .unwrap();
     println!("regions: {}", region_defs.len());
@@ -599,9 +636,7 @@ fn point_in_province(lon: f64, lat: f64, p: &Prov) -> bool {
         let mut j = n - 1;
         for i in 0..n {
             let (a, b) = (ring[i], ring[j]);
-            if (a.1 > lat) != (b.1 > lat)
-                && lon < (b.0 - a.0) * (lat - a.1) / (b.1 - a.1) + a.0
-            {
+            if (a.1 > lat) != (b.1 > lat) && lon < (b.0 - a.0) * (lat - a.1) / (b.1 - a.1) + a.0 {
                 inside = !inside;
             }
             j = i;
@@ -654,7 +689,10 @@ impl SpatialIndex {
         let key = (lon.floor() as i32, lat.floor() as i32);
         for &i in self.buckets.get(&key)? {
             let (w, s, e, n) = self.bboxes[i];
-            if lon >= w && lon <= e && lat >= s && lat <= n
+            if lon >= w
+                && lon <= e
+                && lat >= s
+                && lat <= n
                 && point_in_province(lon, lat, &provinces[i])
             {
                 return Some(i);
@@ -815,10 +853,7 @@ fn enrich_provinces(provinces: &[Prov], tool_dir: &Path) -> Vec<Enriched> {
             .filter_map(|&(lon, lat)| elev.value_at(lon, lat).map(|v| v.max(0) as f64))
             .collect();
         let elev_mean = elevs.iter().sum::<f64>() / elevs.len().max(1) as f64;
-        let elev_std = (elevs
-            .iter()
-            .map(|v| (v - elev_mean).powi(2))
-            .sum::<f64>()
+        let elev_std = (elevs.iter().map(|v| (v - elev_mean).powi(2)).sum::<f64>()
             / elevs.len().max(1) as f64)
             .sqrt();
         let mut histogram = [0u32; 31];
@@ -839,7 +874,11 @@ fn enrich_provinces(provinces: &[Prov], tool_dir: &Path) -> Vec<Enriched> {
         let cell_km2 = 11.132 * 11.132 * mid_lat.to_radians().cos().max(0.05);
         let area_km2 = samples.len() as f64 * cell_km2;
         let density = pop_sum[i] / area_km2.max(1.0);
-        let urban_share = if pop_sum[i] > 0.0 { urb_sum[i] / pop_sum[i] } else { 0.0 };
+        let urban_share = if pop_sum[i] > 0.0 {
+            urb_sum[i] / pop_sum[i]
+        } else {
+            0.0
+        };
         out.push(Enriched {
             population_k: (pop_sum[i] / 1000.0).round() as u32,
             urban_k: (urb_sum[i].min(pop_sum[i]) / 1000.0).round() as u32,
@@ -854,7 +893,9 @@ fn enrich_provinces(provinces: &[Prov], tool_dir: &Path) -> Vec<Enriched> {
     }
     let mut terrain_counts: BTreeMap<String, usize> = BTreeMap::new();
     for e in &out {
-        *terrain_counts.entry(format!("{:?}", e.terrain)).or_default() += 1;
+        *terrain_counts
+            .entry(format!("{:?}", e.terrain))
+            .or_default() += 1;
     }
     println!("terrain distribution: {terrain_counts:?}");
     out
@@ -942,7 +983,12 @@ fn extract_country_borders(provinces: &[Prov]) -> Vec<Vec<(f32, f32)>> {
             .collect();
         let simplified = simplify(&pts, 0.02);
         if simplified.len() >= 2 {
-            polylines.push(simplified.iter().map(|&(x, y)| (round3(x), round3(y))).collect());
+            polylines.push(
+                simplified
+                    .iter()
+                    .map(|&(x, y)| (round3(x), round3(y)))
+                    .collect(),
+            );
         }
     }
     polylines
@@ -960,7 +1006,10 @@ fn build_regions(
     // country -> cell -> province indices (BTreeMaps for determinism).
     let mut buckets: BTreeMap<&str, BTreeMap<(i32, i32), Vec<usize>>> = BTreeMap::new();
     for (i, p) in provinces.iter().enumerate() {
-        let cell = ((p.center.0 / 15.0).floor() as i32, (p.center.1 / 15.0).floor() as i32);
+        let cell = (
+            (p.center.0 / 15.0).floor() as i32,
+            (p.center.1 / 15.0).floor() as i32,
+        );
         buckets
             .entry(p.owner.as_str())
             .or_default()
@@ -1028,10 +1077,7 @@ fn build_regions(
 }
 
 /// Assign hand-authored deposits to the nearest province by center distance.
-fn assign_deposits(
-    provinces: &[Prov],
-    csv_path: &Path,
-) -> BTreeMap<u32, Vec<(DepositKind, u32)>> {
+fn assign_deposits(provinces: &[Prov], csv_path: &Path) -> BTreeMap<u32, Vec<(DepositKind, u32)>> {
     let text = fs::read_to_string(csv_path)
         .unwrap_or_else(|e| panic!("cannot read {}: {e}", csv_path.display()));
     let mut out: BTreeMap<u32, Vec<(DepositKind, u32)>> = BTreeMap::new();

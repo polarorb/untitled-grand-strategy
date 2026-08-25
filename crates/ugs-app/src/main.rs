@@ -3,11 +3,13 @@
 //! depend on anything in this crate. All sim mutations go through
 //! `PendingCommands` — never write sim resources directly from here.
 
+mod atomic_ui;
 mod audio;
-mod war_ui;
 mod econ_ui;
+mod endgame;
 mod map;
 mod menu;
+mod war_ui;
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -94,42 +96,45 @@ fn main() {
     let (world, geometry) = load_world();
     let scenario = std::sync::Arc::new(world.0.clone());
     let mut app = App::new();
-    app
-        .add_plugins(
-            DefaultPlugins
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "Untitled Grand Strategy — 1950".into(),
-                        position: WindowPosition::At(IVec2::new(0, 40)),
-                        resolution: (1440u32, 810u32).into(),
-                        ..default()
-                    }),
-                    ..default()
-                })
-                // Everything else (scenario RON, geometry) loads relative to
-                // the working directory; make the asset server match instead
-                // of rooting at the executable's folder.
-                .set(AssetPlugin {
-                    file_path: std::env::current_dir()
-                        .map(|d| d.join("assets").to_string_lossy().into_owned())
-                        .unwrap_or_else(|_| "assets".into()),
+    app.add_plugins(
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Untitled Grand Strategy — 1950".into(),
+                    position: WindowPosition::At(IVec2::new(0, 40)),
+                    resolution: (1440u32, 810u32).into(),
                     ..default()
                 }),
-        )
-        .add_plugins(SimPlugin {
-            start_date: GameDate::new(1950, 1, 1, 0),
-            seed: 1950,
-        })
-        .init_resource::<Fonts>()
-        .init_state::<AppState>()
-        // Dev shortcut: UGS_SCREEN=select|game boots straight to a screen.
-        .insert_state(match std::env::var("UGS_SCREEN").as_deref() {
-            Ok("select") => AppState::NationSelect,
-            Ok("game") => AppState::InGame,
-            _ => AppState::MainMenu,
-        })
-        // Dev shortcut: UGS_SPEED=1..5 boots unpaused at that speed.
-        .insert_resource(match std::env::var("UGS_SPEED").ok().and_then(|v| v.parse::<u8>().ok()) {
+                ..default()
+            })
+            // Everything else (scenario RON, geometry) loads relative to
+            // the working directory; make the asset server match instead
+            // of rooting at the executable's folder.
+            .set(AssetPlugin {
+                file_path: std::env::current_dir()
+                    .map(|d| d.join("assets").to_string_lossy().into_owned())
+                    .unwrap_or_else(|_| "assets".into()),
+                ..default()
+            }),
+    )
+    .add_plugins(SimPlugin {
+        start_date: GameDate::new(1950, 1, 1, 0),
+        seed: 1950,
+    })
+    .init_resource::<Fonts>()
+    .init_state::<AppState>()
+    // Dev shortcut: UGS_SCREEN=select|game boots straight to a screen.
+    .insert_state(match std::env::var("UGS_SCREEN").as_deref() {
+        Ok("select") => AppState::NationSelect,
+        Ok("game") => AppState::InGame,
+        _ => AppState::MainMenu,
+    })
+    // Dev shortcut: UGS_SPEED=1..5 boots unpaused at that speed.
+    .insert_resource(
+        match std::env::var("UGS_SPEED")
+            .ok()
+            .and_then(|v| v.parse::<u8>().ok())
+        {
             Some(level) => GameSpeed {
                 paused: false,
                 level: level.clamp(1, 5),
@@ -140,13 +145,22 @@ fn main() {
                 level: 1,
                 accumulator: 0.0,
             },
-        })
-        .insert_resource(ClearColor(Color::srgb(0.09, 0.12, 0.16))) // ocean
-        .insert_resource(world)
-        .insert_resource(geometry)
-        .insert_resource(ugs_sim::demography::SimScenario(scenario))
-        .add_systems(Update, dev_auto_screenshot)
-        .add_plugins((menu::MenuPlugin, map::MapPlugin, econ_ui::EconUiPlugin, audio::GameAudioPlugin, war_ui::WarUiPlugin));
+        },
+    )
+    .insert_resource(ClearColor(Color::srgb(0.09, 0.12, 0.16))) // ocean
+    .insert_resource(world)
+    .insert_resource(geometry)
+    .insert_resource(ugs_sim::demography::SimScenario(scenario))
+    .add_systems(Update, dev_auto_screenshot)
+    .add_plugins((
+        menu::MenuPlugin,
+        map::MapPlugin,
+        econ_ui::EconUiPlugin,
+        audio::GameAudioPlugin,
+        war_ui::WarUiPlugin,
+        atomic_ui::AtomicUiPlugin,
+        endgame::EndgamePlugin,
+    ));
     // Spawn the camera before the first state transition: initial OnEnter
     // systems (screen framing) run before Startup would.
     app.world_mut().spawn(Camera2d);
@@ -175,7 +189,9 @@ fn dev_auto_screenshot(mut frames: Local<u32>, mut done: Local<bool>, mut comman
         .and_then(|v| v.parse().ok())
         .unwrap_or(120);
     if *frames == target {
-        commands.spawn(Screenshot::primary_window()).observe(save_to_disk(path));
+        commands
+            .spawn(Screenshot::primary_window())
+            .observe(save_to_disk(path));
         *done = true;
     }
 }
@@ -193,7 +209,11 @@ fn load_world() -> (World1950, WorldGeometry) {
     for (id, rings) in &raw_geo {
         let projected: Vec<Vec<Vec2>> = rings
             .iter()
-            .map(|ring| ring.iter().map(|&(lon, lat)| map::project(lon, lat)).collect())
+            .map(|ring| {
+                ring.iter()
+                    .map(|&(lon, lat)| map::project(lon, lat))
+                    .collect()
+            })
             .collect();
         let (mut lo, mut hi) = (Vec2::splat(f32::MAX), Vec2::splat(f32::MIN));
         for v in projected.iter().flatten() {

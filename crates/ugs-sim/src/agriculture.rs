@@ -9,7 +9,7 @@ use ugs_data::CountryTag;
 
 use crate::demography::{Demographics, LivingStandards, SimScenario};
 use crate::economy::NationalBalances;
-use crate::planning::{Economies, EconomicSystem};
+use crate::planning::{EconomicSystem, Economies};
 use crate::rng::SimRng;
 use crate::SimClock;
 
@@ -296,9 +296,8 @@ mod tests {
 
     #[test]
     fn harvests_vary_by_year_and_are_deterministic() {
-        let year = |app: &mut App| {
-            app.world().resource::<Agriculture>().status[&sov()].harvest_permille
-        };
+        let year =
+            |app: &mut App| app.world().resource::<Agriculture>().status[&sov()].harvest_permille;
         let mut a = app_with_scenario();
         let mut b = app_with_scenario();
         run_ticks(&mut a, 24 * 40);

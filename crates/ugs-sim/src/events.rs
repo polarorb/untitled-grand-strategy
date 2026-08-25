@@ -5,7 +5,7 @@
 
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
-use ugs_data::{EventDef, EventEffect, EventTrigger, ScenarioData};
+use ugs_data::{CountryTag, EventDef, EventEffect, EventTrigger, ScenarioData};
 
 use crate::demography::SimScenario;
 use crate::military::{Archetype, Military, Posture};
@@ -20,12 +20,27 @@ pub struct PendingChoice {
     pub deadline_tick: u64,
 }
 
+/// A sim-generated decision (crises, commander requests): not authored
+/// in events.ron, resolved through the same ResolveEvent command path.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DynamicChoice {
+    pub id: String,
+    pub title: String,
+    pub body: String,
+    /// The country whose decision this is.
+    pub country: CountryTag,
+    pub options: Vec<String>,
+    pub deadline_tick: u64,
+}
+
 #[derive(Resource, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct FiredEvents {
     /// Every event that has fired (shown to the player), in order.
     pub fired: Vec<String>,
     /// Choice events awaiting resolution.
     pub pending: Vec<PendingChoice>,
+    /// Sim-generated decisions awaiting resolution.
+    pub dynamic: Vec<DynamicChoice>,
     /// Resolved choices: (event id, option index).
     pub resolved: Vec<(String, u8)>,
     /// Tick when each war began, for WarDaysElapsed triggers.
@@ -41,16 +56,34 @@ impl FiredEvents {
     }
 }
 
+#[allow(clippy::too_many_arguments)] // effects touch every domain
 fn apply_effects(
     effects: &[EventEffect],
     data: &ScenarioData,
     tension: &mut GlobalTension,
     military: &mut Military,
+    nuclear: &mut crate::nuclear::NuclearPrograms,
+    deterrence: &crate::deterrence::Deterrence,
+    fired_notices: &mut Vec<(String, String)>,
+    tick: u64,
 ) {
     for effect in effects {
         match effect {
             EventEffect::AdjustTension(delta) => tension.apply(*delta),
             EventEffect::DeclareWar { a, b } => {
+                // Under mutual deterrence, war between the peers is not
+                // declarable — only crises remain (stability-instability
+                // paradox as a rule change).
+                if deterrence.class(a, b) == crate::deterrence::DyadClass::Mutual {
+                    fired_notices.push((
+                        "WAR UNTHINKABLE".into(),
+                        format!(
+                            "GENERAL STAFF ASSESSMENT: DIRECT HOSTILITIES BETWEEN {} AND {} WOULD MEAN MUTUAL ATOMIC DESTRUCTION. THERE WILL BE NO DECLARATION. THE STRUGGLE CONTINUES BY OTHER MEANS.",
+                            a.0, b.0
+                        ),
+                    ));
+                    continue;
+                }
                 military.declare_war(a.clone(), b.clone());
             }
             EventEffect::SetPosture {
@@ -63,7 +96,9 @@ fn apply_effects(
                 } else {
                     Posture::Hold
                 };
-                military.postures.insert((country.clone(), enemy.clone()), p);
+                military
+                    .postures
+                    .insert((country.clone(), enemy.clone()), p);
             }
             EventEffect::TransferProvinces { from, to, names } => {
                 for name in names {
@@ -88,16 +123,18 @@ fn apply_effects(
                     };
                     let home = Military::heartland_of(data, owner, location);
                     for _ in 0..*divisions {
-                        military.raise(
-                            data,
-                            owner.clone(),
-                            arch,
-                            location,
-                            home,
-                            *quality as u64,
-                        );
+                        military.raise(data, owner.clone(), arch, location, home, *quality as u64);
                     }
                 }
+            }
+            EventEffect::AuthorizeThermonuclear { country } => {
+                nuclear.authorize_thermonuclear(country, tick);
+            }
+            EventEffect::AdjustProgramSpeed { country, permille } => {
+                nuclear.adjust_speed(country, *permille);
+            }
+            EventEffect::FoundNuclearProgram { country, route } => {
+                nuclear.found(country.clone(), crate::nuclear::Route::parse(route));
             }
         }
     }
@@ -148,13 +185,16 @@ fn trigger_met(
     }
 }
 
+#[allow(clippy::too_many_arguments)] // Bevy systems take what they query
 pub fn update_events(
     clock: Res<SimClock>,
     scenario: Option<Res<SimScenario>>,
+    deterrence: Res<crate::deterrence::Deterrence>,
     mut rng: ResMut<SimRng>,
     mut fired: ResMut<FiredEvents>,
     mut tension: ResMut<GlobalTension>,
     mut military: ResMut<Military>,
+    mut nuclear: ResMut<crate::nuclear::NuclearPrograms>,
 ) {
     let Some(scenario) = scenario else { return };
     let data = &scenario.0;
@@ -184,7 +224,18 @@ pub fn update_events(
         fired.resolved.push((id.clone(), 0));
         if let Some(event) = data.events.iter().find(|e| e.id == id) {
             if let Some(option) = event.options.first() {
-                apply_effects(&option.effects, data, &mut tension, &mut military);
+                let mut notices = Vec::new();
+                apply_effects(
+                    &option.effects,
+                    data,
+                    &mut tension,
+                    &mut military,
+                    &mut nuclear,
+                    &deterrence,
+                    &mut notices,
+                    clock.tick,
+                );
+                fired.notices.extend(notices);
             }
         }
     }
@@ -220,20 +271,42 @@ pub fn update_events(
             } else {
                 &event.effects
             };
-            apply_effects(effects, data, &mut tension, &mut military);
+            let mut notices = Vec::new();
+            apply_effects(
+                effects,
+                data,
+                &mut tension,
+                &mut military,
+                &mut nuclear,
+                &deterrence,
+                &mut notices,
+                clock.tick,
+            );
+            fired.notices.extend(notices);
         }
     }
 }
 
 /// Command handler: resolve a pending choice event with the given option.
+#[allow(clippy::too_many_arguments)]
 pub fn resolve_event(
     fired: &mut FiredEvents,
     tension: &mut GlobalTension,
     military: &mut Military,
+    nuclear: &mut crate::nuclear::NuclearPrograms,
+    deterrence: &crate::deterrence::Deterrence,
     data: &ScenarioData,
+    tick: u64,
     id: &str,
     option: u8,
 ) {
+    // Dynamic (sim-generated) choices: record the answer; the owning
+    // module reads it from `resolved` on its next tick.
+    if let Some(pos) = fired.dynamic.iter().position(|d| d.id == id) {
+        fired.dynamic.remove(pos);
+        fired.resolved.push((id.to_string(), option));
+        return;
+    }
     if !fired.is_pending(id) {
         return;
     }
@@ -245,7 +318,18 @@ pub fn resolve_event(
     };
     fired.pending.retain(|p| p.id != id);
     fired.resolved.push((id.to_string(), option));
-    apply_effects(&chosen.effects, data, tension, military);
+    let mut notices = Vec::new();
+    apply_effects(
+        &chosen.effects,
+        data,
+        tension,
+        military,
+        nuclear,
+        deterrence,
+        &mut notices,
+        tick,
+    );
+    fired.notices.extend(notices);
 }
 
 #[cfg(test)]
@@ -384,7 +468,10 @@ mod tests {
         run_ticks(&mut app, 24 * 181); // invasion + US decision fired
         {
             let fired = app.world().resource::<FiredEvents>();
-            assert!(fired.is_pending("us-intervention"), "choice should be pending");
+            assert!(
+                fired.is_pending("us-intervention"),
+                "choice should be pending"
+            );
         }
         app.world_mut()
             .resource_mut::<crate::command::PendingCommands>()

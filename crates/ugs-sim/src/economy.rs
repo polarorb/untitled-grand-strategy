@@ -128,11 +128,13 @@ pub struct EconomyStatic {
 }
 
 /// Monthly balances. Runs after demography in `TickSet::Economy`.
+#[allow(clippy::too_many_arguments)] // the economy hub reads several domains
 pub fn update_economy(
     clock: Res<SimClock>,
     scenario: Option<Res<SimScenario>>,
     demo: Res<Demographics>,
     agri: Res<Agriculture>,
+    nuclear: Option<Res<crate::nuclear::NuclearPrograms>>,
     mut stat: ResMut<EconomyStatic>,
     mut national: ResMut<NationalBalances>,
     mut power: ResMut<RegionalPower>,
@@ -150,7 +152,9 @@ pub fn update_economy(
         for p in data.provinces.values() {
             *region_urban.entry(p.region).or_default() += p.urban_k as u64;
             *country_urban.entry(&p.owner).or_default() += p.urban_k as u64;
-            stat.region_owner.entry(p.region).or_insert_with(|| p.owner.clone());
+            stat.region_owner
+                .entry(p.region)
+                .or_insert_with(|| p.owner.clone());
             for &(kind, size) in &p.deposits {
                 *stat
                     .deposits
@@ -163,8 +167,13 @@ pub fn update_economy(
         for (region, urban) in &region_urban {
             let owner = &stat.region_owner[region];
             let total = country_urban.get(owner).copied().unwrap_or(0).max(1);
-            let industry = data.countries.get(owner).map(|c| c.industry as u64).unwrap_or(0);
-            stat.region_industry.insert(*region, industry * urban / total);
+            let industry = data
+                .countries
+                .get(owner)
+                .map(|c| c.industry as u64)
+                .unwrap_or(0);
+            stat.region_industry
+                .insert(*region, industry * urban / total);
         }
         stat.initialized = true;
         return;
@@ -191,9 +200,7 @@ pub fn update_economy(
     for (tag, country) in &data.countries {
         let b = balances.entry(tag.clone()).or_default();
         let deposits = stat.deposits.get(tag);
-        let dep = |kind: DepositKind| {
-            deposits.and_then(|d| d.get(&kind)).copied().unwrap_or(0)
-        };
+        let dep = |kind: DepositKind| deposits.and_then(|d| d.get(&kind)).copied().unwrap_or(0);
         b.coal_prod = dep(DepositKind::Coal) * EXTRACTION_PER_SIZE;
         b.oil_prod = dep(DepositKind::Oil) * EXTRACTION_PER_SIZE;
         let industry = country.industry as u64;
@@ -226,13 +233,31 @@ pub fn update_economy(
         let urban_k = region_urban.get(region).copied().unwrap_or(0);
         let capacity = industry * POWER_CAP_PER_INDUSTRY + POWER_CAP_BASE;
         let generation = capacity * coal_ratio / 1000;
-        let demand =
-            industry * POWER_DEMAND_PER_INDUSTRY + urban_k * POWER_DEMAND_PER_100K_URBAN / 100;
+        // Nuclear-weapons plants are grid-monstrous: an enrichment
+        // complex visibly loads its host region (Oak Ridge drew ~1% of
+        // US wartime electricity; the AEC later 6-12%).
+        let nuclear_demand: u64 = nuclear
+            .as_ref()
+            .map(|n| {
+                n.programs
+                    .values()
+                    .filter(|p| p.site_region == Some(*region))
+                    .map(|p| {
+                        p.enrichment_level as u64 * crate::nuclear::tuning::POWER_PER_ENRICH_LEVEL
+                            + p.reactor_level as u64
+                                * crate::nuclear::tuning::POWER_PER_REACTOR_LEVEL
+                    })
+                    .sum()
+            })
+            .unwrap_or(0);
+        let demand = industry * POWER_DEMAND_PER_INDUSTRY
+            + urban_k * POWER_DEMAND_PER_100K_URBAN / 100
+            + nuclear_demand;
         let factor = if demand == 0 {
             1000
         } else {
-            (generation as u128 * 1000 / demand as u128)
-                .clamp(POWER_FLOOR_PERMILLE as u128, 1000) as u64
+            (generation as u128 * 1000 / demand as u128).clamp(POWER_FLOOR_PERMILLE as u128, 1000)
+                as u64
         };
         statuses.insert(
             *region,
@@ -281,7 +306,10 @@ mod tests {
         let usa = &national.by_country[&CountryTag("USA".into())];
         assert!(usa.coal_prod > 0 && usa.oil_prod > 0 && usa.uranium_stock > 0);
         let sov = &national.by_country[&CountryTag("SOV".into())];
-        assert!(sov.uranium_stock > 0, "Fergana should feed the Soviet stockpile");
+        assert!(
+            sov.uranium_stock > 0,
+            "Fergana should feed the Soviet stockpile"
+        );
     }
 
     #[test]
@@ -292,7 +320,9 @@ mod tests {
         let (prod, demand) = national
             .by_country
             .values()
-            .fold((0u64, 0u64), |(p, d), b| (p + b.grain_prod, d + b.grain_demand));
+            .fold((0u64, 0u64), |(p, d), b| {
+                (p + b.grain_prod, d + b.grain_demand)
+            });
         let ratio = prod * 1000 / demand;
         // The 1950 world fed itself, tightly: expect 900-1600 permille.
         assert!((900..1600).contains(&ratio), "world grain ratio {ratio}");
@@ -303,10 +333,17 @@ mod tests {
         let mut app = app_with_scenario();
         run_ticks(&mut app, 24 * 32);
         let power = app.world().resource::<RegionalPower>();
-        let factors: Vec<u64> = power.by_region.values().map(|p| p.factor_permille).collect();
+        let factors: Vec<u64> = power
+            .by_region
+            .values()
+            .map(|p| p.factor_permille)
+            .collect();
         let full = factors.iter().filter(|&&f| f >= 999).count();
         let starved = factors.iter().filter(|&&f| f <= 600).count();
         assert!(full > 20, "some regions should be fully powered ({full})");
-        assert!(starved > 20, "the unelectrified world should exist ({starved})");
+        assert!(
+            starved > 20,
+            "the unelectrified world should exist ({starved})"
+        );
     }
 }

@@ -1,6 +1,6 @@
 # Escalation & Nuclear Brinkmanship
 
-Status: designed (research locked; implement in phases below)
+Status: implemented (v1 — all four phases; deviations noted below)
 Pillar: 1 (primary), touches all others
 Research: [nuclear-weapons](../../research/nuclear-weapons.md) (5-analyst
 swarm) · [tension implemented](tension.md)
@@ -190,18 +190,54 @@ breakpoint. Event spine: H-bomb decision Jan 31 1950 · Fuchs arrest
 Feb 1950 · Korea custody transfer Apr 1951 · Castle Bravo Mar 1954 ·
 Massive Retaliation Oct 1953 · Open Skies Jul 1955.
 
-## Implementation sequencing
+## Implementation status (v1, all four phases)
 
-1. **Programs & arsenals v1**: NuclearPrograms resource (stages, route,
-   posture, fissile kg, stockpile), facilities drawing real grids and
-   uranium, scientist roster, detection accumulator, H-bomb and Fuchs
-   events, first-test arcs, HUD strip + program dossier + NIE cards.
-2. **Deterrence & delivery**: legs, range-vs-basing, dyad classes,
-   estimate bias + parade deception, strategic map mode.
-3. **Crisis ladders**: Crisis entity, incident hazard, resolve,
-   band-gated openings, first authored crises (Berlin, straits).
-4. **Use & endgame**: MacArthur chain in the Korea slice, taboo flag,
-   alert/delegation dials, the failure sequence.
+1. **Programs & arsenals** — `ugs-sim/src/nuclear.rs`: staged programs
+   seeded from `nuclear.ron` (US 299/60 assembled, USSR 5, UK
+   mid-program), fissile grams from facility levels x grid factor x
+   uranium feed (economy `uranium_stock` + import trickle), scientists
+   as aggregate skill, posture (Covert/Standard/Crash) driving an
+   exposure accumulator, H-bomb decision + Fuchs events, first-test and
+   thermonuclear wire arcs (Hurricane emerges ~1952-53 from the sim),
+   atomic dossier panel (B) with NIE cards, HUD stockpile odometer.
+2. **Deterrence & delivery** — `deterrence.rs`: integer equirectangular
+   range vs basing (UK basing gives SAC its reach; Tu-4s one-way only),
+   bomber-generation range growth per year, counter-value reach against
+   any major city, believed-deliverable from exposure-biased estimates
+   (+ parade deception command), monthly dyad classes; MUTUAL blocks
+   DeclareWar with a "war unthinkable" notice (the 1950 dyad is
+   ONE-SIDED, turning MUTUAL mid-50s); Strategic map mode (dark board,
+   own-reach wash, enemy-reach red, generated icon).
+3. **Crisis ladders** — `crisis.rs`: 8 rungs / 3 firebreaks, authored
+   flashpoints (Berlin access, Taiwan Strait, Turkish Straits),
+   tension-band-gated opening rungs, incident hazard in bp/hour scaled
+   by alert levels, resolve as bluff currency (own exact, enemy fuzzed
+   in UI), escalate/back-down/compromise resolved through the command
+   log (replay-safe), deadline default = back down.
+4. **Use & endgame** — the MacArthur chain (commander requests release
+   when the front collapses; refuse / demonstration / battlefield use —
+   use wins the province, kills civilians from real cohorts, breaks the
+   global taboo, and spawns a patron ultimatum crisis at rung 6);
+   alert dial (4 detents, tension + hazard multipliers); rung 8 =
+   `GameOver` resource with megadeaths computed from live demography;
+   the funeral screen prints the cities, the exact count, the
+   attribution, and how long the peace held.
+
+### v1 deviations from the design (deliberate)
+
+- Facilities cost time but not yet industry points; scientists are an
+  aggregate skill, not named individuals.
+- No stockpile-vs-assembled sealed-pit transition tech yet; assembly is
+  a flat monthly rate.
+- Crisis stakes are narrative (no territorial transfer on back-down);
+  AI countries do not found new programs; no delegation dial or
+  false-warning chain (the exchange requires an explicit choice at
+  rung 7-8); demonstration/tactical use only via the commander-request
+  chain, not the crisis ladder directly.
+- Own-test announce-or-conceal choice and the multi-day enemy-test
+  detection arc are single wire events for now.
+- Historical scripting gained two events the war needed anyway:
+  Inchon and the Eighth Army rebuild.
 
 ## Resolved questions (from the sketch)
 
