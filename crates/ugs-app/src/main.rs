@@ -137,6 +137,11 @@ fn main() {
     // Spawn the camera before the first state transition: initial OnEnter
     // systems (screen framing) run before Startup would.
     app.world_mut().spawn(Camera2d);
+    // Dev shortcut: UGS_NATION=TAG plays that nation (with UGS_SCREEN=game).
+    if let Ok(tag) = std::env::var("UGS_NATION") {
+        app.world_mut()
+            .insert_resource(PlayerNation(CountryTag(tag.to_uppercase())));
+    }
     app.run();
 }
 

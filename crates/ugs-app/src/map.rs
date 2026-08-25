@@ -49,10 +49,16 @@ struct MapFill {
 }
 
 #[derive(Component)]
-struct TopBarText;
+struct HudRoot;
 
 #[derive(Component)]
-struct SelectionText;
+struct ClockText;
+
+#[derive(Component)]
+struct TensionText;
+
+#[derive(Component)]
+struct ProvinceCard;
 
 /// Equirectangular degrees -> world units, centered on Korea for now.
 pub fn project(lon: f32, lat: f32) -> Vec2 {
@@ -106,6 +112,7 @@ impl Plugin for MapPlugin {
                 drive_sim,
                 apply_map_mode,
                 select_province,
+                refresh_province_card,
                 draw_selection_outline,
                 update_ui_text,
             )
@@ -328,27 +335,132 @@ fn spawn_map(
     });
 }
 
-fn spawn_hud(mut commands: Commands, fonts: Res<crate::Fonts>, existing: Query<(), With<TopBarText>>) {
+const HUD_BG: Color = Color::srgba(0.07, 0.09, 0.12, 0.94);
+const HUD_ACCENT: Color = Color::srgb(0.83, 0.69, 0.36);
+const HUD_DIM: Color = Color::srgb(0.62, 0.66, 0.70);
+const HUD_MAIN: Color = Color::srgb(0.88, 0.89, 0.90);
+
+fn spawn_hud(
+    mut commands: Commands,
+    fonts: Res<crate::Fonts>,
+    assets: Res<AssetServer>,
+    world: Res<World1950>,
+    player: Option<Res<PlayerNation>>,
+    existing: Query<(), With<HudRoot>>,
+) {
     if !existing.is_empty() {
         return;
     }
+    let data = &world.0;
+    let (country_name, leader_line, flag) = match &player {
+        Some(p) => {
+            let meta = data.nations_meta.get(&p.0);
+            (
+                meta.map(|m| m.display_name.clone()).unwrap_or_else(|| {
+                    data.countries
+                        .get(&p.0)
+                        .map(|c| c.name.clone())
+                        .unwrap_or_else(|| p.0 .0.clone())
+                }),
+                meta.map(|m| format!("{} {}", m.leader_title, m.leader_name))
+                    .unwrap_or_default(),
+                {
+                    let path = format!("flags/{}.png", p.0 .0);
+                    std::path::Path::new("assets").join(&path).exists().then_some(path)
+                },
+            )
+        }
+        None => ("Observer".to_string(), String::new(), None),
+    };
+
+    // Top bar: [flag | nation + leader] [date/speed] ... [tension | mode]
+    commands
+        .spawn((
+            HudRoot,
+            Node {
+                position_type: PositionType::Absolute,
+                top: Val::Px(0.0),
+                width: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                column_gap: Val::Px(20.0),
+                padding: UiRect::axes(Val::Px(12.0), Val::Px(6.0)),
+                ..default()
+            },
+            BackgroundColor(HUD_BG),
+        ))
+        .with_children(|bar| {
+            if let Some(path) = flag {
+                bar.spawn((
+                    ImageNode::new(assets.load(path)),
+                    Node {
+                        width: Val::Px(42.0),
+                        height: Val::Px(27.0),
+                        ..default()
+                    },
+                ));
+            }
+            bar.spawn(Node {
+                flex_direction: FlexDirection::Column,
+                ..default()
+            })
+            .with_children(|c| {
+                c.spawn((
+                    Text::new(country_name),
+                    crate::font(&fonts.display, 16.0),
+                    TextColor(HUD_MAIN),
+                ));
+                if !leader_line.is_empty() {
+                    c.spawn((
+                        Text::new(leader_line),
+                        crate::font(&fonts.body, 11.0),
+                        TextColor(HUD_DIM),
+                    ));
+                }
+            });
+            bar.spawn((
+                ClockText,
+                Text::new(""),
+                crate::font(&fonts.body_medium, 15.0),
+                TextColor(HUD_MAIN),
+            ));
+            // Spacer pushes tension to the right edge.
+            bar.spawn(Node {
+                flex_grow: 1.0,
+                ..default()
+            });
+            bar.spawn((
+                TensionText,
+                Text::new(""),
+                crate::font(&fonts.body_medium, 15.0),
+                TextColor(HUD_ACCENT),
+            ));
+        });
+
+    // Province card: bottom-left, filled by refresh_province_card.
     commands.spawn((
-        TopBarText,
-        Text::new(""),
-        crate::font(&fonts.body_medium, 15.0),
+        HudRoot,
+        ProvinceCard,
         Node {
             position_type: PositionType::Absolute,
-            top: Val::Px(8.0),
             left: Val::Px(12.0),
+            bottom: Val::Px(34.0),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(4.0),
+            padding: UiRect::all(Val::Px(12.0)),
+            min_width: Val::Px(220.0),
+            display: Display::None,
             ..default()
         },
+        BackgroundColor(HUD_BG),
     ));
+
     commands.spawn((
-        SelectionText,
+        HudRoot,
         Text::new(
-            "Click a province. Space: pause - 1-5: speed - M: map mode - WASD/drag: pan - scroll: zoom - T/G: tension +/-",
+            "Space: pause - 1-5: speed - M: map mode - WASD/drag: pan - scroll: zoom - T/G: tension +/-",
         ),
-        crate::font(&fonts.body, 13.0),
+        crate::font(&fonts.body, 12.0),
+        TextColor(HUD_DIM),
         Node {
             position_type: PositionType::Absolute,
             bottom: Val::Px(8.0),
@@ -356,6 +468,90 @@ fn spawn_hud(mut commands: Commands, fonts: Res<crate::Fonts>, existing: Query<(
             ..default()
         },
     ));
+}
+
+/// Rebuild the bottom-left province card when the selection changes.
+fn refresh_province_card(
+    mut commands: Commands,
+    selected: Res<Selected>,
+    world: Res<World1950>,
+    fonts: Res<crate::Fonts>,
+    assets: Res<AssetServer>,
+    card: Query<Entity, With<ProvinceCard>>,
+    mut nodes: Query<&mut Node, With<ProvinceCard>>,
+) {
+    if !selected.is_changed() {
+        return;
+    }
+    let Ok(card) = card.single() else { return };
+    let Some(id) = selected.0 else {
+        if let Ok(mut node) = nodes.single_mut() {
+            node.display = Display::None;
+        }
+        return;
+    };
+    let data = &world.0;
+    let Some(p) = data.provinces.get(&id) else {
+        return;
+    };
+    if let Ok(mut node) = nodes.single_mut() {
+        node.display = Display::Flex;
+    }
+    let owner_name = data
+        .nations_meta
+        .get(&p.owner)
+        .map(|m| m.display_name.clone())
+        .unwrap_or_else(|| {
+            data.countries
+                .get(&p.owner)
+                .map(|c| c.name.clone())
+                .unwrap_or_else(|| p.owner.0.clone())
+        });
+    let pop = if p.population_k >= 1000 {
+        format!("{:.1}M", p.population_k as f32 / 1000.0)
+    } else {
+        format!("{}k", p.population_k)
+    };
+    let flag = {
+        let path = format!("flags/{}.png", p.owner.0);
+        std::path::Path::new("assets").join(&path).exists().then_some(path)
+    };
+
+    commands.entity(card).despawn_related::<Children>();
+    commands.entity(card).with_children(|c| {
+        c.spawn((
+            Text::new(p.name.clone()),
+            crate::font(&fonts.display, 19.0),
+            TextColor(HUD_MAIN),
+        ));
+        c.spawn(Node {
+            align_items: AlignItems::Center,
+            column_gap: Val::Px(8.0),
+            ..default()
+        })
+        .with_children(|row| {
+            if let Some(path) = flag {
+                row.spawn((
+                    ImageNode::new(assets.load(path)),
+                    Node {
+                        width: Val::Px(30.0),
+                        height: Val::Px(19.0),
+                        ..default()
+                    },
+                ));
+            }
+            row.spawn((
+                Text::new(owner_name),
+                crate::font(&fonts.body_medium, 14.0),
+                TextColor(HUD_MAIN),
+            ));
+        });
+        c.spawn((
+            Text::new(format!("{:?}  -  pop {}", p.terrain, pop)),
+            crate::font(&fonts.body, 13.0),
+            TextColor(HUD_DIM),
+        ));
+    });
 }
 
 /// The province under the cursor, if any (shared by in-game selection and
@@ -577,60 +773,28 @@ fn draw_selection_outline(
     }
 }
 
-#[allow(clippy::too_many_arguments)] // Bevy systems take what they query
 fn update_ui_text(
     clock: Res<SimClock>,
     speed: Res<GameSpeed>,
     tension: Res<GlobalTension>,
     mode: Res<MapMode>,
-    selected: Res<Selected>,
-    world: Res<World1950>,
-    player: Option<Res<PlayerNation>>,
-    mut top: Query<&mut Text, (With<TopBarText>, Without<SelectionText>)>,
-    mut bottom: Query<&mut Text, (With<SelectionText>, Without<TopBarText>)>,
+    mut clock_text: Query<&mut Text, (With<ClockText>, Without<TensionText>)>,
+    mut tension_text: Query<&mut Text, (With<TensionText>, Without<ClockText>)>,
 ) {
     let state = if speed.paused {
         "PAUSED".to_string()
     } else {
         format!("speed {}", speed.level)
     };
-    let playing = player
-        .map(|p| {
-            world
-                .0
-                .countries
-                .get(&p.0)
-                .map(|c| c.name.clone())
-                .unwrap_or_else(|| p.0 .0.clone())
-        })
-        .unwrap_or_else(|| "Observer".into());
-    for mut text in &mut top {
+    for mut text in &mut clock_text {
+        text.0 = format!("{}   [{}]", clock.date, state);
+    }
+    for mut text in &mut tension_text {
         text.0 = format!(
-            "{}  [{}]    {}    Tension: {:.1} ({})    Map: {:?}",
-            clock.date,
-            state,
-            playing,
+            "TENSION {:.1} ({})    MAP: {:?}",
             tension.displayed(),
             tension.band(),
-            *mode,
+            *mode
         );
-    }
-    for mut text in &mut bottom {
-        if let Some(id) = selected.0 {
-            if let Some(p) = world.0.provinces.get(&id) {
-                let owner = world
-                    .0
-                    .countries
-                    .get(&p.owner)
-                    .map(|c| c.name.as_str())
-                    .unwrap_or("?");
-                let pop = if p.population_k >= 1000 {
-                    format!("{:.1}M", p.population_k as f32 / 1000.0)
-                } else {
-                    format!("{}k", p.population_k)
-                };
-                text.0 = format!("{} — {} - {:?} - pop {}", p.name, owner, p.terrain, pop);
-            }
-        }
     }
 }
