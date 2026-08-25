@@ -53,7 +53,7 @@ pub fn project(lon: f32, lat: f32) -> Vec2 {
 /// One full world circumference in world units. The map wraps east-west:
 /// the world is rendered at offsets {-WRAP, 0, +WRAP} and the camera x is
 /// wrapped modulo this, so panning across the Pacific is seamless.
-const WORLD_WRAP: f32 = 360.0 * 60.0;
+pub const WORLD_WRAP: f32 = 360.0 * 60.0;
 
 fn canonical_west() -> f32 {
     project(-180.0, 0.0).x
@@ -71,7 +71,20 @@ impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Selected>();
         app.init_resource::<MapMode>();
-        app.add_systems(OnEnter(AppState::InGame), spawn_map);
+        // The map underlies both the nation-select screen and the game.
+        app.add_systems(OnEnter(AppState::NationSelect), (spawn_map, overview_camera));
+        app.add_systems(
+            OnEnter(AppState::InGame),
+            (spawn_map, spawn_hud, focus_player_camera).chain(),
+        );
+        // Browsing controls in nation select (suppressed while over UI so
+        // wheel scrolls panels, not the camera).
+        app.add_systems(
+            Update,
+            camera_controls
+                .run_if(in_state(AppState::NationSelect))
+                .run_if(not(crate::menu::ui_hovered)),
+        );
         app.add_systems(
             Update,
             (
@@ -86,6 +99,41 @@ impl Plugin for MapPlugin {
                 .chain()
                 .run_if(in_state(AppState::InGame)),
         );
+    }
+}
+
+/// Whole-world framing for the nation-select screen.
+fn overview_camera(mut camera: Query<(&mut Transform, &mut Projection), With<Camera2d>>) {
+    let Ok((mut transform, mut projection)) = camera.single_mut() else {
+        return;
+    };
+    let center = project(15.0, 22.0);
+    transform.translation = center.extend(transform.translation.z);
+    if let Projection::Orthographic(ortho) = &mut *projection {
+        ortho.scale = 11.0;
+    }
+}
+
+/// Zoom to the player's capital when the campaign starts.
+fn focus_player_camera(
+    player: Option<Res<PlayerNation>>,
+    world: Res<World1950>,
+    mut camera: Query<(&mut Transform, &mut Projection), With<Camera2d>>,
+) {
+    let Some(player) = player else { return };
+    let Some(country) = world.0.countries.get(&player.0) else {
+        return;
+    };
+    let Some(capital) = world.0.provinces.get(&country.capital) else {
+        return;
+    };
+    let Ok((mut transform, mut projection)) = camera.single_mut() else {
+        return;
+    };
+    let center = project(capital.center.0, capital.center.1);
+    transform.translation = center.extend(transform.translation.z);
+    if let Projection::Orthographic(ortho) = &mut *projection {
+        ortho.scale = 2.5;
     }
 }
 
@@ -184,10 +232,16 @@ fn spawn_map(
             }
         }
     }
+}
 
+fn spawn_hud(mut commands: Commands, fonts: Res<crate::Fonts>, existing: Query<(), With<TopBarText>>) {
+    if !existing.is_empty() {
+        return;
+    }
     commands.spawn((
         TopBarText,
         Text::new(""),
+        crate::font(&fonts.body_medium, 15.0),
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(8.0),
@@ -200,6 +254,7 @@ fn spawn_map(
         Text::new(
             "Click a province. Space: pause - 1-5: speed - M: map mode - WASD/drag: pan - scroll: zoom - T/G: tension +/-",
         ),
+        crate::font(&fonts.body, 13.0),
         Node {
             position_type: PositionType::Absolute,
             bottom: Val::Px(8.0),
@@ -207,6 +262,29 @@ fn spawn_map(
             ..default()
         },
     ));
+}
+
+/// The province under the cursor, if any (shared by in-game selection and
+/// the nation-select screen).
+pub fn cursor_province(
+    windows: &Query<&Window>,
+    camera: &Query<(&Camera, &GlobalTransform)>,
+    geometry: &WorldGeometry,
+) -> Option<ProvinceId> {
+    let window = windows.single().ok()?;
+    let cursor = window.cursor_position()?;
+    let (camera, cam_transform) = camera.single().ok()?;
+    let mut world_pos = camera.viewport_to_world_2d(cam_transform, cursor).ok()?;
+    // Clicks on an offset copy hit-test against the canonical geometry.
+    world_pos.x = wrap_x(world_pos.x);
+    geometry
+        .bboxes
+        .iter()
+        .filter(|(_, (lo, hi))| {
+            world_pos.x >= lo.x && world_pos.x <= hi.x && world_pos.y >= lo.y && world_pos.y <= hi.y
+        })
+        .find(|(id, _)| point_in_rings(world_pos, &geometry.rings[id]))
+        .map(|(id, _)| ProvinceId(*id))
 }
 
 fn handle_input(
@@ -373,26 +451,7 @@ fn select_province(
     if !buttons.just_pressed(MouseButton::Left) {
         return;
     }
-    let Ok(window) = windows.single() else { return };
-    let Some(cursor) = window.cursor_position() else {
-        return;
-    };
-    let Ok((camera, cam_transform)) = camera.single() else {
-        return;
-    };
-    let Ok(mut world_pos) = camera.viewport_to_world_2d(cam_transform, cursor) else {
-        return;
-    };
-    // Clicks on an offset copy hit-test against the canonical geometry.
-    world_pos.x = wrap_x(world_pos.x);
-    selected.0 = geometry
-        .bboxes
-        .iter()
-        .filter(|(_, (lo, hi))| {
-            world_pos.x >= lo.x && world_pos.x <= hi.x && world_pos.y >= lo.y && world_pos.y <= hi.y
-        })
-        .find(|(id, _)| point_in_rings(world_pos, &geometry.rings[id]))
-        .map(|(id, _)| ProvinceId(*id));
+    selected.0 = cursor_province(&windows, &camera, &geometry);
 }
 
 fn draw_selection_outline(

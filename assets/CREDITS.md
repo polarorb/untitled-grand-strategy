@@ -199,3 +199,9 @@ derivative work: JJ Georges (talk)
 Note: portrait licenses vary by file (recorded above). Any ShareAlike- or
 attribution-licensed images should be re-reviewed before commercial
 distribution.
+
+## Fonts (SIL Open Font License 1.1)
+
+- `assets/fonts/Oswald-500.ttf` — Oswald, Vernon Adams et al.
+- `assets/fonts/Jost-400.ttf`, `Jost-500.ttf` — Jost, Owen Earl (indestructible type*)
+- `assets/fonts/CourierPrime-400.ttf`, `CourierPrime-700.ttf` — Courier Prime, Alan Dague-Greene / Quote-Unquote Apps

@@ -27,6 +27,40 @@ pub enum AppState {
 #[derive(Resource, Debug, Clone)]
 pub struct PlayerNation(pub CountryTag);
 
+/// Game typefaces (all SIL OFL, shipped in assets/fonts):
+/// Oswald for display/headers, Jost (Futura-lineage geometric sans) for
+/// UI, Courier Prime for dossier/typewriter flavor text.
+#[derive(Resource)]
+pub struct Fonts {
+    pub display: Handle<Font>,
+    pub body: Handle<Font>,
+    pub body_medium: Handle<Font>,
+    pub mono: Handle<Font>,
+    pub mono_bold: Handle<Font>,
+}
+
+impl FromWorld for Fonts {
+    fn from_world(world: &mut World) -> Self {
+        let assets = world.resource::<AssetServer>();
+        Self {
+            display: assets.load("fonts/Oswald-500.ttf"),
+            body: assets.load("fonts/Jost-400.ttf"),
+            body_medium: assets.load("fonts/Jost-500.ttf"),
+            mono: assets.load("fonts/CourierPrime-400.ttf"),
+            mono_bold: assets.load("fonts/CourierPrime-700.ttf"),
+        }
+    }
+}
+
+/// A `TextFont` from a handle + size.
+pub fn font(handle: &Handle<Font>, size: f32) -> TextFont {
+    TextFont {
+        font: bevy::text::FontSource::Handle(handle.clone()),
+        font_size: bevy::text::FontSize::Px(size),
+        ..default()
+    }
+}
+
 /// Loaded scenario, kept for UI lookups (names, owners, nation meta).
 #[derive(Resource)]
 pub struct World1950(pub ScenarioData);
@@ -55,7 +89,8 @@ fn main() {
     // Load world data before the app starts: screens may need it in their
     // very first OnEnter, which can run before Startup commands apply.
     let (world, geometry) = load_world();
-    App::new()
+    let mut app = App::new();
+    app
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
@@ -81,6 +116,7 @@ fn main() {
             start_date: GameDate::new(1950, 1, 1, 0),
             seed: 1950,
         })
+        .init_resource::<Fonts>()
         .init_state::<AppState>()
         // Dev shortcut: UGS_SCREEN=select|game boots straight to a screen.
         .insert_state(match std::env::var("UGS_SCREEN").as_deref() {
@@ -96,12 +132,12 @@ fn main() {
         .insert_resource(ClearColor(Color::srgb(0.09, 0.12, 0.16))) // ocean
         .insert_resource(world)
         .insert_resource(geometry)
-        .add_systems(Startup, |mut commands: Commands| {
-            commands.spawn(Camera2d);
-        })
         .add_systems(Update, dev_auto_screenshot)
-        .add_plugins((menu::MenuPlugin, map::MapPlugin))
-        .run();
+        .add_plugins((menu::MenuPlugin, map::MapPlugin));
+    // Spawn the camera before the first state transition: initial OnEnter
+    // systems (screen framing) run before Startup would.
+    app.world_mut().spawn(Camera2d);
+    app.run();
 }
 
 /// Dev aid: UGS_SHOT=<path.png> saves a screenshot of the game window a few
