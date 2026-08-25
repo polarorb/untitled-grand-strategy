@@ -9,3 +9,4 @@ serde = { workspace = true }
 serde_json = "1"
 ron = { workspace = true }
 ugs-data = { path = "../../crates/ugs-data" }
+tiff = "0.9"

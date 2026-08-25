@@ -50,6 +50,8 @@ pub struct CountryDef {
     pub tag: CountryTag,
     pub name: String,
     pub alignment: Alignment,
+    /// National map color, sRGB. Distinct per country (political map mode).
+    pub color: (u8, u8, u8),
     pub capital: ProvinceId,
     /// 0-100. How firmly the government controls the country.
     pub stability: u8,

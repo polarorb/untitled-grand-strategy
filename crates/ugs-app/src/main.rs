@@ -10,7 +10,7 @@ use bevy::asset::RenderAssetUsages;
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
-use ugs_data::{Alignment, CountryTag, ProvinceId, ScenarioData};
+use ugs_data::{CountryTag, ProvinceId, ScenarioData};
 use ugs_sim::{
     calendar::GameDate,
     command::{PendingCommands, SimCommand},
@@ -108,21 +108,20 @@ fn main() {
         .run();
 }
 
-/// Owner color: alignment base tinted per-country so neighbors are
-/// distinguishable, then a slight per-province lightness wobble in lieu of
-/// border lines (cheap, replaced by real borders later).
+/// National color from data, with a slight per-province lightness wobble in
+/// lieu of border lines (cheap, replaced by real borders later).
 fn owner_color(data: &ScenarioData, tag: &CountryTag, province_id: u32) -> Color {
-    let alignment = data.countries.get(tag).map(|c| c.alignment);
-    let (base_h, base_s, base_l) = match alignment {
-        Some(Alignment::WesternBloc) => (215.0, 0.45, 0.42),
-        Some(Alignment::EasternBloc) => (2.0, 0.55, 0.40),
-        _ => (85.0, 0.18, 0.42),
-    };
-    // Stable pseudo-hash of the tag for hue variation within a bloc.
-    let th = tag.0.bytes().fold(0u32, |a, b| a.wrapping_mul(31).wrapping_add(b as u32));
-    let hue = base_h + ((th % 33) as f32 - 16.0) * 0.9;
-    let light = base_l + (((province_id.wrapping_mul(2654435761)) >> 8) % 9) as f32 * 0.008;
-    Color::hsl(hue.rem_euclid(360.0), base_s, light)
+    let (r, g, b) = data
+        .countries
+        .get(tag)
+        .map(|c| c.color)
+        .unwrap_or((128, 128, 128));
+    let wobble = (((province_id.wrapping_mul(2654435761)) >> 8) % 13) as f32 * 0.012 - 0.07;
+    Color::srgb(
+        (r as f32 / 255.0 * (1.0 + wobble)).clamp(0.0, 1.0),
+        (g as f32 / 255.0 * (1.0 + wobble)).clamp(0.0, 1.0),
+        (b as f32 / 255.0 * (1.0 + wobble)).clamp(0.0, 1.0),
+    )
 }
 
 fn build_province_mesh(rings: &[Vec<Vec2>]) -> Option<Mesh> {
@@ -413,7 +412,12 @@ fn update_ui_text(
                     .get(&p.owner)
                     .map(|c| c.name.as_str())
                     .unwrap_or("?");
-                text.0 = format!("{} — {}", p.name, owner);
+                let pop = if p.population_k >= 1000 {
+                    format!("{:.1}M", p.population_k as f32 / 1000.0)
+                } else {
+                    format!("{}k", p.population_k)
+                };
+                text.0 = format!("{} — {} · {:?} · pop {}", p.name, owner, p.terrain, pop);
             }
         }
     }

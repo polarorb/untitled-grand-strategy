@@ -26,14 +26,32 @@ reference-only.
   1950. No clear license found; precision self-described as approximate.
   Same status: eyeball-verification only.
 
-## Candidates for later pipeline stages
+## Additional shipped-data sources (integrated 2026-08-25)
 
-- **HYDE 3.2** (PBL Netherlands) — historical population grids including
-  1950, open access. Planned source for `population_k` per province
-  (currently 0). License: CC BY (verify version on download).
-- **Natural Earth physical** (elevation-derived rasters, rivers, lakes) —
-  public domain; planned source for terrain classification (currently all
-  `Plains`).
+- **HYDE 3.2.1** (PBL/Utrecht, via DANS doi:10.17026/dans-25g-gez3) —
+  **CC0 (public domain)**. `popc_1950AD.asc` + `urbc_1950AD.asc`, 5 arcmin.
+  Source of per-province `population_k` and the urban-share input to
+  terrain. The DANS archive is one 5.3 GB zip in Deflate64;
+  `tools/mapgen/hyde_fetch.py` extracts just the two 1950 members
+  (~10 MB transferred) via HTTP Range requests. Validation: world total
+  comes out 2.53B vs. ~2.5B actual 1950; USSR 181M/actual 180M, Japan
+  83M/83M, USA 160M/152M.
+- **ETOPO5** (NOAA NGDC) — public domain. Global elevation, 5 arcmin, raw
+  big-endian i16 (`ETOPO5.DAT`, row 0 at 90°N, col 0 at 0°E). Drives
+  Mountain/Hills classification (mean/std elevation per province).
+- **Köppen-Geiger 1931–1960** (Beck et al. 2023, figshare 21789074) —
+  **CC BY 4.0: attribution required in game credits.** 0.1° GeoTIFF,
+  period-correct for a 1950 start. Drives Desert/Jungle/Tundra/Forest.
+  Note: palette-color TIFF; mapgen patches photometric to grayscale
+  in-memory to read raw class indices.
+
+### Terrain classification rules (v1, in `classify()`)
+
+Urban (density >400/km² and urban share >45%) → Mountain (mean elev
+>2000 m or σ >650 m) → Hills (mean >900 m or σ >280 m) → by Köppen
+majority: Af/Am jungle, BW desert, ET/EF tundra, subarctic D forest,
+temperate/continental forest-vs-plains split at 15 people/km². Marsh
+unused pending wetland data.
 
 ## Pipeline summary
 
