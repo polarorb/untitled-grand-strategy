@@ -24,3 +24,10 @@ Requires Rust ≥ 1.95. Space pauses; 1–5 sets game speed.
 - `docs/design/vision.md` — what this game is and is not
 - `docs/design/systems/` — per-system design docs
 - `CLAUDE.md` — architecture, crate boundaries, and the determinism rules
+
+## Regenerating the world map
+
+```sh
+./tools/mapgen/fetch-data.sh          # downloads Natural Earth (public domain)
+cargo run -p mapgen --release         # writes assets/data + assets/map
+```

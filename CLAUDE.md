@@ -22,7 +22,10 @@ If the sim needs to tell the UI something, it emits state the UI reads —
 never the other way around mid-tick.
 
 Game content lives in `assets/data/scenario/<name>/` as RON files, validated
-at load (`ScenarioData::load`). Design docs live in `docs/design/`; every
+at load (`ScenarioData::load`). The world map (4,594 provinces / 226
+countries / polygon geometry) is GENERATED — see `tools/mapgen` and the
+`scenario-data` skill; never hand-edit `world.ron`, `generated.ron`, or
+`assets/map/world.geo.ron`. Design docs live in `docs/design/`; every
 non-trivial mechanic gets a doc there before implementation.
 
 ## Determinism (non-negotiable)

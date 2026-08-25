@@ -16,11 +16,17 @@ validated by `ugs-data::ScenarioData::load`. Types are in
    figures with sources. Record the source in a `//` comment at the top of
    the data file. Never invent plausible-sounding numbers silently — if
    estimating, comment `// estimate:` with the reasoning.
-2. **Respect id ranges.** Provinces: reserve blocks per region and note them
-   here as they're claimed. Currently claimed:
-   - 1–9: great-power capitals (placeholder)
-   - 10–99: Korean peninsula
-   Claim the next free block for a new region and update this list.
+2. **Generated vs. hand data.** `provinces/world.ron`,
+   `countries/generated.ron`, and `assets/map/world.geo.ron` are GENERATED
+   by `tools/mapgen` from Natural Earth + `tools/mapgen/owners_1950.csv` —
+   never hand-edit them. To change ownership, alignment, capitals, or
+   country stats, edit `owners_1950.csv` / the `notable_countries()` table
+   in `tools/mapgen/src/main.rs` and regenerate:
+   `./tools/mapgen/fetch-data.sh && cargo run -p mapgen --release`.
+   Province ids are assigned by sorted `adm1_code` — stable only while the
+   Natural Earth input is unchanged, so regeneration invalidates saves.
+   Hand-authored RON files may sit ALONGSIDE generated ones (extra
+   countries, scripted content); they must not redefine generated ids/tags.
 3. **Country tags** are 3 uppercase letters, unique, stable forever (saves
    will reference them). Prefer obvious ones (FRA, GBR, JAP, IND).
 4. **Adjacency is symmetric** — the loader rejects one-way links. When
