@@ -89,6 +89,7 @@ fn main() {
     // Load world data before the app starts: screens may need it in their
     // very first OnEnter, which can run before Startup commands apply.
     let (world, geometry) = load_world();
+    let scenario = std::sync::Arc::new(world.0.clone());
     let mut app = App::new();
     app
         .add_plugins(
@@ -132,6 +133,7 @@ fn main() {
         .insert_resource(ClearColor(Color::srgb(0.09, 0.12, 0.16))) // ocean
         .insert_resource(world)
         .insert_resource(geometry)
+        .insert_resource(ugs_sim::demography::SimScenario(scenario))
         .add_systems(Update, dev_auto_screenshot)
         .add_plugins((menu::MenuPlugin, map::MapPlugin));
     // Spawn the camera before the first state transition: initial OnEnter

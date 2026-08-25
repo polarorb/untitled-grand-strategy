@@ -10,6 +10,7 @@ use bevy::render::mesh::{Indices, PrimitiveTopology};
 use ugs_data::{CountryTag, ProvinceId, ScenarioData, Terrain};
 use ugs_sim::{
     command::{PendingCommands, SimCommand},
+    demography::Demographics,
     tension::GlobalTension,
     SimClock,
 };
@@ -471,16 +472,20 @@ fn spawn_hud(
 }
 
 /// Rebuild the bottom-left province card when the selection changes.
+#[allow(clippy::too_many_arguments)] // Bevy systems take what they query
 fn refresh_province_card(
     mut commands: Commands,
     selected: Res<Selected>,
     world: Res<World1950>,
+    demo: Res<Demographics>,
     fonts: Res<crate::Fonts>,
     assets: Res<AssetServer>,
     card: Query<Entity, With<ProvinceCard>>,
     mut nodes: Query<&mut Node, With<ProvinceCard>>,
 ) {
-    if !selected.is_changed() {
+    // Rebuild on selection change and on monthly demography updates so the
+    // open card stays live.
+    if !selected.is_changed() && !demo.is_changed() {
         return;
     }
     let Ok(card) = card.single() else { return };
@@ -507,11 +512,15 @@ fn refresh_province_card(
                 .map(|c| c.name.clone())
                 .unwrap_or_else(|| p.owner.0.clone())
         });
-    let pop = if p.population_k >= 1000 {
-        format!("{:.1}M", p.population_k as f32 / 1000.0)
-    } else {
-        format!("{}k", p.population_k)
-    };
+    fn persons(n: u64) -> String {
+        if n >= 1_000_000 {
+            format!("{:.1}M", n as f64 / 1e6)
+        } else {
+            format!("{}k", n / 1000)
+        }
+    }
+    let cohorts = demo.provinces.get(&id).copied().unwrap_or_default();
+    let pop = persons(cohorts.total().max(p.population_k as u64 * 1000));
     let flag = {
         let path = format!("flags/{}.png", p.owner.0);
         std::path::Path::new("assets").join(&path).exists().then_some(path)
@@ -551,6 +560,18 @@ fn refresh_province_card(
             crate::font(&fonts.body, 13.0),
             TextColor(HUD_DIM),
         ));
+        if cohorts.total() > 0 {
+            c.spawn((
+                Text::new(format!(
+                    "rural {}  urban {}  educated {}",
+                    persons(cohorts.rural),
+                    persons(cohorts.urban),
+                    persons(cohorts.educated),
+                )),
+                crate::font(&fonts.body, 12.0),
+                TextColor(HUD_DIM),
+            ));
+        }
     });
 }
 

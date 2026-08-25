@@ -64,6 +64,66 @@ Bevy is pinned at the 0.19 line. Its API moves fast and training data is
 usually stale — when a Bevy API doesn't compile, check the 0.19 docs/migration
 guide rather than guessing older idioms.
 
+## Research before implementation
+
+For any non-trivial mechanic or content decision, research FIRST, then
+design, then implement:
+
+- **Genre/design questions** → agent swarm (Workflow tool with schema-
+  validated output; the user has opted into swarms for research). Distill
+  results into `docs/research/<topic>.md` (concise readup + raw JSON
+  alongside) before touching the design doc. Precedent:
+  `docs/research/economy-mechanics.md` (8-analyst swarm, ten convergent
+  principles that now govern the economy architecture).
+- **Historical facts/data** → the `historian` agent; sourced, with dates.
+- **Bevy APIs** → the `bevy-scout` agent (training data is always behind
+  Bevy's release pace; verify against the pinned version's vendored source).
+- Design docs cite their research; implementation follows the
+  `new-sim-system` skill.
+
+## Asset generation
+
+Two pipelines, both documented in the `asset-gen` skill:
+
+- **Sourced assets** (flags, portraits, any historical imagery):
+  Wikimedia Commons via `tools/nationgen/fetch_assets.py` — resolves
+  exact `File:` titles through the API, rate-limit aware, records
+  licenses. EVERY shipped asset gets a line in `assets/CREDITS.md`.
+- **Generated assets** (backgrounds, missing portraits, UI art):
+  nano-banana 2 (`gemini-3-pro-image`) via
+  `tools/nationgen/generate_art.py` (needs `GEMINI_API_KEY`, present in
+  the user's shell env; never print it). Mark all AI-generated assets as
+  such in CREDITS.md. Prefer sourced over generated when a real asset
+  exists.
+- Fonts: SIL OFL only, fetched as static TTFs via the Google Fonts CSS
+  API; current faces are Oswald (display), Jost (UI), Courier Prime
+  (dossier text) in `assets/fonts/`.
+
+## GitHub & the Pages site
+
+Remote: `github.com/polarorb/untitled-grand-strategy` (public). GitHub
+Pages serves the `docs/` folder of main at
+https://polarorb.github.io/untitled-grand-strategy/ — so **docs commits
+are site deploys**. Push after committing; keep these current as part of
+finishing any feature:
+
+- `docs/index.md` — landing page; update the feature list/screenshots
+  when something player-visible lands (screenshots go in `docs/media/`,
+  captured via the `UGS_SHOT` env var below).
+- `docs/devlog.md` — the development blog, newest entries first. Add an
+  entry for every substantial work session: what was built, the
+  interesting technical/design decisions, dev-perspective (not marketing).
+- Design docs and research notes under `docs/` are part of the site;
+  write them knowing they're public.
+
+## Dev environment shortcuts
+
+- `UGS_SCREEN=select|game` — boot directly into a screen.
+- `UGS_NATION=TAG` — play as a nation (with `UGS_SCREEN=game`).
+- `UGS_MAPMODE=terrain` — boot in terrain map mode.
+- `UGS_SHOT=path.png` — the game screenshots its own window ~2s after
+  boot (use for visual verification; never screencapture the desktop).
+
 ## Conventions
 
 - New sim mechanics: write the design doc (or use the `design-doc` skill),

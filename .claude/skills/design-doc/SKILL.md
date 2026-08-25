@@ -14,6 +14,12 @@ sketch.
 - Read `docs/design/vision.md` first. Every mechanic must serve at least one
   of the four pillars — name which, in the doc header. If it serves none,
   say so and recommend cutting it.
+- **Research precedes design.** For a major mechanic, check
+  `docs/research/` for an existing readup; if none covers it, run a
+  research pass first (agent swarm for genre/design questions, `historian`
+  for historical grounding) and distill it into `docs/research/<topic>.md`.
+  The economy architecture in `docs/research/economy-mechanics.md` is the
+  standing example — design docs should cite the research they rest on.
 - Read the sibling docs it touches (escalation ↔ espionage ↔ influence are
   deeply coupled). Cross-link interactions explicitly.
 - This game is NOT HoI4: when borrowing an HoI4 mechanic, justify it against

@@ -72,6 +72,9 @@ pub struct ProvinceDef {
     pub center: (f32, f32),
     /// Population in thousands.
     pub population_k: u32,
+    /// Urban population in thousands (subset of population_k).
+    #[serde(default)]
+    pub urban_k: u32,
     pub adjacent: Vec<ProvinceId>,
 }
 

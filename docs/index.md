@@ -47,6 +47,8 @@ green, East Germany's plain tricolor), and a historic situation briefing.
 ![Country borders along the Yalu and the 38th parallel](media/korea-borders.png)
 ![Terrain map mode](media/terrain-mode.png)
 
+**[Development log →](devlog.md)** — how it's being built, newest first.
+
 ## Design documents
 
 - [Vision — what this game is and is not](design/vision.md)
@@ -55,6 +57,7 @@ green, East Germany's plain tricolor), and a historic situation briefing.
 - [Influence & ideology](design/systems/influence.md)
 - [Intelligence & covert ops](design/systems/espionage.md)
 - [Economy](design/systems/economy.md)
+- [Demography](design/systems/demography.md)
 - [Military](design/systems/military.md)
 - [Terrain](design/systems/terrain.md)
 - [Time & map](design/systems/time-and-map.md)

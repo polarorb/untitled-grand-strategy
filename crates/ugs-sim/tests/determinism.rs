@@ -6,7 +6,9 @@
 //! must be included in `snapshot` — extend it when adding systems.
 
 use bevy_app::App;
+use std::sync::Arc;
 use ugs_sim::calendar::GameDate;
+use ugs_sim::demography::{Demographics, SimScenario};
 use ugs_sim::command::{PendingCommands, SimCommand};
 use ugs_sim::rng::SimRng;
 use ugs_sim::tension::GlobalTension;
@@ -18,6 +20,10 @@ fn make_app(seed: u64) -> App {
         start_date: GameDate::new(1950, 1, 1, 0),
         seed,
     });
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../assets/data/scenario/1950");
+    let data = ugs_data::ScenarioData::load(&dir).expect("scenario");
+    app.insert_resource(SimScenario(Arc::new(data)));
     app
 }
 
@@ -25,12 +31,13 @@ fn make_app(seed: u64) -> App {
 fn snapshot(app: &App) -> String {
     let world = app.world();
     format!(
-        "{:?}|{:?}|{:?}",
+        "{:?}|{:?}|{:?}|demo:{:x}",
         world.resource::<SimClock>(),
         world.resource::<GlobalTension>(),
         // RNG state matters: identical outputs with diverged RNG would
         // desync later. Debug output includes the internal state.
         world.resource::<SimRng>(),
+        world.resource::<Demographics>().digest(),
     )
 }
 

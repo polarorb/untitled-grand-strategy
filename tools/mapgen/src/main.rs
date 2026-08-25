@@ -518,6 +518,7 @@ fn main() {
             terrain: e.terrain,
             center: p.center,
             population_k: e.population_k,
+            urban_k: e.urban_k,
             adjacent: adjacency[(p.id - 1) as usize]
                 .iter()
                 .map(|&i| ProvinceId(i))
@@ -571,6 +572,7 @@ fn main() {
 
 pub struct Enriched {
     pub population_k: u32,
+    pub urban_k: u32,
     pub terrain: Terrain,
 }
 
@@ -827,6 +829,7 @@ fn enrich_provinces(provinces: &[Prov], tool_dir: &Path) -> Vec<Enriched> {
         let urban_share = if pop_sum[i] > 0.0 { urb_sum[i] / pop_sum[i] } else { 0.0 };
         out.push(Enriched {
             population_k: (pop_sum[i] / 1000.0).round() as u32,
+            urban_k: (urb_sum[i].min(pop_sum[i]) / 1000.0).round() as u32,
             terrain: terrain_overrides()
                 .iter()
                 .find(|(name, _)| *name == p.name)
