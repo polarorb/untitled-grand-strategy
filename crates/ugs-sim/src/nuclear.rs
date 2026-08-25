@@ -150,8 +150,8 @@ pub struct Program {
     /// The regional grid this program's plants draw on.
     pub site_region: Option<RegionId>,
     pub thermonuclear_authorized: bool,
-    /// Tick thermonuclear work was authorized.
-    pub authorized_tick: Option<u64>,
+    /// Calendar month index (year*12+month) of authorization.
+    pub authorized_month: Option<i64>,
     /// Nuclear-capable bombers and combat radius.
     pub bombers: u32,
     pub bomber_range_km: u32,
@@ -185,7 +185,7 @@ impl Program {
             exposure_permille: 0,
             site_region: None,
             thermonuclear_authorized: false,
-            authorized_tick: None,
+            authorized_month: None,
             bombers: 0,
             bomber_range_km: 0,
             one_way_extra_km: 0,
@@ -226,7 +226,8 @@ pub struct NuclearPrograms {
     pub taboo_broken: bool,
     /// Commander-request bookkeeping (the MacArthur chain).
     pub use_request_seq: u32,
-    pub last_request_tick: u64,
+    /// Calendar month index of the last request (0 = never).
+    pub last_request_month: i64,
     use_resolved_cursor: usize,
     seeded: bool,
 }
@@ -238,11 +239,11 @@ impl NuclearPrograms {
             .or_insert_with(|| Program::new(route));
     }
 
-    pub fn authorize_thermonuclear(&mut self, country: &CountryTag, tick: u64) {
+    pub fn authorize_thermonuclear(&mut self, country: &CountryTag, month_index: i64) {
         if let Some(p) = self.programs.get_mut(country) {
             if !p.thermonuclear_authorized {
                 p.thermonuclear_authorized = true;
-                p.authorized_tick = Some(tick);
+                p.authorized_month = Some(month_index);
             }
         }
     }
@@ -256,8 +257,10 @@ impl NuclearPrograms {
     pub fn digest(&self) -> u64 {
         let mut h: u64 = 0xcbf2_9ce4_8422_2325;
         for (tag, p) in &self.programs {
+            for b in tag.0.bytes() {
+                h = (h ^ b as u64).wrapping_mul(0x0000_0100_0000_01b3);
+            }
             for v in [
-                tag.0.bytes().map(u64::from).sum::<u64>(),
                 p.stage as u64,
                 p.fissile_g,
                 p.stockpile as u64,
@@ -271,6 +274,12 @@ impl NuclearPrograms {
         }
         h
     }
+}
+
+/// Calendar month index — leap-safe cadence arithmetic (the tick/720
+/// shortcut drifts across leap years like 1952).
+fn month_index(clock: &SimClock) -> i64 {
+    clock.date.year as i64 * 12 + clock.date.month as i64
 }
 
 /// Seed on first tick; advance monthly. Runs in Politics after events.
@@ -309,7 +318,7 @@ pub fn update_nuclear(
             }
             if seed.thermonuclear_authorized {
                 p.thermonuclear_authorized = true;
-                p.authorized_tick = Some(clock.tick);
+                p.authorized_month = Some(month_index(&clock));
             }
             p.bombers = seed.bombers;
             p.bomber_range_km = seed.bomber_range_km;
@@ -322,7 +331,7 @@ pub fn update_nuclear(
                 Stage::Producing => 300,
                 _ => 100,
             };
-            programs.programs.insert(seed.country.clone(), p);
+            programs.programs.entry(seed.country.clone()).or_insert(p);
         }
         return;
     }
@@ -413,9 +422,9 @@ pub fn update_nuclear(
 
         // Thermonuclear follow-on.
         if p.stage == Stage::Tested && p.thermonuclear_authorized {
-            if let Some(start) = p.authorized_tick {
-                let months_needed = THERMO_BASE_MONTHS * 1000 / p.speed_permille().max(1);
-                if clock.tick.saturating_sub(start) >= months_needed * 30 * 24 {
+            if let Some(start) = p.authorized_month {
+                let months_needed = (THERMO_BASE_MONTHS * 1000 / p.speed_permille().max(1)) as i64;
+                if month_index(&clock) - start >= months_needed {
                     p.stage = Stage::Thermonuclear;
                     announcements.push((
                         "THERMONUCLEAR DETONATION CONFIRMED".into(),
@@ -628,9 +637,8 @@ pub fn update_nuclear_use(
     if prog.stage < Stage::Tested || prog.assembled == 0 {
         return;
     }
-    if programs.last_request_tick > 0
-        && clock.tick.saturating_sub(programs.last_request_tick)
-            < USE_REQUEST_COOLDOWN_MONTHS * 30 * 24
+    if programs.last_request_month > 0
+        && month_index(&clock) - programs.last_request_month < USE_REQUEST_COOLDOWN_MONTHS as i64
     {
         return;
     }
@@ -664,7 +672,7 @@ pub fn update_nuclear_use(
     if lost < USE_REQUEST_PROVINCES {
         return;
     }
-    programs.last_request_tick = clock.tick;
+    programs.last_request_month = month_index(&clock);
     programs.use_request_seq += 1;
     let id = format!("nuke-use-{}", programs.use_request_seq);
     fired.dynamic.push(crate::events::DynamicChoice {

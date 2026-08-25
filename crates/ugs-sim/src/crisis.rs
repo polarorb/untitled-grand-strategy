@@ -189,16 +189,25 @@ impl Crises {
 
     pub fn digest(&self) -> u64 {
         let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        let fold = |mut h: u64, s: &str| {
+            for b in s.bytes() {
+                h = (h ^ b as u64).wrapping_mul(0x0000_0100_0000_01b3);
+            }
+            h
+        };
         for c in &self.active {
             for v in [c.id as u64, c.rung as u64, c.deadline_tick] {
                 h = (h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
             }
         }
         for (tag, r) in &self.resolve {
-            h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>() ^ (*r as u64))
-                .wrapping_mul(0x0000_0100_0000_01b3);
+            h = fold(h, &tag.0);
+            h = (h ^ (*r as u64)).wrapping_mul(0x0000_0100_0000_01b3);
         }
-        h
+        for slug in &self.used {
+            h = fold(h, slug);
+        }
+        (h ^ self.next_id as u64).wrapping_mul(0x0000_0100_0000_01b3)
     }
 }
 
@@ -486,10 +495,15 @@ pub fn update_crises(
                 (choice_id(c), 0u8)
             } else {
                 let resolve = crises.resolve_of(&c.ball);
+                // An AI only ever launches (rung 7 -> 8) at resolve 95+,
+                // reachable through a long run of crisis victories — so a
+                // player-facing exchange always follows the player's own
+                // labeled choice one rung earlier, while an AI-vs-AI
+                // world can still end itself if someone feeds a hardliner.
                 let will_escalate = match c.rung {
                     0..=5 => resolve >= (c.rung as i64) * 14 + 6,
                     6 => programs.taboo_broken && resolve >= 85,
-                    _ => resolve >= 95, // launching is almost never chosen
+                    _ => resolve >= 95,
                 };
                 let compromise_ok = c.rung <= 3 && resolve < 40;
                 let opts = options_for(c.rung, programs.taboo_broken);

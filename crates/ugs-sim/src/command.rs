@@ -169,7 +169,7 @@ pub fn apply_commands(
                         &mut nuclear,
                         &deterrence,
                         &scenario.0,
-                        clock.tick,
+                        clock.date.year as i64 * 12 + clock.date.month as i64,
                         &id,
                         option,
                     );

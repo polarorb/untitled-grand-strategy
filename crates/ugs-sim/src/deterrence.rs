@@ -90,6 +90,9 @@ pub struct DyadAssessment {
 
 #[derive(Resource, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Deterrence {
+    /// Set after the first computation; without it a scenario with a
+    /// single program would rerun the full reach scan every tick.
+    computed: bool,
     /// Keyed (a, b) with a < b, nuclear-program pairs only.
     pub dyads: BTreeMap<(CountryTag, CountryTag), DyadAssessment>,
     /// Provinces each nuclear power can strike (two-way reach), for the
@@ -113,9 +116,10 @@ impl Deterrence {
     pub fn digest(&self) -> u64 {
         let mut h: u64 = 0xcbf2_9ce4_8422_2325;
         for ((a, b), d) in &self.dyads {
+            for byte in a.0.bytes().chain(b.0.bytes()) {
+                h = (h ^ byte as u64).wrapping_mul(0x0000_0100_0000_01b3);
+            }
             for v in [
-                a.0.bytes().map(u64::from).sum::<u64>(),
-                b.0.bytes().map(u64::from).sum::<u64>(),
                 d.class as u64,
                 d.a_believes_b_delivers as u64,
                 d.b_believes_a_delivers as u64,
@@ -219,14 +223,15 @@ pub fn update_deterrence(
     use tuning::*;
     let Some(scenario) = scenario else { return };
     let data = &scenario.0;
-    if !clock.new_month && !deterrence.dyads.is_empty() {
+    if !clock.new_month && deterrence.computed {
         return;
     }
     if programs.programs.is_empty() {
         return;
     }
+    deterrence.computed = true;
 
-    let years_elapsed = clock.tick / (24 * 365);
+    let years_elapsed = (clock.date.year - data.scenario.start_date.0).max(0) as u64;
     let tags: Vec<CountryTag> = programs.programs.keys().cloned().collect();
     let mut dyads = BTreeMap::new();
     for (i, a) in tags.iter().enumerate() {

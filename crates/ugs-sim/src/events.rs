@@ -65,7 +65,7 @@ fn apply_effects(
     nuclear: &mut crate::nuclear::NuclearPrograms,
     deterrence: &crate::deterrence::Deterrence,
     fired_notices: &mut Vec<(String, String)>,
-    tick: u64,
+    month_index: i64,
 ) {
     for effect in effects {
         match effect {
@@ -73,7 +73,11 @@ fn apply_effects(
             EventEffect::DeclareWar { a, b } => {
                 // Under mutual deterrence, war between the peers is not
                 // declarable — only crises remain (stability-instability
-                // paradox as a rule change).
+                // paradox as a rule change). NOTE: this reads LAST
+                // month's deterrence assessment (deterrence updates
+                // after events in the Politics chain) — deterministic,
+                // and thematically the general staff works from the
+                // last estimate. Do not reorder the chain casually.
                 if deterrence.class(a, b) == crate::deterrence::DyadClass::Mutual {
                     fired_notices.push((
                         "WAR UNTHINKABLE".into(),
@@ -128,7 +132,7 @@ fn apply_effects(
                 }
             }
             EventEffect::AuthorizeThermonuclear { country } => {
-                nuclear.authorize_thermonuclear(country, tick);
+                nuclear.authorize_thermonuclear(country, month_index);
             }
             EventEffect::AdjustProgramSpeed { country, permille } => {
                 nuclear.adjust_speed(country, *permille);
@@ -233,7 +237,7 @@ pub fn update_events(
                     &mut nuclear,
                     &deterrence,
                     &mut notices,
-                    clock.tick,
+                    clock.date.year as i64 * 12 + clock.date.month as i64,
                 );
                 fired.notices.extend(notices);
             }
@@ -280,7 +284,7 @@ pub fn update_events(
                 &mut nuclear,
                 &deterrence,
                 &mut notices,
-                clock.tick,
+                clock.date.year as i64 * 12 + clock.date.month as i64,
             );
             fired.notices.extend(notices);
         }
@@ -296,15 +300,22 @@ pub fn resolve_event(
     nuclear: &mut crate::nuclear::NuclearPrograms,
     deterrence: &crate::deterrence::Deterrence,
     data: &ScenarioData,
-    tick: u64,
+    month_index: i64,
     id: &str,
     option: u8,
 ) {
     // Dynamic (sim-generated) choices: record the answer; the owning
-    // module reads it from `resolved` on its next tick.
+    // module reads it from `resolved` on its next tick. Out-of-range
+    // options clamp to the cautious default — a crafted command must
+    // not reach hidden arms (e.g. a compromise never offered).
     if let Some(pos) = fired.dynamic.iter().position(|d| d.id == id) {
+        let bounded = if (option as usize) < fired.dynamic[pos].options.len() {
+            option
+        } else {
+            0
+        };
         fired.dynamic.remove(pos);
-        fired.resolved.push((id.to_string(), option));
+        fired.resolved.push((id.to_string(), bounded));
         return;
     }
     if !fired.is_pending(id) {
@@ -327,7 +338,7 @@ pub fn resolve_event(
         nuclear,
         deterrence,
         &mut notices,
-        tick,
+        month_index,
     );
     fired.notices.extend(notices);
 }
