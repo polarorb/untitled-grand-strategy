@@ -195,6 +195,7 @@ derivative work: JJ Georges (talk)
 - `assets/ui/menu_bg.jpg` — main menu background painting
 - `assets/leaders/AND.jpg` — stylized portrait of Francesc Cairat (no Commons photo available)
 - `assets/leaders/SMR.jpg` — stylized portrait of Ermenegildo Gasperoni (no Commons photo available)
+- `assets/ui/icon_political.jpg`, `icon_terrain.jpg`, `icon_power.jpg` — map-mode selector icons
 
 Note: portrait licenses vary by file (recorded above). Any ShareAlike- or
 attribution-licensed images should be re-reviewed before commercial

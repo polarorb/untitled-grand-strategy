@@ -63,6 +63,10 @@ struct TensionText;
 #[derive(Component)]
 struct ProvinceCard;
 
+/// Bottom-right map-mode selector buttons.
+#[derive(Component, Clone, Copy, PartialEq, Eq)]
+struct MapModeButton(MapMode);
+
 /// Equirectangular degrees -> world units, centered on Korea for now.
 pub fn project(lon: f32, lat: f32) -> Vec2 {
     Vec2::new((lon - 127.3) * 60.0, (lat - 37.5) * 60.0)
@@ -115,6 +119,7 @@ impl Plugin for MapPlugin {
                 camera_controls,
                 drive_sim,
                 apply_map_mode,
+                map_mode_buttons,
                 select_province,
                 refresh_province_card,
                 draw_selection_outline,
@@ -469,6 +474,57 @@ fn spawn_hud(
         BackgroundColor(HUD_BG),
     ));
 
+    // Map-mode selector, bottom-right.
+    commands
+        .spawn((
+            HudRoot,
+            Interaction::default(),
+            Node {
+                position_type: PositionType::Absolute,
+                right: Val::Px(12.0),
+                bottom: Val::Px(34.0),
+                column_gap: Val::Px(6.0),
+                padding: UiRect::all(Val::Px(6.0)),
+                ..default()
+            },
+            BackgroundColor(HUD_BG),
+        ))
+        .with_children(|bar| {
+            for (mode, icon, label) in [
+                (MapMode::Political, "ui/icon_political.jpg", "POLITICAL"),
+                (MapMode::Terrain, "ui/icon_terrain.jpg", "TERRAIN"),
+                (MapMode::Power, "ui/icon_power.jpg", "POWER"),
+            ] {
+                bar.spawn((
+                    Button,
+                    MapModeButton(mode),
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        align_items: AlignItems::Center,
+                        row_gap: Val::Px(3.0),
+                        padding: UiRect::all(Val::Px(5.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::NONE),
+                ))
+                .with_children(|b| {
+                    b.spawn((
+                        ImageNode::new(assets.load(icon)),
+                        Node {
+                            width: Val::Px(38.0),
+                            height: Val::Px(38.0),
+                            ..default()
+                        },
+                    ));
+                    b.spawn((
+                        Text::new(label),
+                        crate::font(&fonts.body_medium, 10.0),
+                        TextColor(HUD_DIM),
+                    ));
+                });
+            }
+        });
+
     commands.spawn((
         HudRoot,
         Text::new(
@@ -749,6 +805,27 @@ fn camera_controls(
     transform.translation.x = wrap_x(transform.translation.x);
 }
 
+/// Map-mode selector: clicks switch modes; the active button glows.
+fn map_mode_buttons(
+    mut mode: ResMut<MapMode>,
+    mut buttons: Query<(&Interaction, &MapModeButton, &mut BackgroundColor)>,
+) {
+    for (interaction, button, _) in &buttons {
+        if *interaction == Interaction::Pressed && *mode != button.0 {
+            *mode = button.0;
+        }
+    }
+    for (interaction, button, mut bg) in &mut buttons {
+        bg.0 = if *mode == button.0 {
+            Color::srgba(0.55, 0.44, 0.18, 0.55)
+        } else if *interaction == Interaction::Hovered {
+            Color::srgba(0.22, 0.26, 0.32, 0.9)
+        } else {
+            Color::NONE
+        };
+    }
+}
+
 /// Recolor the shared fill mesh's vertex colors when the map mode changes.
 fn apply_map_mode(
     mode: Res<MapMode>,
@@ -834,9 +911,14 @@ fn select_province(
     windows: Query<&Window>,
     camera: Query<(&Camera, &GlobalTransform)>,
     geometry: Res<WorldGeometry>,
+    hovered: Query<&Interaction>,
     mut selected: ResMut<Selected>,
 ) {
     if !buttons.just_pressed(MouseButton::Left) {
+        return;
+    }
+    // Clicks on HUD widgets must not fall through to the map.
+    if hovered.iter().any(|i| *i != Interaction::None) {
         return;
     }
     selected.0 = cursor_province(&windows, &camera, &geometry);

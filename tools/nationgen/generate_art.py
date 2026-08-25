@@ -26,6 +26,12 @@ projector light. Muted palette of slate blue, olive drab, and warm amber
 lamplight; heavy 1950s oil-painting texture, dramatic chiaroscuro, no text,
 no lettering, painterly, restrained, atmospheric."""
 
+ICON_PROMPT = """A small square UI icon for a Cold War strategy game:
+{subject}. Flat vintage-print style on a solid very dark slate background
+(hex 12161E), the motif drawn in muted brass gold (hex D4B05C) with subtle
+off-white accents, centered, bold simple silhouette readable at 40 pixels,
+slight 1950s screen-print texture. No text, no border, no frame."""
+
 PORTRAIT_PROMPT = """A dignified head-and-shoulders oil-painted portrait of
 {name}, {title}, as they appeared around 1950. Somber official-portrait
 style: dark neutral background, formal period dress, warm directional light,
@@ -62,6 +68,12 @@ def main():
         out = os.path.join(ROOT, "assets", "ui", "menu_bg.png")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         data, ext = generate(MENU_PROMPT, "16:9")
+        out = out[:-3] + ext
+    elif mode == "icon":
+        name, subject = sys.argv[2], sys.argv[3]
+        out = os.path.join(ROOT, "assets", "ui", f"icon_{name}.png")
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        data, ext = generate(ICON_PROMPT.format(subject=subject), "1:1")
         out = out[:-3] + ext
     elif mode == "portrait":
         tag, name, title = sys.argv[2], sys.argv[3], sys.argv[4]
