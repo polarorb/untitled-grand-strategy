@@ -125,15 +125,34 @@ fn spawn_main_menu(mut commands: Commands, assets: Res<AssetServer>) {
                 },
             ));
         }
-        // Left-side smoked glass column so text reads over the art.
+        // Soft left-to-right fade so text reads over the art without a
+        // hard panel edge cutting across the painting.
+        let ink = |a: f32| Color::srgba(0.03, 0.045, 0.06, a);
+        let stop = |pct: f32, a: f32| bevy::ui::ColorStop {
+            color: ink(a),
+            point: Val::Percent(pct),
+            hint: 0.5,
+        };
         root.spawn((
             Node {
                 position_type: PositionType::Absolute,
-                width: Val::Px(560.0),
+                width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.04, 0.05, 0.07, 0.78)),
+            bevy::ui::BackgroundGradient(vec![bevy::ui::Gradient::Linear(
+                bevy::ui::LinearGradient {
+                    angle: bevy::ui::LinearGradient::TO_RIGHT,
+                    stops: vec![
+                        stop(0.0, 0.94),
+                        stop(28.0, 0.80),
+                        stop(46.0, 0.45),
+                        stop(66.0, 0.10),
+                        stop(80.0, 0.0),
+                    ],
+                    ..default()
+                },
+            )]),
         ));
         root.spawn((
             Text::new("UNTITLED GRAND STRATEGY"),
