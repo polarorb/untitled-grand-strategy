@@ -1,9 +1,0 @@
-CountryDef(
-    tag: CountryTag("PRK"),
-    name: "Democratic People's Republic of Korea",
-    alignment: EasternBloc,
-    capital: ProvinceId(10),
-    stability: 70,
-    industry: 8,
-    nuclear_power: false,
-)

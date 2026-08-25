@@ -110,12 +110,14 @@ impl ScenarioData {
         let mut countries = BTreeMap::new();
         let countries_dir = scenario_dir.join("countries");
         for entry in read_dir_sorted(&countries_dir)? {
-            let def: CountryDef = load_ron(&entry)?;
-            if countries.insert(def.tag.clone(), def).is_some() {
-                return Err(DataError::Validation(format!(
-                    "duplicate country tag in {}",
-                    entry.display()
-                )));
+            let defs: Vec<CountryDef> = load_ron(&entry)?;
+            for def in defs {
+                if countries.insert(def.tag.clone(), def).is_some() {
+                    return Err(DataError::Validation(format!(
+                        "duplicate country tag in {}",
+                        entry.display()
+                    )));
+                }
             }
         }
 

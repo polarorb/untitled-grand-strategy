@@ -1,4 +1,5 @@
 /target
+/tools/mapgen/data
 **/*.rs.bk
 *.pdb
 .DS_Store

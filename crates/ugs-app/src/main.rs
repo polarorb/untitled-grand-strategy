@@ -3,9 +3,13 @@
 //! depend on anything in this crate. All sim mutations go through
 //! `PendingCommands` — never write sim resources directly from here.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
+use bevy::asset::RenderAssetUsages;
+use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
+use bevy::render::mesh::{Indices, PrimitiveTopology};
 use ugs_data::{Alignment, CountryTag, ProvinceId, ScenarioData};
 use ugs_sim::{
     calendar::GameDate,
@@ -38,16 +42,24 @@ impl GameSpeed {
 #[derive(Resource)]
 struct World1950(ScenarioData);
 
+/// Projected province outlines + bounding boxes, for click hit-testing and
+/// drawing the selection outline.
+#[derive(Resource, Default)]
+struct WorldGeometry {
+    rings: BTreeMap<u32, Vec<Vec<Vec2>>>,
+    bboxes: BTreeMap<u32, (Vec2, Vec2)>,
+}
+
 #[derive(Resource, Default)]
 struct Selected(Option<ProvinceId>);
 
 #[derive(Component)]
 struct ProvinceMarker {
+    /// Used for ownership-change recoloring (next up); marker also drives
+    /// hit-test debugging.
+    #[allow(dead_code)]
     id: ProvinceId,
 }
-
-#[derive(Component)]
-struct SelectionRing;
 
 #[derive(Component)]
 struct TopBarText;
@@ -55,13 +67,10 @@ struct TopBarText;
 #[derive(Component)]
 struct SelectionText;
 
-/// Placeholder projection: degrees -> world units, centered on Korea.
-/// Replaced by a real projection when the mapgen tool lands.
-fn project(center: (f32, f32)) -> Vec2 {
-    Vec2::new((center.0 - 127.3) * 60.0, (center.1 - 37.5) * 60.0)
+/// Equirectangular degrees -> world units, centered on Korea for now.
+fn project(lon: f32, lat: f32) -> Vec2 {
+    Vec2::new((lon - 127.3) * 60.0, (lat - 37.5) * 60.0)
 }
-
-const PROVINCE_RADIUS: f32 = 26.0;
 
 fn main() {
     App::new()
@@ -81,15 +90,17 @@ fn main() {
             level: 1,
             accumulator: 0.0,
         })
+        .insert_resource(ClearColor(Color::srgb(0.09, 0.12, 0.16))) // ocean
         .init_resource::<Selected>()
         .add_systems(Startup, setup)
         .add_systems(
             Update,
             (
                 handle_input,
+                camera_controls,
                 drive_sim,
                 select_province,
-                update_selection_ring,
+                draw_selection_outline,
                 update_ui_text,
             )
                 .chain(),
@@ -97,19 +108,46 @@ fn main() {
         .run();
 }
 
-fn country_color(data: &ScenarioData, tag: &CountryTag) -> Color {
-    match tag.0.as_str() {
-        "USA" => Color::srgb(0.20, 0.35, 0.70),
-        "KOR" => Color::srgb(0.35, 0.55, 0.85),
-        "SOV" => Color::srgb(0.75, 0.15, 0.15),
-        "PRC" => Color::srgb(0.85, 0.30, 0.15),
-        "PRK" => Color::srgb(0.60, 0.10, 0.20),
-        _ => match data.countries.get(tag).map(|c| c.alignment) {
-            Some(Alignment::WesternBloc) => Color::srgb(0.3, 0.45, 0.75),
-            Some(Alignment::EasternBloc) => Color::srgb(0.7, 0.2, 0.2),
-            _ => Color::srgb(0.5, 0.5, 0.45),
-        },
+/// Owner color: alignment base tinted per-country so neighbors are
+/// distinguishable, then a slight per-province lightness wobble in lieu of
+/// border lines (cheap, replaced by real borders later).
+fn owner_color(data: &ScenarioData, tag: &CountryTag, province_id: u32) -> Color {
+    let alignment = data.countries.get(tag).map(|c| c.alignment);
+    let (base_h, base_s, base_l) = match alignment {
+        Some(Alignment::WesternBloc) => (215.0, 0.45, 0.42),
+        Some(Alignment::EasternBloc) => (2.0, 0.55, 0.40),
+        _ => (85.0, 0.18, 0.42),
+    };
+    // Stable pseudo-hash of the tag for hue variation within a bloc.
+    let th = tag.0.bytes().fold(0u32, |a, b| a.wrapping_mul(31).wrapping_add(b as u32));
+    let hue = base_h + ((th % 33) as f32 - 16.0) * 0.9;
+    let light = base_l + (((province_id.wrapping_mul(2654435761)) >> 8) % 9) as f32 * 0.008;
+    Color::hsl(hue.rem_euclid(360.0), base_s, light)
+}
+
+fn build_province_mesh(rings: &[Vec<Vec2>]) -> Option<Mesh> {
+    let mut positions: Vec<[f32; 3]> = Vec::new();
+    let mut indices: Vec<u32> = Vec::new();
+    for ring in rings {
+        if ring.len() < 3 {
+            continue;
+        }
+        let flat: Vec<f64> = ring.iter().flat_map(|v| [v.x as f64, v.y as f64]).collect();
+        let Ok(tris) = earcutr::earcut(&flat, &[], 2) else {
+            continue;
+        };
+        let base = positions.len() as u32;
+        positions.extend(ring.iter().map(|v| [v.x, v.y, 0.0]));
+        indices.extend(tris.iter().map(|&i| base + i as u32));
     }
+    if indices.is_empty() {
+        return None;
+    }
+    Some(
+        Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+            .with_inserted_indices(Indices::U32(indices)),
+    )
 }
 
 fn setup(
@@ -121,56 +159,40 @@ fn setup(
 
     let data = ScenarioData::load(Path::new("assets/data/scenario/1950"))
         .expect("failed to load 1950 scenario (run from the workspace root)");
+    let geo_text = std::fs::read_to_string("assets/map/world.geo.ron")
+        .expect("missing assets/map/world.geo.ron (run: cargo run -p mapgen --release)");
+    let raw_geo: BTreeMap<u32, Vec<Vec<(f32, f32)>>> =
+        ron::from_str(&geo_text).expect("bad world.geo.ron");
 
-    let hex = meshes.add(RegularPolygon::new(PROVINCE_RADIUS, 6));
-    let line = meshes.add(Rectangle::new(1.0, 1.0));
-    let link_color = materials.add(Color::srgba(1.0, 1.0, 1.0, 0.15));
-
-    // Adjacency links (draw each pair once), under the hexes.
-    for (id, p) in &data.provinces {
-        let a = project(p.center);
-        for adj in &p.adjacent {
-            if adj > id {
-                let b = project(data.provinces[adj].center);
-                let mid = (a + b) / 2.0;
-                let delta = b - a;
-                commands.spawn((
-                    Mesh2d(line.clone()),
-                    MeshMaterial2d(link_color.clone()),
-                    Transform::from_translation(mid.extend(-1.0))
-                        .with_rotation(Quat::from_rotation_z(delta.y.atan2(delta.x)))
-                        .with_scale(Vec3::new(delta.length(), 3.0, 1.0)),
-                ));
-            }
+    let mut geometry = WorldGeometry::default();
+    // One material per country, shared by its provinces (per-province wobble
+    // sacrificed for batching would be better; keep per-province for now).
+    for (id, rings) in &raw_geo {
+        let projected: Vec<Vec<Vec2>> = rings
+            .iter()
+            .map(|ring| ring.iter().map(|&(lon, lat)| project(lon, lat)).collect())
+            .collect();
+        let (mut lo, mut hi) = (Vec2::splat(f32::MAX), Vec2::splat(f32::MIN));
+        for v in projected.iter().flatten() {
+            lo = lo.min(*v);
+            hi = hi.max(*v);
         }
+        let Some(p) = data.provinces.get(&ProvinceId(*id)) else {
+            continue;
+        };
+        if let Some(mesh) = build_province_mesh(&projected) {
+            commands.spawn((
+                ProvinceMarker { id: ProvinceId(*id) },
+                Mesh2d(meshes.add(mesh)),
+                MeshMaterial2d(materials.add(owner_color(&data, &p.owner, *id))),
+                Transform::IDENTITY,
+            ));
+        }
+        geometry.bboxes.insert(*id, (lo, hi));
+        geometry.rings.insert(*id, projected);
     }
 
-    for (id, p) in &data.provinces {
-        let pos = project(p.center);
-        commands.spawn((
-            ProvinceMarker { id: *id },
-            Mesh2d(hex.clone()),
-            MeshMaterial2d(materials.add(country_color(&data, &p.owner))),
-            Transform::from_translation(pos.extend(0.0)),
-        ));
-        commands.spawn((
-            Text2d::new(p.name.clone()),
-            TextFont {
-                font_size: bevy::text::FontSize::Px(12.0),
-                ..default()
-            },
-            Transform::from_translation(pos.extend(1.0) + Vec3::Y * (PROVINCE_RADIUS + 10.0)),
-        ));
-    }
-
-    commands.spawn((
-        SelectionRing,
-        Mesh2d(meshes.add(RegularPolygon::new(PROVINCE_RADIUS + 5.0, 6))),
-        MeshMaterial2d(materials.add(Color::srgb(0.95, 0.9, 0.5))),
-        Transform::from_xyz(0.0, 0.0, -0.5),
-        Visibility::Hidden,
-    ));
-
+    commands.insert_resource(geometry);
     commands.insert_resource(World1950(data));
 
     commands.spawn((
@@ -185,7 +207,9 @@ fn setup(
     ));
     commands.spawn((
         SelectionText,
-        Text::new("Click a province. Space: pause · 1-5: speed · T/G: tension +/- (debug)"),
+        Text::new(
+            "Click a province. Space: pause · 1-5: speed · WASD/drag: pan · scroll: zoom · T/G: tension +/-",
+        ),
         Node {
             position_type: PositionType::Absolute,
             bottom: Val::Px(8.0),
@@ -224,39 +248,94 @@ fn handle_input(
     }
 }
 
+fn camera_controls(
+    keys: Res<ButtonInput<KeyCode>>,
+    buttons: Res<ButtonInput<MouseButton>>,
+    mut wheel: MessageReader<MouseWheel>,
+    mut motion: MessageReader<MouseMotion>,
+    time: Res<Time>,
+    mut camera: Query<(&mut Transform, &mut Projection), With<Camera2d>>,
+) {
+    let Ok((mut transform, mut projection)) = camera.single_mut() else {
+        return;
+    };
+    let Projection::Orthographic(ortho) = &mut *projection else {
+        return;
+    };
+    for ev in wheel.read() {
+        let step = if ev.y > 0.0 { 0.9 } else { 1.1 };
+        ortho.scale = (ortho.scale * step).clamp(0.05, 40.0);
+    }
+    let mut pan = Vec2::ZERO;
+    let pan_speed = 600.0 * ortho.scale * time.delta_secs();
+    if keys.pressed(KeyCode::KeyW) || keys.pressed(KeyCode::ArrowUp) {
+        pan.y += pan_speed;
+    }
+    if keys.pressed(KeyCode::KeyS) || keys.pressed(KeyCode::ArrowDown) {
+        pan.y -= pan_speed;
+    }
+    if keys.pressed(KeyCode::KeyA) || keys.pressed(KeyCode::ArrowLeft) {
+        pan.x -= pan_speed;
+    }
+    if keys.pressed(KeyCode::KeyD) || keys.pressed(KeyCode::ArrowRight) {
+        pan.x += pan_speed;
+    }
+    if buttons.pressed(MouseButton::Right) || buttons.pressed(MouseButton::Middle) {
+        for ev in motion.read() {
+            pan.x -= ev.delta.x * ortho.scale;
+            pan.y += ev.delta.y * ortho.scale;
+        }
+    } else {
+        motion.clear();
+    }
+    transform.translation += pan.extend(0.0);
+}
+
 /// Accumulate real time and convert it into whole sim ticks. Capped per
 /// frame so a long hitch can't trigger a runaway catch-up spiral.
 fn drive_sim(world: &mut World) {
     let delta = world.resource::<Time>().delta_secs();
-    let paused = {
+    let ticks = {
         let mut speed = world.resource_mut::<GameSpeed>();
         if speed.paused {
             speed.accumulator = 0.0;
+            0
+        } else {
+            speed.accumulator += delta * speed.ticks_per_second();
+            let whole = speed.accumulator.floor().min(500.0);
+            speed.accumulator -= whole;
+            whole as u64
         }
-        speed.paused
-    };
-    let ticks = if paused {
-        // Commands queued while paused (debug keys, future orders) still
-        // apply immediately so the UI reflects them: run the command stage
-        // by advancing zero ticks is not possible, so apply on next unpause.
-        0
-    } else {
-        let mut speed = world.resource_mut::<GameSpeed>();
-        speed.accumulator += delta * speed.ticks_per_second();
-        let whole = speed.accumulator.floor().min(500.0);
-        speed.accumulator -= whole;
-        whole as u64
     };
     for _ in 0..ticks {
         world.run_schedule(ugs_sim::SimTick);
     }
 }
 
+fn point_in_rings(point: Vec2, rings: &[Vec<Vec2>]) -> bool {
+    // Even-odd ray cast across all rings of the province.
+    let mut inside = false;
+    for ring in rings {
+        let n = ring.len();
+        let mut j = n - 1;
+        for i in 0..n {
+            let (a, b) = (ring[i], ring[j]);
+            if (a.y > point.y) != (b.y > point.y)
+                && point.x < (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x
+            {
+                inside = !inside;
+            }
+            j = i;
+        }
+    }
+    inside
+}
+
 fn select_province(
     buttons: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     camera: Query<(&Camera, &GlobalTransform)>,
-    provinces: Query<(&ProvinceMarker, &Transform)>,
+    geometry: Res<WorldGeometry>,
     mut selected: ResMut<Selected>,
 ) {
     if !buttons.just_pressed(MouseButton::Left) {
@@ -272,30 +351,33 @@ fn select_province(
     let Ok(world_pos) = camera.viewport_to_world_2d(cam_transform, cursor) else {
         return;
     };
-    selected.0 = provinces
+    selected.0 = geometry
+        .bboxes
         .iter()
-        .map(|(marker, tf)| (marker.id, tf.translation.truncate().distance(world_pos)))
-        .filter(|(_, dist)| *dist <= PROVINCE_RADIUS)
-        .min_by(|a, b| a.1.total_cmp(&b.1))
-        .map(|(id, _)| id);
+        .filter(|(_, (lo, hi))| {
+            world_pos.x >= lo.x && world_pos.x <= hi.x && world_pos.y >= lo.y && world_pos.y <= hi.y
+        })
+        .find(|(id, _)| point_in_rings(world_pos, &geometry.rings[id]))
+        .map(|(id, _)| ProvinceId(*id));
 }
 
-fn update_selection_ring(
+fn draw_selection_outline(
     selected: Res<Selected>,
-    provinces: Query<(&ProvinceMarker, &Transform), Without<SelectionRing>>,
-    mut ring: Query<(&mut Transform, &mut Visibility), With<SelectionRing>>,
+    geometry: Res<WorldGeometry>,
+    mut gizmos: Gizmos,
 ) {
-    let Ok((mut tf, mut vis)) = ring.single_mut() else {
+    let Some(ProvinceId(id)) = selected.0 else {
         return;
     };
-    match selected.0 {
-        Some(id) => {
-            if let Some((_, ptf)) = provinces.iter().find(|(m, _)| m.id == id) {
-                tf.translation = ptf.translation.truncate().extend(-0.5);
-                *vis = Visibility::Visible;
-            }
+    let Some(rings) = geometry.rings.get(&id) else {
+        return;
+    };
+    for ring in rings {
+        if ring.len() >= 2 {
+            let mut pts = ring.clone();
+            pts.push(ring[0]);
+            gizmos.linestrip_2d(pts, Color::srgb(0.98, 0.92, 0.45));
         }
-        None => *vis = Visibility::Hidden,
     }
 }
 
@@ -331,10 +413,7 @@ fn update_ui_text(
                     .get(&p.owner)
                     .map(|c| c.name.as_str())
                     .unwrap_or("?");
-                text.0 = format!(
-                    "{} — {} · {:?} · pop {}k",
-                    p.name, owner, p.terrain, p.population_k
-                );
+                text.0 = format!("{} — {}", p.name, owner);
             }
         }
     }

@@ -5,6 +5,7 @@ members = [
     "crates/ugs-map",
     "crates/ugs-sim",
     "crates/ugs-app",
+    "tools/mapgen",
 ]
 
 [workspace.package]

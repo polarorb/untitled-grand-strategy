@@ -921,7 +921,7 @@ dependencies = [
  "bevy_world_serialization",
  "fixedbitset",
  "gltf",
- "itertools",
+ "itertools 0.14.0",
  "percent-encoding",
  "serde",
  "serde_json",
@@ -1154,7 +1154,7 @@ dependencies = [
  "bevy_reflect",
  "derive_more",
  "glam",
- "itertools",
+ "itertools 0.14.0",
  "libm",
  "rand",
  "rand_distr",
@@ -1398,7 +1398,7 @@ dependencies = [
  "glam",
  "image",
  "indexmap",
- "itertools",
+ "itertools 0.14.0",
  "js-sys",
  "naga",
  "nonmax",
@@ -2379,6 +2379,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 
 [[package]]
+name = "earcutr"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79127ed59a85d7687c409e9978547cffb7dc79675355ed22da6b66fd5f6ead01"
+dependencies = [
+ "itertools 0.11.0",
+ "num-traits",
+]
+
+[[package]]
 name = "either"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3143,6 +3153,15 @@ dependencies = [
 
 [[package]]
 name = "itertools"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
@@ -3390,6 +3409,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a1b95cd5421ec55b445b5ae102f5ea0e768de1f82bd3001e11f426c269c3aea"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "mapgen"
+version = "0.1.0"
+dependencies = [
+ "ron 0.8.1",
+ "serde",
+ "serde_json",
+ "ugs-data",
 ]
 
 [[package]]
@@ -5142,6 +5171,9 @@ name = "ugs-app"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "earcutr",
+ "ron 0.8.1",
+ "serde",
  "ugs-data",
  "ugs-map",
  "ugs-sim",

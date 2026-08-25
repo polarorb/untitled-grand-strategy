@@ -10,6 +10,9 @@ path = "src/main.rs"
 
 [dependencies]
 bevy = { workspace = true }
+earcutr = "0.4"
+ron = { workspace = true }
+serde = { workspace = true }
 ugs-data = { path = "../ugs-data" }
 ugs-map = { path = "../ugs-map" }
 ugs-sim = { path = "../ugs-sim" }

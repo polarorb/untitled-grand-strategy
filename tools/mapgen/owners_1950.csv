@@ -1,0 +1,40 @@
+iso_a3,owner_tag,owner_name,status,notes
+# PROVISIONAL table — being replaced by fully-researched version.
+# Unlisted codes default to independent with tag = adm0_a3.
+RUS,SOV,Union of Soviet Socialist Republics,independent,
+UKR,SOV,Union of Soviet Socialist Republics,republic,
+BLR,SOV,Union of Soviet Socialist Republics,republic,
+EST,SOV,Union of Soviet Socialist Republics,republic,annexed 1940
+LVA,SOV,Union of Soviet Socialist Republics,republic,annexed 1940
+LTU,SOV,Union of Soviet Socialist Republics,republic,annexed 1940
+MDA,SOV,Union of Soviet Socialist Republics,republic,
+GEO,SOV,Union of Soviet Socialist Republics,republic,
+ARM,SOV,Union of Soviet Socialist Republics,republic,
+AZE,SOV,Union of Soviet Socialist Republics,republic,
+KAZ,SOV,Union of Soviet Socialist Republics,republic,
+KGZ,SOV,Union of Soviet Socialist Republics,republic,
+TJK,SOV,Union of Soviet Socialist Republics,republic,
+TKM,SOV,Union of Soviet Socialist Republics,republic,
+UZB,SOV,Union of Soviet Socialist Republics,republic,
+CHN,PRC,People's Republic of China,independent,proclaimed Oct 1949
+TWN,CHT,Republic of China,independent,Nationalist redoubt; holds Hainan to Apr 1950
+DEU,FRG,Federal Republic of Germany,divided,East Laender override to GDR in mapgen
+CZE,CZE,Czechoslovakia,independent,
+SVK,CZE,Czechoslovakia,independent,
+SRB,YUG,Federal People's Republic of Yugoslavia,independent,split from Moscow 1948
+HRV,YUG,Federal People's Republic of Yugoslavia,independent,
+BIH,YUG,Federal People's Republic of Yugoslavia,independent,
+SVN,YUG,Federal People's Republic of Yugoslavia,independent,
+MKD,YUG,Federal People's Republic of Yugoslavia,independent,
+MNE,YUG,Federal People's Republic of Yugoslavia,independent,
+KOS,YUG,Federal People's Republic of Yugoslavia,independent,
+VNM,FRA,French Republic,colony,French Indochina; war ongoing
+LAO,FRA,French Republic,colony,French Indochina
+KHM,FRA,French Republic,colony,French Indochina
+DZA,FRA,French Republic,colony,legally part of metropolitan France
+JPN,JAP,Japan,occupied,US occupation until 1952
+MNG,MON,Mongolian People's Republic,independent,
+ROU,ROM,Romania,independent,
+BGR,BUL,Bulgaria,independent,
+PRK,PRK,Democratic People's Republic of Korea,independent,
+KOR,KOR,Republic of Korea,independent,

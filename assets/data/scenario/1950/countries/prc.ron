@@ -1,9 +1,0 @@
-CountryDef(
-    tag: CountryTag("PRC"),
-    name: "People's Republic of China",
-    alignment: EasternBloc,
-    capital: ProvinceId(3),
-    stability: 60,
-    industry: 15,
-    nuclear_power: false,
-)
