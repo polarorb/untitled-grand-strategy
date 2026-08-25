@@ -12,6 +12,7 @@ use ugs_sim::{
     command::{PendingCommands, SimCommand},
     demography::Demographics,
     economy::{NationalBalances, RegionalPower},
+    savegame::{load_save, SaveGame},
     tension::GlobalTension,
     SimClock,
 };
@@ -116,6 +117,7 @@ impl Plugin for MapPlugin {
             Update,
             (
                 handle_input,
+                save_load,
                 camera_controls,
                 drive_sim,
                 apply_map_mode,
@@ -528,7 +530,7 @@ fn spawn_hud(
     commands.spawn((
         HudRoot,
         Text::new(
-            "Space: pause - 1-5: speed - E: economy - M: map mode - WASD/drag: pan - scroll: zoom - T/G: tension +/-",
+            "Space: pause - 1-5: speed - E: economy - M: map mode - F5/F9: save/load - WASD/drag: pan - scroll: zoom - T/G: tension +/-",
         ),
         crate::font(&fonts.body, 12.0),
         TextColor(HUD_DIM),
@@ -864,6 +866,54 @@ fn apply_map_mode(
         colors[*start..start + len].fill(color);
     }
     mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+}
+
+const QUICKSAVE_PATH: &str = "saves/quicksave.ron";
+
+/// F5 quicksave / F9 quickload. Saves are the command log (tiny);
+/// loading resets the sim and replays deterministically.
+fn save_load(world: &mut World) {
+    let keys = world.resource::<ButtonInput<KeyCode>>();
+    let (save_pressed, load_pressed) = (
+        keys.just_pressed(KeyCode::F5),
+        keys.just_pressed(KeyCode::F9),
+    );
+    if save_pressed {
+        let player = world.get_resource::<PlayerNation>().map(|p| p.0 .0.clone());
+        let save = SaveGame::capture(world, player);
+        if std::fs::create_dir_all("saves").is_ok() {
+            match ron::to_string(&save) {
+                Ok(text) => {
+                    if std::fs::write(QUICKSAVE_PATH, text).is_ok() {
+                        info!("quicksaved at tick {}", save.current_tick);
+                    }
+                }
+                Err(e) => error!("quicksave failed: {e}"),
+            }
+        }
+    }
+    if load_pressed {
+        let Ok(text) = std::fs::read_to_string(QUICKSAVE_PATH) else {
+            warn!("no quicksave at {QUICKSAVE_PATH}");
+            return;
+        };
+        let save: SaveGame = match ron::from_str(&text) {
+            Ok(s) => s,
+            Err(e) => {
+                error!("bad quicksave: {e}");
+                return;
+            }
+        };
+        load_save(world, &save);
+        match &save.player {
+            Some(tag) => world.insert_resource(PlayerNation(CountryTag(tag.clone()))),
+            None => {
+                world.remove_resource::<PlayerNation>();
+            }
+        }
+        world.resource_mut::<GameSpeed>().paused = true;
+        info!("loaded quicksave at tick {}", save.current_tick);
+    }
 }
 
 /// Accumulate real time and convert it into whole sim ticks. Capped per

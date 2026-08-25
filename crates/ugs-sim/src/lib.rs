@@ -19,6 +19,7 @@ pub mod demography;
 pub mod economy;
 pub mod planning;
 pub mod rng;
+pub mod savegame;
 pub mod tension;
 
 use bevy_app::{App, Plugin};
@@ -86,6 +87,9 @@ impl Plugin for SimPlugin {
         app.init_schedule(SimTick);
         app.insert_resource(SimClock::at_start(self.start_date));
         app.insert_resource(SimRng::seeded(self.seed));
+        app.insert_resource(savegame::SimSeed(self.seed));
+        app.insert_resource(savegame::StartDate(self.start_date));
+        app.init_resource::<savegame::CommandLog>();
         app.insert_resource(GlobalTension::new(tension::tuning::START_1950));
         app.init_resource::<PendingCommands>();
         app.init_resource::<demography::Demographics>();

@@ -13,7 +13,9 @@ use ugs_data::CountryTag;
 
 use crate::agriculture::{self, Agriculture, Quota};
 use crate::planning::{self, Economies, Procurement};
+use crate::savegame::CommandLog;
 use crate::tension::GlobalTension;
+use crate::SimClock;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SimCommand {
@@ -55,12 +57,15 @@ impl PendingCommands {
 }
 
 pub fn apply_commands(
+    clock: Res<SimClock>,
     mut pending: ResMut<PendingCommands>,
+    mut log: ResMut<CommandLog>,
     mut tension: ResMut<GlobalTension>,
     mut econ: ResMut<Economies>,
     mut agri: ResMut<Agriculture>,
 ) {
     for command in pending.queue.drain(..) {
+        log.0.push((clock.tick, command.clone()));
         match command {
             SimCommand::DebugAdjustTension(delta) => tension.apply(delta),
             SimCommand::SetPlannedAllocation {

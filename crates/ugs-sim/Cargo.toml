@@ -13,3 +13,6 @@ bevy_app = { workspace = true }
 serde = { workspace = true }
 ugs-data = { path = "../ugs-data" }
 ugs-map = { path = "../ugs-map" }
+
+[dev-dependencies]
+ron = { workspace = true }
