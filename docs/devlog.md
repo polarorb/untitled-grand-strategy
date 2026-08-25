@@ -7,6 +7,38 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — June 25, 1950
+
+The trigger is pulled. The game now has an **event system** (scripted
+historical beats in data: the Sino-Soviet Treaty in February, the
+invasion in June), a **military core** built to the researched
+architecture's Korea-slice spec — formations with the cohesion-vs-
+strength two-track damage model, hourly battles with terrain and
+home-soil defense, daily movement with BFS marching toward the front,
+retreats, pocket destruction, and occupation flipping provinces — and
+the **June 25 invasion** as a live event: war declared, KPA postured to
+Advance, tension spiking +20, a FLASH TRAFFIC teletype modal pausing
+the game.
+
+The test that matters is named `the_korean_war_begins_and_seoul_falls`,
+and it passes: peace until June 24, invasion on the 25th, the ROK still
+fighting at three weeks (armies break before they die), Seoul fallen
+and the south overrun by week eight — which is the correct
+*counterfactual*: this is Korea WITHOUT American intervention, and
+intervention is precisely the next system (the escalation ladder's
+job). Watching the debug traces was the session's joy: the KPA reserve
+in Pyongyang pathfinding south to the front, armor wandering to mop up
+Jeolla pockets, then the whole army converging on a defiant Seoul.
+
+Also shipped: army counters on the map, conquest repainting the
+political map live, a WARS indicator in the HUD, and UGS_LOAD for
+booting straight into a saved war. Balance passes came from real
+failures: first battles ground at 1 cohesion/hour (an over-division
+bug), then the ROK evaporated in six weeks (armies now break and
+retreat instead), then Seoul held forever (home-soil bonus was too
+strong at first cut). 33 sim tests green, military digest in the
+determinism suite.
+
 ## 2026-08-25 — Saves in kilobytes, and the shape of war
 
 **Save/load shipped** — and the day-one architecture bet paid off: a

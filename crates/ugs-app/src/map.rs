@@ -12,6 +12,7 @@ use ugs_sim::{
     command::{PendingCommands, SimCommand},
     demography::Demographics,
     economy::{NationalBalances, RegionalPower},
+    military::Military,
     savegame::{load_save, SaveGame},
     tension::GlobalTension,
     SimClock,
@@ -833,11 +834,30 @@ fn apply_map_mode(
     mode: Res<MapMode>,
     world: Res<World1950>,
     power: Res<RegionalPower>,
+    military: Res<Military>,
     fill: Option<Res<MapFill>>,
+    mut occupation_hash: Local<u64>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    // Repaint on mode change; in Power mode also on monthly updates.
-    if !mode.is_changed() && !(*mode == MapMode::Power && power.is_changed()) {
+    // Occupation changes (conquest) repaint the political map.
+    let occ_hash = {
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        for (p, t) in &military.occupation {
+            for v in [p.0 as u64, t.0.bytes().map(u64::from).sum()] {
+                h = (h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
+            }
+        }
+        h
+    };
+    let occupation_changed = occ_hash != *occupation_hash;
+    if occupation_changed {
+        *occupation_hash = occ_hash;
+    }
+    // Repaint on mode change; Power mode monthly; occupation on conquest.
+    if !mode.is_changed()
+        && !(*mode == MapMode::Power && power.is_changed())
+        && !(*mode == MapMode::Political && occupation_changed)
+    {
         return;
     }
     let Some(fill) = fill else { return };
@@ -849,8 +869,9 @@ fn apply_map_mode(
         let Some(p) = world.0.provinces.get(&ProvinceId(*id)) else {
             continue;
         };
+        let effective_owner = military.owner_of(ProvinceId(*id), &p.owner);
         let color = match *mode {
-            MapMode::Political => owner_color(&world.0, &p.owner, *id),
+            MapMode::Political => owner_color(&world.0, &effective_owner, *id),
             MapMode::Terrain => terrain_color(p.terrain, *id),
             MapMode::Power => power_color(
                 power
@@ -870,9 +891,30 @@ fn apply_map_mode(
 
 const QUICKSAVE_PATH: &str = "saves/quicksave.ron";
 
+/// Dev: UGS_LOAD=path auto-loads a save on the first in-game frame.
+fn dev_autoload(world: &mut World, done: &mut bool) {
+    if *done {
+        return;
+    }
+    *done = true;
+    let Ok(path) = std::env::var("UGS_LOAD") else { return };
+    let Ok(text) = std::fs::read_to_string(&path) else {
+        warn!("UGS_LOAD: cannot read {path}");
+        return;
+    };
+    if let Ok(save) = ron::from_str::<SaveGame>(&text) {
+        load_save(world, &save);
+        if let Some(tag) = &save.player {
+            world.insert_resource(PlayerNation(CountryTag(tag.clone())));
+        }
+        info!("autoloaded {path} at tick {}", save.current_tick);
+    }
+}
+
 /// F5 quicksave / F9 quickload. Saves are the command log (tiny);
 /// loading resets the sim and replays deterministically.
-fn save_load(world: &mut World) {
+fn save_load(world: &mut World, mut autoloaded: Local<bool>) {
+    dev_autoload(world, &mut autoloaded);
     let keys = world.resource::<ButtonInput<KeyCode>>();
     let (save_pressed, load_pressed) = (
         keys.just_pressed(KeyCode::F5),
@@ -1001,6 +1043,7 @@ fn update_ui_text(
     clock: Res<SimClock>,
     speed: Res<GameSpeed>,
     tension: Res<GlobalTension>,
+    military: Res<Military>,
     mode: Res<MapMode>,
     mut clock_text: Query<&mut Text, (With<ClockText>, Without<TensionText>)>,
     mut tension_text: Query<&mut Text, (With<TensionText>, Without<ClockText>)>,
@@ -1014,8 +1057,14 @@ fn update_ui_text(
         text.0 = format!("{}   [{}]", clock.date, state);
     }
     for mut text in &mut tension_text {
+        let wars = if military.wars.is_empty() {
+            String::new()
+        } else {
+            format!("WARS: {}    ", military.wars.len())
+        };
         text.0 = format!(
-            "TENSION {:.1} ({})    MAP: {:?}",
+            "{}TENSION {:.1} ({})    MAP: {:?}",
+            wars,
             tension.displayed(),
             tension.band(),
             *mode

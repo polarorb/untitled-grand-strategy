@@ -17,6 +17,8 @@ pub mod calendar;
 pub mod command;
 pub mod demography;
 pub mod economy;
+pub mod events;
+pub mod military;
 pub mod planning;
 pub mod rng;
 pub mod savegame;
@@ -99,6 +101,8 @@ impl Plugin for SimPlugin {
         app.init_resource::<economy::RegionalPower>();
         app.init_resource::<planning::Economies>();
         app.init_resource::<agriculture::Agriculture>();
+        app.init_resource::<military::Military>();
+        app.init_resource::<events::FiredEvents>();
         app.configure_sets(
             SimTick,
             (
@@ -113,7 +117,13 @@ impl Plugin for SimPlugin {
         );
         app.add_systems(SimTick, advance_clock.in_set(TickSet::Time));
         app.add_systems(SimTick, command::apply_commands.in_set(TickSet::Commands));
-        app.add_systems(SimTick, tension::decay_tension.in_set(TickSet::Politics));
+        app.add_systems(
+            SimTick,
+            (tension::decay_tension, events::update_events)
+                .chain()
+                .in_set(TickSet::Politics),
+        );
+        app.add_systems(SimTick, military::update_military.in_set(TickSet::Military));
         app.add_systems(
             SimTick,
             (

@@ -1,0 +1,23 @@
+// Starting order of battle, June-1950-shaped (present from campaign
+// start; prewar months are peacetime posture). Korea theater only for
+// the vertical slice. Quality permille: KPA divisions are Soviet-equipped
+// with T-34/85s; ROK constabulary divisions lack armor and artillery.
+// Sources: standard Korean War order-of-battle histories.
+[
+    // Korean People's Army (10 divisions + armor, ~1,100 quality)
+    OobEntry(owner: ("PRK"), province: "Hwanghae-namdo", archetype: "Infantry", divisions: 2, quality: 1100),
+    OobEntry(owner: ("PRK"), province: "Hwanghae-bukto", archetype: "Infantry", divisions: 2, quality: 1100),
+    OobEntry(owner: ("PRK"), province: "Kangwŏn-do", archetype: "Infantry", divisions: 2, quality: 1050),
+    OobEntry(owner: ("PRK"), province: "P'yŏngyang", archetype: "Armor", divisions: 1, quality: 1200),
+    OobEntry(owner: ("PRK"), province: "P'yŏngyang", archetype: "Motorized", divisions: 1, quality: 1100),
+    OobEntry(owner: ("PRK"), province: "P'yŏngan-namdo", archetype: "Infantry", divisions: 2, quality: 1000),
+
+    // Republic of Korea Army (8 divisions, ~780 quality, no armor)
+    OobEntry(owner: ("KOR"), province: "Seoul", archetype: "Infantry", divisions: 1, quality: 800),
+    OobEntry(owner: ("KOR"), province: "Gyeonggi", archetype: "Infantry", divisions: 2, quality: 800),
+    OobEntry(owner: ("KOR"), province: "Gangwon", archetype: "Infantry", divisions: 1, quality: 780),
+    OobEntry(owner: ("KOR"), province: "North Chungcheong", archetype: "Infantry", divisions: 1, quality: 760),
+    OobEntry(owner: ("KOR"), province: "South Chungcheong", archetype: "Infantry", divisions: 1, quality: 760),
+    OobEntry(owner: ("KOR"), province: "North Gyeongsang", archetype: "Infantry", divisions: 1, quality: 750),
+    OobEntry(owner: ("KOR"), province: "South Jeolla", archetype: "Infantry", divisions: 1, quality: 750),
+]

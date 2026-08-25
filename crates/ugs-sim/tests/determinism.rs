@@ -12,6 +12,7 @@ use ugs_sim::demography::{Demographics, SimScenario};
 use ugs_sim::economy::RegionalPower;
 use ugs_sim::planning::Economies;
 use ugs_sim::agriculture::Agriculture;
+use ugs_sim::military::Military;
 use ugs_sim::command::{PendingCommands, SimCommand};
 use ugs_sim::rng::SimRng;
 use ugs_sim::tension::GlobalTension;
@@ -45,7 +46,11 @@ fn snapshot(app: &App) -> String {
         "|pow:{:x}|econ:{:x}",
         world.resource::<RegionalPower>().digest(),
         world.resource::<Economies>().digest()
-    ) + &format!("|agri:{:x}", world.resource::<Agriculture>().digest())
+    ) + &format!(
+        "|agri:{:x}|mil:{:x}",
+        world.resource::<Agriculture>().digest(),
+        world.resource::<Military>().digest()
+    )
 }
 
 /// Scripted command stream: (tick, command). Applied identically to both

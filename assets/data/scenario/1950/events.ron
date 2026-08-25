@@ -1,0 +1,24 @@
+// Scripted historical events. Dates are (year, month, day, hour) UTC-ish
+// game time. Body text is the teletype voice: terse, clipped, wire-service.
+[
+    EventDef(
+        id: "sino-soviet-treaty",
+        date: (1950, 2, 14, 12),
+        title: "SINO-SOVIET TREATY SIGNED",
+        body: "MOSCOW -- FLASH -- USSR AND PEOPLES REPUBLIC OF CHINA SIGN TREATY OF FRIENDSHIP ALLIANCE AND MUTUAL ASSISTANCE. STALIN AND MAO COMMIT TO MUTUAL DEFENSE FOR THIRTY YEARS. SOVIET CREDITS AND TECHNICAL AID TO FOLLOW. THE SOCIALIST CAMP NOW SPANS FROM THE ELBE TO THE SOUTH CHINA SEA.",
+        effects: [
+            AdjustTension(30),
+        ],
+    ),
+    EventDef(
+        id: "korea-invasion",
+        date: (1950, 6, 25, 4),
+        title: "NORTH KOREA INVADES SOUTH KOREA",
+        body: "SEOUL -- FLASH FLASH FLASH -- KOREAN PEOPLES ARMY CROSSES 38TH PARALLEL IN FORCE AT 0400 LOCAL. ARTILLERY PREPARATION FOLLOWED BY ARMORED COLUMNS ON KAESONG-SEOUL AXIS. ROK POSITIONS OVERRUN AT MULTIPLE POINTS. ATTACK APPEARS GENERAL ALONG ENTIRE PARALLEL. AMBASSADOR MUCCIO CONFIRMS INVASION UNDERWAY. THIS IS NOT A BORDER RAID.",
+        effects: [
+            DeclareWar(a: ("PRK"), b: ("KOR")),
+            SetPosture(country: ("PRK"), enemy: ("KOR"), posture: "Advance"),
+            AdjustTension(200),
+        ],
+    ),
+]

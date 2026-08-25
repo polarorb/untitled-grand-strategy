@@ -149,6 +149,49 @@ pub struct NationMeta {
     pub hook: String,
 }
 
+/// A scripted historical event fired by date.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EventDef {
+    pub id: String,
+    /// (year, month, day, hour) when the event fires.
+    pub date: (i32, u8, u8, u8),
+    pub title: String,
+    /// Teletype-voice body text shown to the player.
+    pub body: String,
+    pub effects: Vec<EventEffect>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EventEffect {
+    AdjustTension(i32),
+    DeclareWar { a: CountryTag, b: CountryTag },
+    /// Set a country's posture toward an enemy: "Advance" or "Hold".
+    SetPosture {
+        country: CountryTag,
+        enemy: CountryTag,
+        posture: String,
+    },
+    /// Transfer named provinces between owners (e.g. Hainan falls).
+    TransferProvinces {
+        from: CountryTag,
+        to: CountryTag,
+        names: Vec<String>,
+    },
+}
+
+/// A starting army formation, resolved by (province name, owner) at load.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OobEntry {
+    pub owner: CountryTag,
+    /// Province name as in world.ron; must be unique within the owner.
+    pub province: String,
+    /// "Infantry", "Motorized", or "Armor".
+    pub archetype: String,
+    pub divisions: u32,
+    /// Equipment/training quality, permille (1000 = nominal).
+    pub quality: u32,
+}
+
 /// Everything loaded from disk for one scenario, validated and cross-linked.
 #[derive(Debug, Clone)]
 pub struct ScenarioData {
@@ -160,6 +203,10 @@ pub struct ScenarioData {
     /// Nation-select metadata; may be absent for minor tags (screen shows
     /// a stats-only fallback).
     pub nations_meta: BTreeMap<CountryTag, NationMeta>,
+    /// Scripted events, sorted by date.
+    pub events: Vec<EventDef>,
+    /// Starting order of battle.
+    pub oob: Vec<OobEntry>,
 }
 
 impl ScenarioData {
@@ -205,6 +252,19 @@ impl ScenarioData {
             }
         }
 
+        // Events and order of battle are optional files.
+        let mut events: Vec<EventDef> = Vec::new();
+        let events_path = scenario_dir.join("events.ron");
+        if events_path.exists() {
+            events = load_ron(&events_path)?;
+            events.sort_by_key(|e| e.date);
+        }
+        let mut oob: Vec<OobEntry> = Vec::new();
+        let oob_path = scenario_dir.join("oob.ron");
+        if oob_path.exists() {
+            oob = load_ron(&oob_path)?;
+        }
+
         // Nation-select metadata is optional: the directory may not exist
         // yet, and coverage of minor tags may be partial.
         let mut nations_meta = BTreeMap::new();
@@ -224,12 +284,52 @@ impl ScenarioData {
             provinces,
             regions,
             nations_meta,
+            events,
+            oob,
         };
         data.validate()?;
         Ok(data)
     }
 
+    /// Resolve a province by (name, 1950 owner). Errors if missing or
+    /// ambiguous — OOB and event references must be unambiguous.
+    pub fn province_by_name(&self, owner: &CountryTag, name: &str) -> Result<ProvinceId, DataError> {
+        let matches: Vec<ProvinceId> = self
+            .provinces
+            .values()
+            .filter(|p| &p.owner == owner && p.name == name)
+            .map(|p| p.id)
+            .collect();
+        match matches.as_slice() {
+            [id] => Ok(*id),
+            [] => Err(DataError::Validation(format!(
+                "no province named {name:?} owned by {owner:?}"
+            ))),
+            _ => Err(DataError::Validation(format!(
+                "ambiguous province {name:?} for {owner:?}"
+            ))),
+        }
+    }
+
     fn validate(&self) -> Result<(), DataError> {
+        for entry in &self.oob {
+            self.province_by_name(&entry.owner, &entry.province)?;
+            if !["Infantry", "Motorized", "Armor"].contains(&entry.archetype.as_str()) {
+                return Err(DataError::Validation(format!(
+                    "unknown archetype {:?}",
+                    entry.archetype
+                )));
+            }
+        }
+        for event in &self.events {
+            for effect in &event.effects {
+                if let EventEffect::TransferProvinces { from, names, .. } = effect {
+                    for name in names {
+                        self.province_by_name(from, name)?;
+                    }
+                }
+            }
+        }
         for tag in self.nations_meta.keys() {
             if !self.countries.contains_key(tag) {
                 return Err(DataError::Validation(format!(

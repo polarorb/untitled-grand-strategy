@@ -13,6 +13,7 @@ use ugs_data::CountryTag;
 
 use crate::agriculture::{self, Agriculture, Quota};
 use crate::planning::{self, Economies, Procurement};
+use crate::military::{Military, Posture};
 use crate::savegame::CommandLog;
 use crate::tension::GlobalTension;
 use crate::SimClock;
@@ -41,6 +42,12 @@ pub enum SimCommand {
         collectivized: bool,
         quota: Quota,
     },
+    /// Set a country's military posture toward an enemy it is at war with.
+    SetPosture {
+        country: CountryTag,
+        enemy: CountryTag,
+        posture: Posture,
+    },
 }
 
 /// Commands queued for the next tick. The presentation layer pushes;
@@ -63,6 +70,7 @@ pub fn apply_commands(
     mut tension: ResMut<GlobalTension>,
     mut econ: ResMut<Economies>,
     mut agri: ResMut<Agriculture>,
+    mut military: ResMut<Military>,
 ) {
     for command in pending.queue.drain(..) {
         log.0.push((clock.tick, command.clone()));
@@ -89,6 +97,15 @@ pub fn apply_commands(
                 collectivized,
                 quota,
             } => agriculture::set_agri_policy(&mut agri, &econ, &country, collectivized, quota),
+            SimCommand::SetPosture {
+                country,
+                enemy,
+                posture,
+            } => {
+                if military.at_war(&country, &enemy) {
+                    military.postures.insert((country, enemy), posture);
+                }
+            }
         }
     }
 }
