@@ -10,6 +10,7 @@ use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 use ugs_data::{CountryTag, DepositKind, RegionId};
 
+use crate::agriculture::Agriculture;
 use crate::demography::{Demographics, SimScenario};
 use crate::SimClock;
 
@@ -131,6 +132,7 @@ pub fn update_economy(
     clock: Res<SimClock>,
     scenario: Option<Res<SimScenario>>,
     demo: Res<Demographics>,
+    agri: Res<Agriculture>,
     mut stat: ResMut<EconomyStatic>,
     mut national: ResMut<NationalBalances>,
     mut power: ResMut<RegionalPower>,
@@ -181,7 +183,9 @@ pub fn update_economy(
             continue;
         };
         let b = balances.entry(p.owner.clone()).or_default();
-        b.grain_prod += cohorts.rural * grain_yield_permille(p.terrain) / 1000;
+        b.grain_prod += cohorts.rural * grain_yield_permille(p.terrain) / 1000
+            * agri.yield_permille(&p.owner)
+            / 1000;
         b.grain_demand += cohorts.total();
     }
     for (tag, country) in &data.countries {

@@ -11,6 +11,7 @@ use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 use ugs_data::CountryTag;
 
+use crate::agriculture::{self, Agriculture, Quota};
 use crate::planning::{self, Economies, Procurement};
 use crate::tension::GlobalTension;
 
@@ -32,6 +33,12 @@ pub enum SimCommand {
         tax_permille: u16,
         procurement: Procurement,
     },
+    /// Planned economies: agricultural organization and procurement.
+    SetAgriPolicy {
+        country: CountryTag,
+        collectivized: bool,
+        quota: Quota,
+    },
 }
 
 /// Commands queued for the next tick. The presentation layer pushes;
@@ -51,6 +58,7 @@ pub fn apply_commands(
     mut pending: ResMut<PendingCommands>,
     mut tension: ResMut<GlobalTension>,
     mut econ: ResMut<Economies>,
+    mut agri: ResMut<Agriculture>,
 ) {
     for command in pending.queue.drain(..) {
         match command {
@@ -71,6 +79,11 @@ pub fn apply_commands(
             } => planning::set_market_policy(
                 &mut econ, &country, interest_bp, tax_permille, procurement,
             ),
+            SimCommand::SetAgriPolicy {
+                country,
+                collectivized,
+                quota,
+            } => agriculture::set_agri_policy(&mut agri, &econ, &country, collectivized, quota),
         }
     }
 }

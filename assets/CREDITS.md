@@ -206,3 +206,8 @@ distribution.
 - `assets/fonts/Oswald-500.ttf` — Oswald, Vernon Adams et al.
 - `assets/fonts/Jost-400.ttf`, `Jost-500.ttf` — Jost, Owen Earl (indestructible type*)
 - `assets/fonts/CourierPrime-400.ttf`, `CourierPrime-700.ttf` — Courier Prime, Alan Dague-Greene / Quote-Unquote Apps
+
+## Audio
+
+- `assets/audio/ui/*.ogg` — [Kenney Interface Sounds](https://kenney.nl/assets/interface-sounds) — CC0 (verified 2026-08-25)
+- `assets/audio/music/dark_ambient.mp3`, `cold_journey.mp3`, `tension.mp3` — FreePD catalog via [archive.org/details/freepd](https://archive.org/details/freepd) — CC0 public domain dedication (verified 2026-08-25)

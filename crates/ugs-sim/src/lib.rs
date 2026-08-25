@@ -12,6 +12,7 @@
 //! many ticks to run per real second based on game speed; the sim only knows
 //! "advance one tick".
 
+pub mod agriculture;
 pub mod calendar;
 pub mod command;
 pub mod demography;
@@ -93,6 +94,7 @@ impl Plugin for SimPlugin {
         app.init_resource::<economy::NationalBalances>();
         app.init_resource::<economy::RegionalPower>();
         app.init_resource::<planning::Economies>();
+        app.init_resource::<agriculture::Agriculture>();
         app.configure_sets(
             SimTick,
             (
@@ -114,6 +116,7 @@ impl Plugin for SimPlugin {
                 demography::update_demographics,
                 economy::update_economy,
                 planning::update_production,
+                agriculture::update_agriculture,
             )
                 .chain()
                 .in_set(TickSet::Economy),

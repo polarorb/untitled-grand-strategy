@@ -60,6 +60,8 @@ green, East Germany's plain tricolor), and a historic situation briefing.
 - [Demography](design/systems/demography.md)
 - [Resources & regional grids](design/systems/resources-and-grids.md)
 - [Planning interfaces — planned vs market](design/systems/planning-interfaces.md)
+- [Agriculture & procurement](design/systems/agriculture.md)
+- [Audio direction](design/systems/audio.md)
 - [Military](design/systems/military.md)
 - [Terrain](design/systems/terrain.md)
 - [Time & map](design/systems/time-and-map.md)
@@ -67,6 +69,7 @@ green, East Germany's plain tricolor), and a historic situation briefing.
 ## Research notes
 
 - [Economy mechanics — what the genre teaches](research/economy-mechanics.md)
+- [Audio — sources, licensing, and direction](research/audio.md)
 - [Geodata sources & licensing](research/geodata.md)
 - [The 1950 sovereignty mapping](research/sovereignty-1950.md)
 

@@ -4,6 +4,7 @@
 
 use bevy::prelude::*;
 use ugs_sim::{
+    agriculture::{Agriculture, Quota},
     command::{PendingCommands, SimCommand},
     demography::LivingStandards,
     planning::{Economies, EconomicSystem, Policy, Procurement},
@@ -34,6 +35,8 @@ enum EconButton {
     TaxUp,
     TaxDown,
     ProcCycle,
+    QuotaCycle,
+    Collectivize,
 }
 
 pub struct EconUiPlugin;
@@ -93,12 +96,34 @@ fn econ_buttons(
     buttons: Query<(&Interaction, &EconButton), Changed<Interaction>>,
     player: Option<Res<PlayerNation>>,
     econ: Res<Economies>,
+    agri: Res<Agriculture>,
     mut pending: ResMut<PendingCommands>,
 ) {
     let Some(player) = player else { return };
     let tag = &player.0;
     for (interaction, button) in &buttons {
         if *interaction != Interaction::Pressed {
+            continue;
+        }
+        // Agriculture controls (planned only).
+        if matches!(button, EconButton::QuotaCycle | EconButton::Collectivize) {
+            let policy = agri.policy.get(tag).copied().unwrap_or_default();
+            let (collectivized, quota) = match button {
+                EconButton::QuotaCycle => (
+                    policy.collectivized,
+                    match policy.quota {
+                        Quota::Low => Quota::Normal,
+                        Quota::Normal => Quota::High,
+                        Quota::High => Quota::Low,
+                    },
+                ),
+                _ => (true, policy.quota),
+            };
+            pending.push(SimCommand::SetAgriPolicy {
+                country: tag.clone(),
+                collectivized,
+                quota,
+            });
             continue;
         }
         match econ.policy.get(tag) {
@@ -167,13 +192,14 @@ fn refresh_panel(
     mut commands: Commands,
     open: Res<PanelOpen>,
     econ: Res<Economies>,
+    agri: Res<Agriculture>,
     sol: Res<LivingStandards>,
     world: Res<World1950>,
     fonts: Res<Fonts>,
     player: Option<Res<PlayerNation>>,
     panel: Query<Entity, With<EconPanel>>,
 ) {
-    if !open.0 || (!open.is_changed() && !econ.is_changed()) {
+    if !open.0 || (!open.is_changed() && !econ.is_changed() && !agri.is_changed()) {
         return;
     }
     let Ok(panel) = panel.single() else { return };
@@ -355,6 +381,97 @@ fn refresh_panel(
                 ));
             }
             None => {}
+        }
+
+        // Food section.
+        if let Some(status) = agri.status.get(&tag).copied() {
+            let policy = agri.policy.get(&tag).copied().unwrap_or_default();
+            p.spawn((
+                Text::new(format!(
+                    "FOOD {}%   HARVEST {}%",
+                    status.food_ratio_permille / 10,
+                    status.harvest_permille / 10
+                )),
+                font(&fonts.body_medium, 12.0),
+                TextColor(if status.famine {
+                    Color::srgb(0.9, 0.35, 0.3)
+                } else {
+                    DIM
+                }),
+            ));
+            if status.famine {
+                p.spawn((
+                    Text::new(format!(
+                        "FAMINE - {} dead",
+                        status.famine_deaths
+                    )),
+                    font(&fonts.mono_bold, 12.0),
+                    TextColor(Color::srgb(0.9, 0.35, 0.3)),
+                ));
+            }
+            if system == Some(EconomicSystem::Planned) {
+                p.spawn(Node {
+                    justify_content: JustifyContent::SpaceBetween,
+                    align_items: AlignItems::Center,
+                    ..default()
+                })
+                .with_children(|row| {
+                    row.spawn((Text::new("GRAIN QUOTA"), font(&fonts.body_medium, 13.0), TextColor(ACCENT)));
+                    row.spawn((
+                        Button,
+                        EconButton::QuotaCycle,
+                        Node {
+                            padding: UiRect::axes(Val::Px(10.0), Val::Px(2.0)),
+                            ..default()
+                        },
+                        BackgroundColor(BG_LIGHT),
+                    ))
+                    .with_children(|b| {
+                        b.spawn((
+                            Text::new(format!("{:?}", policy.quota)),
+                            font(&fonts.mono, 13.0),
+                            TextColor(MAIN),
+                        ));
+                    });
+                });
+                p.spawn(Node {
+                    justify_content: JustifyContent::SpaceBetween,
+                    align_items: AlignItems::Center,
+                    ..default()
+                })
+                .with_children(|row| {
+                    row.spawn((
+                        Text::new("AGRICULTURE"),
+                        font(&fonts.body_medium, 13.0),
+                        TextColor(ACCENT),
+                    ));
+                    if policy.collectivized {
+                        let label = if policy.shock_months > 0 {
+                            format!("COLLECTIVIZED ({}mo shock)", policy.shock_months)
+                        } else {
+                            "COLLECTIVIZED".to_string()
+                        };
+                        row.spawn((Text::new(label), font(&fonts.mono, 12.0), TextColor(MAIN)));
+                    } else {
+                        row.spawn((
+                            Button,
+                            EconButton::Collectivize,
+                            Node {
+                                padding: UiRect::axes(Val::Px(10.0), Val::Px(2.0)),
+                                ..default()
+                            },
+                            BackgroundColor(Color::srgb(0.45, 0.2, 0.15)),
+                        ))
+                        .with_children(|b| {
+                            b.spawn((
+                                Text::new("COLLECTIVIZE"),
+                                font(&fonts.body_medium, 12.0),
+                                TextColor(Color::srgb(0.95, 0.85, 0.8)),
+                            ));
+                        });
+                    }
+                });
+            }
         }
     });
 }

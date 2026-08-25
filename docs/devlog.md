@@ -7,6 +7,35 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — Famine, weather, and the sound of the war room
+
+**Step 4: agriculture** ([design doc](design/systems/agriculture.md)).
+Each January every country rolls a harvest (850–1150‰) from the seeded
+RNG — the sim's first real use of randomness, fully deterministic. Planned
+economies get the two levers history handed them: **grain procurement
+quotas** (squeeze the countryside harder — and when the harvest fails,
+the famine deaths concentrate rural) and **collectivization**, priced
+honestly as the historical gamble: permanently better extraction,
+permanently worse yield, and a 12-month transition shock. Food ratios
+now feed back into standard of living and, below the famine threshold,
+into excess deaths applied straight to the demographic cohorts. The test
+suite's grimmest assertion yet: `famine_is_reachable_and_kills`. The
+Great Leap is now a reachable outcome of player choices, not an event.
+Soviet food sits at 94% with a normal harvest — chronically strained,
+exactly as it should be.
+
+**Audio research + first sounds.** A 3-analyst swarm produced the
+[audio readup](research/audio.md) with some sharp verified findings:
+1950s recordings are copyright-locked until ~2060 (no Fallout-style
+needle-drops), the Conet Project numbers-station tapes are actively
+litigated (we'll synthesize our own), and FreePD.com is dead but its CC0
+catalog lives on archive.org. The direction doc
+([audio](design/systems/audio.md)) commits to DEFCON's bunker
+philosophy: teletype as our Geiger counter, stingers followed by
+enforced silence, and a stem mixer driven by the Tension meter. v1
+shipped: CC0 menu music and Kenney UI clicks — and the war room itself
+stays silent on purpose.
+
 ## 2026-08-25 — The thesis becomes playable: two planning interfaces
 
 Step 3, and the reason this game exists
