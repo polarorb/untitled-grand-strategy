@@ -7,10 +7,12 @@ use ugs_sim::events::FiredEvents;
 use ugs_sim::military::Military;
 
 use crate::audio::AudioHandles;
-use crate::map::project;
+use crate::map::{project, Selected};
 use crate::{font, AppState, Fonts, GameSpeed, PlayerNation, World1950};
 use bevy::audio::{PlaybackSettings, Volume};
-use ugs_sim::military::Posture;
+use ugs_sim::demography::Demographics;
+use ugs_sim::military::{tuning, Posture};
+use ugs_sim::SimClock;
 
 const PANEL_BG: Color = Color::srgba(0.07, 0.09, 0.12, 0.97);
 const ACCENT: Color = Color::srgb(0.83, 0.69, 0.36);
@@ -41,6 +43,56 @@ enum WarButton {
     ToggleArmistice(ugs_data::CountryTag),
 }
 
+#[derive(Component)]
+struct BattleMarker;
+
+#[derive(Component)]
+struct BattlePanel;
+
+/// Deterministic display-side fuzz for enemy figures (never touches the
+/// sim RNG). Same inputs, same estimate — re-sampled monthly so numbers
+/// don't jitter every frame.
+fn mix(mut x: u64) -> u64 {
+    x ^= x >> 33;
+    x = x.wrapping_mul(0xff51_afd7_ed55_8ccd);
+    x ^= x >> 33;
+    x
+}
+
+/// Round to two significant figures — intel reports never carry false
+/// precision.
+fn round_sig2(n: u64) -> u64 {
+    if n < 100 {
+        return n;
+    }
+    let digits = (n as f64).log10() as u32 + 1;
+    let step = 10u64.pow(digits - 2);
+    n / step * step
+}
+
+fn fmt_men(n: u64) -> String {
+    if n >= 1_000_000 {
+        format!("{:.1}M", n as f64 / 1e6)
+    } else if n >= 1000 {
+        format!("{}k", n / 1000)
+    } else {
+        format!("{n}")
+    }
+}
+
+/// Estimated enemy men as a low-high band around a fuzzed center.
+fn est_men_range(true_men: u64, seed: u64) -> (u64, u64) {
+    let factor = 800 + mix(seed) % 500; // 0.80x .. 1.30x
+    let center = true_men * factor / 1000;
+    (round_sig2(center * 85 / 100), round_sig2(center * 115 / 100))
+}
+
+/// Estimated enemy division count band.
+fn est_div_range(count: u32, seed: u64) -> (u32, u32) {
+    let center = (count as i64 + (mix(seed) % 3) as i64 - 1).max(1) as u32;
+    (center.saturating_sub(1).max(1), center + 1)
+}
+
 pub struct WarUiPlugin;
 
 impl Plugin for WarUiPlugin {
@@ -57,6 +109,8 @@ impl Plugin for WarUiPlugin {
                 refresh_war_panel,
                 war_buttons,
                 sync_formation_markers,
+                pulse_battle_markers,
+                battle_inspector,
             )
                 .run_if(in_state(AppState::InGame)),
         );
@@ -234,24 +288,38 @@ fn dismiss_popup(
     }
 }
 
-/// Rebuild division counters when armies move (cheap: tens of markers).
+/// Rebuild division counters when the military picture changes (cheap:
+/// tens of markers). Own stacks: exact count, men, strength + cohesion
+/// bars. Enemy stacks: fuzzed count band, no bars — fog of war.
+#[allow(clippy::too_many_arguments, clippy::type_complexity)] // Bevy systems take what they query
 fn sync_formation_markers(
     mut commands: Commands,
     military: Res<Military>,
     world: Res<World1950>,
+    clock: Res<SimClock>,
     fonts: Res<Fonts>,
+    player: Option<Res<PlayerNation>>,
     mut last_hash: Local<u64>,
-    markers: Query<Entity, With<FormationMarker>>,
+    markers: Query<Entity, Or<(With<FormationMarker>, With<BattleMarker>)>>,
 ) {
     if !military.is_changed() {
         return;
     }
-    // Only rebuild when the position/ownership picture changes.
+    // Rebuild only when positions, ownership, readiness buckets, or the
+    // battle set change.
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     for f in military.formations.values() {
-        for v in [f.location.0 as u64, f.owner.0.bytes().map(u64::from).sum()] {
+        for v in [
+            f.location.0 as u64,
+            f.owner.0.bytes().map(u64::from).sum(),
+            f.strength / 40,
+            f.cohesion / 40,
+        ] {
             hash = (hash ^ v).wrapping_mul(0x0000_0100_0000_01b3);
         }
+    }
+    for b in &military.active_battles {
+        hash = (hash ^ b.province.0 as u64).wrapping_mul(0x0000_0100_0000_01b3);
     }
     if hash == *last_hash {
         return;
@@ -261,40 +329,415 @@ fn sync_formation_markers(
     for e in &markers {
         commands.entity(e).despawn();
     }
-    // Group counts per (province, owner).
-    let mut counts: std::collections::BTreeMap<(u32, String), u32> = Default::default();
-    for f in military.formations.values() {
-        *counts.entry((f.location.0, f.owner.0.clone())).or_default() += 1;
+
+    // Aggregate per (province, owner).
+    struct Stack {
+        count: u32,
+        men: u64,
+        strength: u64,
+        cohesion: u64,
     }
-    for ((province, owner), count) in counts {
+    let mut stacks: std::collections::BTreeMap<(u32, String), Stack> = Default::default();
+    for f in military.formations.values() {
+        let e = stacks
+            .entry((f.location.0, f.owner.0.clone()))
+            .or_insert(Stack { count: 0, men: 0, strength: 0, cohesion: 0 });
+        e.count += 1;
+        e.men += f.strength * tuning::MEN_PER_STRENGTH_POINT;
+        e.strength += f.strength;
+        e.cohesion += f.cohesion;
+    }
+    let month = clock.tick / (24 * 30);
+    let ramp = |v: u64| -> Color {
+        if v > 660 {
+            Color::srgb(0.35, 0.75, 0.35)
+        } else if v > 330 {
+            Color::srgb(0.85, 0.65, 0.2)
+        } else {
+            Color::srgb(0.85, 0.25, 0.2)
+        }
+    };
+    for ((province, owner), stack) in stacks {
         let Some(p) = world.0.provinces.get(&ugs_data::ProvinceId(province)) else {
             continue;
         };
+        let n = stack.count as u64;
+        let (avg_str, avg_coh) = (stack.strength / n, stack.cohesion / n);
         let pos = project(p.center.0, p.center.1);
+        let tag = ugs_data::CountryTag(owner.clone());
+        let is_enemy = player
+            .as_ref()
+            .map(|pl| military.at_war(&pl.0, &tag))
+            .unwrap_or(false);
         let rgb = world
             .0
             .countries
-            .get(&ugs_data::CountryTag(owner.clone()))
+            .get(&tag)
             .map(|c| c.color)
             .unwrap_or((128, 128, 128));
+        let dim = if is_enemy { 0.42 } else { 0.6 };
         let color = Color::srgb(
-            rgb.0 as f32 / 255.0 * 0.6,
-            rgb.1 as f32 / 255.0 * 0.6,
-            rgb.2 as f32 / 255.0 * 0.6,
+            rgb.0 as f32 / 255.0 * dim,
+            rgb.1 as f32 / 255.0 * dim,
+            rgb.2 as f32 / 255.0 * dim,
         );
+        const W: f32 = 26.0;
+        const H: f32 = 15.0;
+        let label = if is_enemy {
+            let seed = province as u64 ^ owner.bytes().map(u64::from).sum::<u64>() ^ month;
+            let (lo, hi) = est_div_range(stack.count, seed);
+            format!("{lo}-{hi}?")
+        } else {
+            format!("{}", stack.count)
+        };
+        commands
+            .spawn((
+                FormationMarker,
+                Sprite::from_color(color, Vec2::new(W, H)),
+                Transform::from_translation(pos.extend(3.0)),
+            ))
+            .with_children(|m| {
+                m.spawn((
+                    Text2d::new(label),
+                    font(&fonts.body_medium, if is_enemy { 9.0 } else { 11.0 }),
+                    TextColor(Color::WHITE),
+                    Transform::from_translation(Vec3::new(0.0, 1.0, 0.1)),
+                ));
+                if !is_enemy {
+                    // Men figure under the box.
+                    m.spawn((
+                        Text2d::new(fmt_men(stack.men)),
+                        font(&fonts.body_medium, 8.0),
+                        TextColor(Color::srgb(0.92, 0.92, 0.92)),
+                        Transform::from_translation(Vec3::new(0.0, -12.5, 0.1)),
+                    ));
+                    // Strength bar along the bottom edge.
+                    let sw = W * avg_str as f32 / 1000.0;
+                    m.spawn((
+                        Sprite::from_color(ramp(avg_str), Vec2::new(sw.max(1.0), 2.2)),
+                        Transform::from_translation(Vec3::new(
+                            -(W - sw) / 2.0,
+                            -H / 2.0 - 1.6,
+                            0.1,
+                        )),
+                    ));
+                    // Cohesion bar up the left edge.
+                    let ch = H * avg_coh as f32 / 1000.0;
+                    m.spawn((
+                        Sprite::from_color(
+                            if avg_coh > 660 {
+                                Color::srgb(0.35, 0.7, 0.85)
+                            } else {
+                                ramp(avg_coh)
+                            },
+                            Vec2::new(2.2, ch.max(1.0)),
+                        ),
+                        Transform::from_translation(Vec3::new(
+                            -W / 2.0 - 1.6,
+                            -(H - ch) / 2.0,
+                            0.1,
+                        )),
+                    ));
+                }
+            });
+    }
+
+    // Battle markers: a pulsing red diamond over every contested province.
+    for b in &military.active_battles {
+        let Some(p) = world.0.provinces.get(&b.province) else {
+            continue;
+        };
+        let pos = project(p.center.0, p.center.1);
         commands.spawn((
-            FormationMarker,
-            Sprite::from_color(color, Vec2::new(16.0, 11.0)),
-            Transform::from_translation(pos.extend(3.0)),
-        ));
-        commands.spawn((
-            FormationMarker,
-            Text2d::new(format!("{count}")),
-            font(&fonts.body_medium, 12.0),
-            TextColor(Color::WHITE),
-            Transform::from_translation(pos.extend(3.1)),
+            BattleMarker,
+            Sprite::from_color(Color::srgb(0.95, 0.2, 0.15), Vec2::splat(9.0)),
+            Transform::from_translation(pos.extend(3.6))
+                .with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_4)),
         ));
     }
+}
+
+/// Battles breathe: scale-pulse so the eye finds the fighting.
+fn pulse_battle_markers(
+    time: Res<Time>,
+    mut markers: Query<&mut Transform, With<BattleMarker>>,
+) {
+    let s = 1.0 + 0.22 * (time.elapsed_secs() * 4.0).sin();
+    for mut t in &mut markers {
+        t.scale = Vec3::splat(s);
+    }
+}
+
+/// The battle inspector: selecting a contested province opens a full
+/// after-action view — both sides' numbers, the modifier ledger, a
+/// break-time projection, and a one-line "why" diagnosis.
+#[allow(clippy::too_many_arguments)] // Bevy systems take what they query
+fn battle_inspector(
+    mut commands: Commands,
+    selected: Res<Selected>,
+    military: Res<Military>,
+    world: Res<World1950>,
+    clock: Res<SimClock>,
+    fonts: Res<Fonts>,
+    player: Option<Res<PlayerNation>>,
+    panel: Query<Entity, With<BattlePanel>>,
+) {
+    if !selected.is_changed() && !military.is_changed() {
+        return;
+    }
+    let battle = selected
+        .0
+        .and_then(|id| military.active_battles.iter().find(|b| b.province == id));
+    let Some(b) = battle else {
+        for e in &panel {
+            commands.entity(e).despawn();
+        }
+        return;
+    };
+    for e in &panel {
+        commands.entity(e).despawn();
+    }
+    let name = world
+        .0
+        .provinces
+        .get(&b.province)
+        .map(|p| p.name.to_uppercase())
+        .unwrap_or_default();
+    let hours = clock.tick.saturating_sub(b.since_tick).max(1);
+    let month = clock.tick / (24 * 30);
+    let me = player.as_ref().map(|p| &p.0);
+    let side_is_mine = |owners: &[ugs_data::CountryTag]| me.is_some_and(|m| owners.contains(m));
+    let side_is_enemy = |owners: &[ugs_data::CountryTag]| {
+        me.is_some_and(|m| owners.iter().any(|o| military.at_war(m, o)))
+    };
+
+    // Modifier ledgers, as signed percentages vs baseline.
+    let terrain_pct = tuning::terrain_defense_permille(b.terrain) as i64 / 10 - 100;
+    let mut def_mods: Vec<String> = Vec::new();
+    if terrain_pct != 0 {
+        def_mods.push(format!("{:?} {:+}%", b.terrain, terrain_pct).to_uppercase());
+    }
+    if b.defender_home {
+        def_mods.push(format!(
+            "HOME GROUND {:+}%",
+            tuning::HOME_DEFENSE_PERMILLE as i64 / 10 - 100
+        ));
+    }
+    let qual_gap = b.attacker_quality as i64 - b.defender_quality as i64;
+    let att_mods = if qual_gap.abs() >= 30 {
+        vec![format!("QUALITY EDGE {:+}%", qual_gap / 10)]
+    } else {
+        Vec::new()
+    };
+
+    // Projection: hours until each side's average division breaks.
+    let to_break = |cohesion: u64, loss: u64| {
+        cohesion.saturating_sub(tuning::RETREAT_COHESION) / loss.max(1)
+    };
+    let att_breaks = to_break(b.attacker_cohesion, b.attacker_hourly_loss);
+    let def_breaks = to_break(b.defender_cohesion, b.defender_hourly_loss);
+    let projection = if def_breaks < att_breaks {
+        format!("DEFENDER BREAKS IN ~{}H AT CURRENT RATE", def_breaks.max(1))
+    } else if att_breaks < def_breaks {
+        format!("ATTACKER BREAKS IN ~{}H AT CURRENT RATE", att_breaks.max(1))
+    } else {
+        "EVENLY MATCHED -- NO BREAK IN SIGHT".to_string()
+    };
+
+    // One-line diagnosis for the player's side, when they're in it.
+    let diagnosis = me.and_then(|_| {
+        let (i_attack, losing) = if side_is_mine(&b.attacker_owners) {
+            (true, att_breaks <= def_breaks)
+        } else if side_is_mine(&b.defender_owners) {
+            (false, def_breaks <= att_breaks)
+        } else {
+            return None;
+        };
+        if !losing {
+            return Some("YOU HOLD THE ADVANTAGE HERE.".to_string());
+        }
+        let mut reasons: Vec<(i64, String)> = Vec::new();
+        if i_attack {
+            if terrain_pct > 0 {
+                reasons.push((
+                    terrain_pct,
+                    format!("ENEMY {:?} DEFENSE ({:+}%)", b.terrain, terrain_pct).to_uppercase(),
+                ));
+            }
+            if b.defender_home {
+                reasons.push((20, "ENEMY FIGHTING ON HOME GROUND (+20%)".into()));
+            }
+            if qual_gap < -30 {
+                reasons.push((-qual_gap / 10, format!("ENEMY QUALITY EDGE ({:+}%)", -qual_gap / 10)));
+            }
+            if b.defender_men > b.attacker_men {
+                reasons.push((
+                    (b.defender_men as i64 - b.attacker_men as i64) / 1000,
+                    "YOU ARE OUTNUMBERED".into(),
+                ));
+            }
+        } else {
+            if qual_gap > 30 {
+                reasons.push((qual_gap / 10, format!("ENEMY QUALITY EDGE ({:+}%)", qual_gap / 10)));
+            }
+            if b.attacker_men > b.defender_men {
+                reasons.push((
+                    (b.attacker_men as i64 - b.defender_men as i64) / 1000,
+                    "YOU ARE OUTNUMBERED".into(),
+                ));
+            }
+        }
+        reasons.sort_by_key(|(w, _)| -w);
+        Some(match reasons.first() {
+            Some((_, r)) => format!("YOU ARE LOSING PRIMARILY BECAUSE: {r}"),
+            None => "YOU ARE LOSING ON COHESION ATTRITION.".to_string(),
+        })
+    });
+
+    let total_coh = (b.attacker_cohesion + b.defender_cohesion).max(1) as f32;
+    let att_share = b.attacker_cohesion as f32 / total_coh;
+
+    commands
+        .spawn((
+            BattlePanel,
+            Interaction::default(),
+            Node {
+                position_type: PositionType::Absolute,
+                right: Val::Px(12.0),
+                top: Val::Px(56.0),
+                width: Val::Px(360.0),
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(7.0),
+                padding: UiRect::all(Val::Px(14.0)),
+                ..default()
+            },
+            BackgroundColor(PANEL_BG),
+        ))
+        .with_children(|p| {
+            p.spawn((
+                Text::new(format!("BATTLE OF {name}")),
+                font(&fonts.display, 17.0),
+                TextColor(ACCENT),
+            ));
+            p.spawn((
+                Text::new(format!("FIGHTING FOR {hours}H -- {:?} TERRAIN", b.terrain)),
+                font(&fonts.mono, 11.0),
+                TextColor(Color::srgb(0.62, 0.66, 0.70)),
+            ));
+            // Balance-of-power bar: attacker red vs defender blue-grey,
+            // driven by remaining cohesion.
+            p.spawn(Node {
+                width: Val::Percent(100.0),
+                height: Val::Px(9.0),
+                ..default()
+            })
+            .with_children(|bar| {
+                bar.spawn((
+                    Node {
+                        width: Val::Percent(att_share * 100.0),
+                        height: Val::Percent(100.0),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.72, 0.28, 0.22)),
+                ));
+                bar.spawn((
+                    Node {
+                        width: Val::Percent((1.0 - att_share) * 100.0),
+                        height: Val::Percent(100.0),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.30, 0.45, 0.62)),
+                ));
+            });
+            let side_line = |owners: &[ugs_data::CountryTag],
+                             divisions: u32,
+                             men: u64,
+                             cohesion: u64,
+                             loss: u64,
+                             power: u64,
+                             enemy_seed: u64|
+             -> Vec<String> {
+                let names: Vec<&str> = owners.iter().map(|t| t.0.as_str()).collect();
+                let fogged = side_is_enemy(owners);
+                let (divs, men_s) = if fogged {
+                    let (lo, hi) = est_div_range(divisions, enemy_seed);
+                    let (mlo, mhi) = est_men_range(men, enemy_seed ^ 0x9e37);
+                    (
+                        format!("EST {lo}-{hi} DIV"),
+                        format!("~{}-{}", fmt_men(mlo), fmt_men(mhi)),
+                    )
+                } else {
+                    (format!("{divisions} DIV"), fmt_men(men))
+                };
+                vec![
+                    format!("{}  {divs}  {men_s} MEN", names.join("/")),
+                    format!(
+                        "COHESION {}%  FALLING {}/H  POWER {power}",
+                        cohesion / 10,
+                        loss
+                    ),
+                ]
+            };
+            let seed = b.province.0 as u64 ^ month;
+            p.spawn((
+                Text::new("ATTACKER"),
+                font(&fonts.mono_bold, 11.0),
+                TextColor(Color::srgb(0.85, 0.45, 0.38)),
+            ));
+            for line in side_line(
+                &b.attacker_owners,
+                b.attacker_divisions,
+                b.attacker_men,
+                b.attacker_cohesion,
+                b.attacker_hourly_loss,
+                b.attacker_power,
+                seed,
+            ) {
+                p.spawn((Text::new(line), font(&fonts.mono, 11.5), TextColor(MAIN)));
+            }
+            if !att_mods.is_empty() {
+                p.spawn((
+                    Text::new(att_mods.join(" - ")),
+                    font(&fonts.mono, 10.5),
+                    TextColor(Color::srgb(0.62, 0.66, 0.70)),
+                ));
+            }
+            p.spawn((
+                Text::new("DEFENDER"),
+                font(&fonts.mono_bold, 11.0),
+                TextColor(Color::srgb(0.5, 0.65, 0.85)),
+            ));
+            for line in side_line(
+                &b.defender_owners,
+                b.defender_divisions,
+                b.defender_men,
+                b.defender_cohesion,
+                b.defender_hourly_loss,
+                b.defender_power,
+                seed ^ 0x51ed,
+            ) {
+                p.spawn((Text::new(line), font(&fonts.mono, 11.5), TextColor(MAIN)));
+            }
+            if !def_mods.is_empty() {
+                p.spawn((
+                    Text::new(def_mods.join(" - ")),
+                    font(&fonts.mono, 10.5),
+                    TextColor(Color::srgb(0.62, 0.66, 0.70)),
+                ));
+            }
+            p.spawn((
+                Text::new(projection),
+                font(&fonts.mono_bold, 11.5),
+                TextColor(ACCENT),
+            ));
+            if let Some(d) = diagnosis {
+                p.spawn((
+                    Text::new(d),
+                    font(&fonts.mono, 11.0),
+                    TextColor(Color::srgb(0.9, 0.75, 0.5)),
+                ));
+            }
+        });
 }
 
 /// Tell the sim who the player is, once, through the command queue (so
@@ -381,12 +824,16 @@ fn show_notices(
 }
 
 /// R toggles the war room panel (W pans the camera).
+/// Dev shortcut: UGS_PANEL=war boots with the panel open.
 fn toggle_war_panel(
     mut commands: Commands,
     keys: Res<ButtonInput<KeyCode>>,
     panel: Query<Entity, With<WarPanel>>,
+    mut booted: Local<bool>,
 ) {
-    if !keys.just_pressed(KeyCode::KeyR) {
+    let auto_open = !*booted && std::env::var("UGS_PANEL").as_deref() == Ok("war");
+    *booted = true;
+    if !keys.just_pressed(KeyCode::KeyR) && !auto_open {
         return;
     }
     if let Ok(e) = panel.single() {
@@ -399,9 +846,9 @@ fn toggle_war_panel(
                 position_type: PositionType::Absolute,
                 left: Val::Px(12.0),
                 top: Val::Px(56.0),
-                width: Val::Px(340.0),
+                width: Val::Px(384.0),
                 flex_direction: FlexDirection::Column,
-                row_gap: Val::Px(8.0),
+                row_gap: Val::Px(7.0),
                 padding: UiRect::all(Val::Px(14.0)),
                 ..default()
             },
@@ -412,10 +859,13 @@ fn toggle_war_panel(
 
 /// Fill the war panel: each war the player is in, with posture and
 /// armistice controls.
+#[allow(clippy::too_many_arguments)] // Bevy systems take what they query
 fn refresh_war_panel(
     mut commands: Commands,
     military: Res<Military>,
     world: Res<World1950>,
+    demo: Res<Demographics>,
+    clock: Res<SimClock>,
     fonts: Res<Fonts>,
     player: Option<Res<PlayerNation>>,
     panel: Query<Entity, Added<WarPanel>>,
@@ -460,12 +910,61 @@ fn refresh_war_panel(
             ));
             return;
         }
-        let casualties = military.casualties.get(me).copied().unwrap_or(0);
+        // --- Manpower pipeline: conservation of mass, population to
+        // casualties, so the army is never magic. --------------------------
+        let population: u64 = demo
+            .provinces
+            .iter()
+            .filter(|(id, _)| {
+                world.0.provinces.get(id).is_some_and(|pr| &pr.owner == me)
+            })
+            .map(|(_, c)| c.total())
+            .sum();
+        let fielded: u64 = military
+            .formations
+            .values()
+            .filter(|f| &f.owner == me)
+            .map(|f| f.strength * tuning::MEN_PER_STRENGTH_POINT)
+            .sum();
+        let divisions = military
+            .formations
+            .values()
+            .filter(|f| &f.owner == me)
+            .count();
+        let reserve = military.manpower.get(me).copied().unwrap_or(0);
+        let dead = military.casualties.get(me).copied().unwrap_or(0)
+            * tuning::MEN_PER_STRENGTH_POINT;
         p.spawn((
-            Text::new(format!("own casualties: {} pts", casualties)),
-            font(&fonts.mono, 11.0),
+            Text::new("MANPOWER PIPELINE"),
+            font(&fonts.mono_bold, 11.0),
             TextColor(Color::srgb(0.62, 0.66, 0.70)),
         ));
+        p.spawn((
+            Text::new(format!(
+                "POP {} > RESERVE {} > FIELD {} ({} DIV) > DEAD {}",
+                fmt_men(population),
+                fmt_men(reserve),
+                fmt_men(fielded),
+                divisions,
+                fmt_men(dead),
+            )),
+            font(&fonts.mono, 11.5),
+            TextColor(MAIN),
+        ));
+        let won = military.battles_won.get(me).copied().unwrap_or(0);
+        let lost = military.battles_lost.get(me).copied().unwrap_or(0);
+        let static_days = clock.tick.saturating_sub(military.last_line_change_tick) / 24;
+        let front = if static_days == 0 {
+            "FRONT MOVING".to_string()
+        } else {
+            format!("FRONT STATIC {static_days}D")
+        };
+        p.spawn((
+            Text::new(format!("BATTLES {won}W/{lost}L    {front}")),
+            font(&fonts.mono, 11.5),
+            TextColor(MAIN),
+        ));
+        let month = clock.tick / (24 * 30);
         for enemy in my_wars {
             let enemy_name = world
                 .0
@@ -479,6 +978,45 @@ fn refresh_war_panel(
                 Text::new(format!("VS {}", enemy_name.to_uppercase())),
                 font(&fonts.body_medium, 14.0),
                 TextColor(ACCENT),
+            ));
+            // Enemy strength and losses as intelligence estimates: fuzzed,
+            // banded, re-sampled monthly, rounded to 2 significant figures.
+            let seed = enemy.0.bytes().map(u64::from).sum::<u64>() ^ month;
+            let enemy_divs = military
+                .formations
+                .values()
+                .filter(|f| f.owner == enemy)
+                .count() as u32;
+            let enemy_men: u64 = military
+                .formations
+                .values()
+                .filter(|f| f.owner == enemy)
+                .map(|f| f.strength * tuning::MEN_PER_STRENGTH_POINT)
+                .sum();
+            let enemy_dead =
+                military.casualties.get(&enemy).copied().unwrap_or(0)
+                    * tuning::MEN_PER_STRENGTH_POINT;
+            let (dlo, dhi) = est_div_range(enemy_divs, seed);
+            let (mlo, mhi) = est_men_range(enemy_men, seed ^ 0x9e37);
+            let (klo, khi) = est_men_range(enemy_dead, seed ^ 0x51ed);
+            p.spawn((
+                Text::new(format!(
+                    "STRENGTH EST {dlo}-{dhi} DIV, {}-{} MEN",
+                    fmt_men(mlo),
+                    fmt_men(mhi)
+                )),
+                font(&fonts.mono, 11.0),
+                TextColor(Color::srgb(0.75, 0.78, 0.82)),
+            ));
+            p.spawn((
+                Text::new(format!(
+                    "ENEMY LOSSES EST {}-{}    OURS {} (EXACT)",
+                    fmt_men(klo),
+                    fmt_men(khi),
+                    fmt_men(dead)
+                )),
+                font(&fonts.mono, 11.0),
+                TextColor(Color::srgb(0.75, 0.78, 0.82)),
             ));
             p.spawn(Node {
                 column_gap: Val::Px(8.0),
@@ -530,6 +1068,28 @@ fn refresh_war_panel(
                     ));
                 });
             });
+        }
+        // --- The wire: latest war ticker lines, newest last. -------------
+        if !military.war_log.is_empty() {
+            p.spawn((
+                Text::new("-- THE WIRE --"),
+                font(&fonts.mono_bold, 11.0),
+                TextColor(Color::srgb(0.62, 0.66, 0.70)),
+            ));
+            let recent = military.war_log.iter().rev().take(8).rev();
+            for (tick, line) in recent {
+                let days_ago = clock.tick.saturating_sub(*tick) / 24;
+                let stamp = if days_ago == 0 {
+                    "TODAY".to_string()
+                } else {
+                    format!("-{days_ago}D")
+                };
+                p.spawn((
+                    Text::new(format!("[{stamp}] {line}")),
+                    font(&fonts.mono, 10.5),
+                    TextColor(Color::srgb(0.7, 0.73, 0.76)),
+                ));
+            }
         }
     });
 }

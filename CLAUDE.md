@@ -127,6 +127,11 @@ finishing any feature:
   the desktop.
 - `UGS_SPEED=1..5` — boot unpaused at that speed (e.g. to get past the
   first month boundary so monthly systems have output).
+- `UGS_PANEL=econ|war` — boot with that panel open.
+- `UGS_LOAD=path.ron` — auto-load a save on the first in-game frame
+  (adopts the save's player nation). `saves/war-jul-1950.ron` is a
+  mid-Korean-War fixture (regenerate via the ignored `make_midwar_save`
+  test in `crates/ugs-sim/src/events.rs`).
 
 ## Conventions
 

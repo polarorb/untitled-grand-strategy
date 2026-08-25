@@ -29,7 +29,7 @@ pub struct WorldGeometry {
 }
 
 #[derive(Resource, Default)]
-struct Selected(Option<ProvinceId>);
+pub struct Selected(pub Option<ProvinceId>);
 
 #[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq)]
 enum MapMode {
@@ -906,6 +906,13 @@ fn dev_autoload(world: &mut World, done: &mut bool) {
         load_save(world, &save);
         if let Some(tag) = &save.player {
             world.insert_resource(PlayerNation(CountryTag(tag.clone())));
+            // The replayed log may predate the player pick; tell the sim
+            // who is in charge so the armistice AI never decides for us.
+            world
+                .resource_mut::<ugs_sim::command::PendingCommands>()
+                .push(ugs_sim::command::SimCommand::SetPlayerCountry {
+                    country: Some(CountryTag(tag.clone())),
+                });
         }
         info!("autoloaded {path} at tick {}", save.current_tick);
     }
@@ -1039,11 +1046,13 @@ fn draw_selection_outline(
     }
 }
 
+#[allow(clippy::too_many_arguments)] // Bevy systems take what they query
 fn update_ui_text(
     clock: Res<SimClock>,
     speed: Res<GameSpeed>,
     tension: Res<GlobalTension>,
     military: Res<Military>,
+    player: Option<Res<PlayerNation>>,
     mode: Res<MapMode>,
     mut clock_text: Query<&mut Text, (With<ClockText>, Without<TensionText>)>,
     mut tension_text: Query<&mut Text, (With<TensionText>, Without<ClockText>)>,
@@ -1062,9 +1071,29 @@ fn update_ui_text(
         } else {
             format!("WARS: {}    ", military.wars.len())
         };
+        // Standing army headline: fielded men + reserve pool. The full
+        // pipeline lives in the war room (R).
+        let army = player
+            .as_ref()
+            .map(|p| {
+                let fielded: u64 = military
+                    .formations
+                    .values()
+                    .filter(|f| f.owner == p.0)
+                    .map(|f| f.strength * ugs_sim::military::tuning::MEN_PER_STRENGTH_POINT)
+                    .sum();
+                let reserve = military.manpower.get(&p.0).copied().unwrap_or(0);
+                if fielded == 0 && reserve == 0 {
+                    String::new()
+                } else {
+                    format!("ARMY {}k / RESERVE {}k    ", fielded / 1000, reserve / 1000)
+                }
+            })
+            .unwrap_or_default();
         text.0 = format!(
-            "{}TENSION {:.1} ({})    MAP: {:?}",
+            "{}{}TENSION {:.1} ({})    MAP: {:?}",
             wars,
+            army,
             tension.displayed(),
             tension.band(),
             *mode

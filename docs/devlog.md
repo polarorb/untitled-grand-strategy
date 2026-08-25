@@ -7,6 +7,58 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — No more magic armies: the war becomes readable
+
+The director's complaint, verbatim: *"I want way more info when watching
+a war... where are these troops coming from (seems like magic right
+now!)... I cannot tell why I am losing as the US."* Fair. Armies spawned
+from the order of battle and event effects with no visible connection to
+anything, combat resolved invisibly, and the war room told you almost
+nothing. A four-analyst research swarm (map counters, battle windows,
+war dashboards & intel estimates, manpower pipelines — write-up in
+[war legibility](research/war-legibility.md)) converged on a plan, and
+most of it shipped the same day.
+
+**The armies come from people now.** Every country seeds a manpower pool
+at 1.5% of its actual simulated population; belligerents mobilize
+another 0.2% per month; formations resting on friendly soil draw
+replacements from the pool at 15 strength/day, one strength point = ten
+men. The HUD carries a standing **ARMY 210k / RESERVE 480k** headline,
+and the war room opens with a conservation-of-mass pipeline — POP >
+RESERVE > FIELD > DEAD — where the buckets visibly reconcile. When the
+reserve runs dry, reinforcement stops, and you can watch it coming.
+
+**Combat became watchable.** Contested provinces get pulsing red
+markers. Unit counters grew HoI4-style dual bars (strength along the
+bottom, cohesion up the side) plus a men figure — and enemy stacks show
+a *fuzzed count band* ("2-4?"), dimmed, no bars: fog of war as period
+flavor. Clicking a battle opens the inspector: balance-of-power bar,
+both sides' divisions, men, cohesion and per-hour attrition, an inline
+signed modifier ledger (MOUNTAIN +60% · HOME GROUND +20%), a projection
+("DEFENDER BREAKS IN ~9H AT CURRENT RATE"), and — the thing no Paradox
+game ships — a generated one-line diagnosis: *YOU ARE LOSING PRIMARILY
+BECAUSE: ENEMY MOUNTAIN DEFENSE (+60%).*
+
+**Intelligence estimates, done the WitP way.** Enemy strength and losses
+appear as ranges rounded to two significant figures, re-sampled monthly
+(display-side deterministic hash — the sim RNG is never touched), while
+your own losses are always exact. "ENEMY LOSSES EST 12k-19k · OURS
+8,400 (EXACT)" is a very Cold War sentence.
+
+**And the war got a memory.** The sim keeps a wire-service ticker —
+battle openings, divisions destroyed, provinces taken — capped at 60
+lines, and the war room prints the last eight: `[-3D] PRK FORCES TAKE
+SEOUL`. Losing is now a story you can read backwards.
+
+A new sim test drives the Korean invasion month hour-by-hour and asserts
+the whole apparatus fills in: battles visible with men and hourly losses
+counted, ticker lines for openings and captures, win/loss tallies on
+both sides, manpower pools seeded and draining. 37 tests green;
+determinism and save-replay untouched (manpower joined the digest, since
+it feeds reinforcement).
+
+---
+
 ## 2026-08-25 — The guns fall silent: armistice, the war room, and the teletype speaks
 
 **Wars now end the way Cold War wars ended** — at the line of control.

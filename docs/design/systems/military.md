@@ -83,12 +83,34 @@ as the civilian economy. Three visible states (Supplied / Strained /
 Cut) with a path overlay. Ports are the amphibious mechanic. Logistics
 decisions are investments and priorities, never convoy micro.
 
+## Manpower & legibility (implemented v1)
+
+Armies are drawn from the simulated population — never spawned free.
+Each country seeds a reserve pool at 1.5% of its real population;
+belligerents mobilize a further 0.2%/month; formations resting on
+friendly soil reinforce at 15 strength/day paid from the pool (one
+strength point = ten men). Casualties, fielded strength, reserve, and
+population reconcile in the war room's pipeline strip.
+
+The war itself is presented per the
+[war legibility research](../../research/war-legibility.md): live
+`BattleView` snapshots each combat hour (sides, men, cohesion, hourly
+attrition, modifiers), pulsing battle markers, a battle inspector with
+an inline signed modifier ledger, break-time projection and a one-line
+"why you are losing" diagnosis, dual strength/cohesion bars on unit
+counters, a wire-service war ticker, and battle win/loss tallies.
+Enemy figures display as monthly-resampled two-significant-figure
+ranges (display-side hash, sim RNG untouched); own losses are exact.
+
 ## Sequencing (agreed with the research)
 
 1. **Korea slice**: event system, starter formations from archetypes
    with fixed 1950 equipment, movement + combat core, theater directive
-   v1, the June 25 invasion.
+   v1, the June 25 invasion. *Done, including armistice at the line of
+   control, manpower pools, and the war-legibility layer.*
 2. Equipment designer + production-line integration.
-3. Manpower policy, reserves, readiness states.
-4. Armistice negotiation layer; deniable contingents.
+3. Manpower policy (conscription laws), readiness states, per-division
+   home provinces with local casualty debits.
+4. Intel as a real per-country stat driving estimate width; sighting
+   staleness; deniable contingents.
 5. Full logistics solver in theaters.

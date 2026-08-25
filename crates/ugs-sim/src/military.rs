@@ -33,6 +33,15 @@ pub mod tuning {
     /// Defenders on home (unoccupied) soil fight harder.
     pub const HOME_DEFENSE_PERMILLE: u64 = 1200;
 
+    /// Men per division at full strength (strength 1000 = 10,000 men).
+    pub const MEN_PER_STRENGTH_POINT: u64 = 10;
+    /// Peacetime available-manpower pool: permille of total population.
+    pub const MANPOWER_BASE_PERMILLE: u64 = 15;
+    /// Wartime monthly mobilization: permille of population added to pool.
+    pub const MOBILIZE_PERMILLE_PER_MONTH: u64 = 2;
+    /// Strength points a resting formation regains per day (from the pool).
+    pub const REINFORCE_PER_DAY: u64 = 15;
+
     /// Auto-willingness for armistice: months at war and months of
     /// front stability required (non-player countries).
     pub const ARMISTICE_WAR_MONTHS: u64 = 10;
@@ -120,7 +129,49 @@ pub struct Military {
     pub last_line_change_tick: u64,
     /// Standing armistice offers (offerer, enemy).
     pub armistice_offers: Vec<(CountryTag, CountryTag)>,
+    /// Available trained manpower per country, in MEN. Reinforcement
+    /// draws it down; wartime mobilization refills from population.
+    pub manpower: BTreeMap<CountryTag, u64>,
+    /// Battles won/lost per country (a battle is won when the enemy
+    /// retreats from or dies in a contested province).
+    pub battles_won: BTreeMap<CountryTag, u32>,
+    pub battles_lost: BTreeMap<CountryTag, u32>,
+    /// Live view of ongoing battles, rebuilt every combat hour for the
+    /// UI. Derived state: excluded from the determinism digest.
+    pub active_battles: Vec<BattleView>,
+    /// Wire-service war ticker: (tick, line). Capped ring buffer.
+    pub war_log: Vec<(u64, String)>,
     next_id: u32,
+}
+
+/// UI-facing snapshot of one battle.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BattleView {
+    pub province: ProvinceId,
+    /// Tick the battle began.
+    pub since_tick: u64,
+    pub attacker_owners: Vec<CountryTag>,
+    pub defender_owners: Vec<CountryTag>,
+    pub attacker_divisions: u32,
+    pub defender_divisions: u32,
+    /// Field strength in men.
+    pub attacker_men: u64,
+    pub defender_men: u64,
+    /// Average cohesion permille.
+    pub attacker_cohesion: u64,
+    pub defender_cohesion: u64,
+    /// Average quality permille.
+    pub attacker_quality: u64,
+    pub defender_quality: u64,
+    /// Last hour's effective combat power (after modifiers).
+    pub attacker_power: u64,
+    pub defender_power: u64,
+    /// Cohesion lost per division this hour (permille).
+    pub attacker_hourly_loss: u64,
+    pub defender_hourly_loss: u64,
+    pub terrain: Terrain,
+    /// Defender fights on unoccupied home soil.
+    pub defender_home: bool,
 }
 
 impl Military {
@@ -163,6 +214,14 @@ impl Military {
             .unwrap_or(Posture::Hold)
     }
 
+    pub fn log(&mut self, tick: u64, line: String) {
+        self.war_log.push((tick, line));
+        let overflow = self.war_log.len().saturating_sub(60);
+        if overflow > 0 {
+            self.war_log.drain(..overflow);
+        }
+    }
+
     pub fn digest(&self) -> u64 {
         let mut h: u64 = 0xcbf2_9ce4_8422_2325;
         for (id, f) in &self.formations {
@@ -181,16 +240,22 @@ impl Military {
             h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>())
                 .wrapping_mul(0x0000_0100_0000_01b3);
         }
+        for (tag, men) in &self.manpower {
+            h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>() ^ men)
+                .wrapping_mul(0x0000_0100_0000_01b3);
+        }
         h
     }
 }
 
 /// Hourly: seed OOB on first tick, fight battles; daily: move, occupy;
 /// monthly: armistice diplomacy.
+#[allow(clippy::too_many_arguments)]
 pub fn update_military(
     clock: Res<SimClock>,
     scenario: Option<Res<SimScenario>>,
     player: Res<PlayerCountry>,
+    demo: Res<crate::demography::Demographics>,
     mut rng: ResMut<SimRng>,
     mut military: ResMut<Military>,
     mut fired: ResMut<crate::events::FiredEvents>,
@@ -217,9 +282,23 @@ pub fn update_military(
                 });
             }
         }
+        // Seed manpower pools from the real populations: the army is no
+        // longer magic — it comes from these people.
+        let mut pop_by_country: BTreeMap<CountryTag, u64> = BTreeMap::new();
+        for (id, c) in &demo.provinces {
+            if let Some(p) = data.provinces.get(id) {
+                *pop_by_country.entry(p.owner.clone()).or_default() += c.total();
+            }
+        }
+        for (tag, pop) in pop_by_country {
+            military
+                .manpower
+                .insert(tag, pop * tuning::MANPOWER_BASE_PERMILLE / 1000);
+        }
         return;
     }
     if military.wars.is_empty() {
+        military.active_battles.clear();
         return; // peace: nothing to simulate hourly (regen is cheap, skip)
     }
     let new_pairs: Vec<(CountryTag, CountryTag)> = military
@@ -282,7 +361,53 @@ pub fn update_military(
         battles.push((*province, side_a, side_b));
     }
 
+    // Resolve battles that ended since last hour: the side still standing
+    // in the province won the field. Feeds the ticker and the W/L tally.
+    let prev_battles = std::mem::take(&mut military.active_battles);
+    {
+        use std::collections::BTreeSet;
+        let contested: BTreeSet<ProvinceId> = battles.iter().map(|(p, _, _)| *p).collect();
+        for old in &prev_battles {
+            if contested.contains(&old.province) {
+                continue;
+            }
+            let present: Vec<CountryTag> = by_province
+                .get(&old.province)
+                .map(|ids| ids.iter().map(|i| military.formations[i].owner.clone()).collect())
+                .unwrap_or_default();
+            let att = old.attacker_owners.iter().any(|o| present.contains(o));
+            let def = old.defender_owners.iter().any(|o| present.contains(o));
+            if att == def {
+                continue; // both withdrew (or war ended): no verdict
+            }
+            let (winners, losers) = if att {
+                (&old.attacker_owners, &old.defender_owners)
+            } else {
+                (&old.defender_owners, &old.attacker_owners)
+            };
+            let (winners, losers) = (winners.clone(), losers.clone());
+            for w in &winners {
+                *military.battles_won.entry(w.clone()).or_default() += 1;
+            }
+            for l in &losers {
+                *military.battles_lost.entry(l.clone()).or_default() += 1;
+            }
+            let name = data
+                .provinces
+                .get(&old.province)
+                .map(|p| p.name.to_uppercase())
+                .unwrap_or_default();
+            let hours = clock.tick.saturating_sub(old.since_tick);
+            let victors: Vec<&str> = winners.iter().map(|t| t.0.as_str()).collect();
+            military.log(
+                clock.tick,
+                format!("BATTLE OF {name} ENDS AFTER {hours}H -- {} HOLD THE FIELD", victors.join("/")),
+            );
+        }
+    }
+
     let mut in_battle: Vec<FormationId> = Vec::new();
+    let mut battle_views: Vec<BattleView> = Vec::new();
     for (province, side_a, side_b) in &battles {
         in_battle.extend(side_a.iter().chain(side_b.iter()));
         let terrain = data
@@ -299,6 +424,14 @@ pub fn update_military(
             .first()
             .map(|i| Some(&military.formations[i].owner) == owner_now.as_ref())
             .unwrap_or(false);
+        let defender_ids = if a_defends { side_a } else { side_b };
+        // Home soil: province is still held by its 1950 owner.
+        let defender_home = data.provinces.get(province).is_some_and(|p| {
+            !military.occupation.contains_key(province)
+                && defender_ids
+                    .first()
+                    .is_some_and(|i| military.formations[i].owner == p.owner)
+        });
 
         let power = |ids: &[FormationId], defending: bool| -> u64 {
             let base: u64 = ids
@@ -312,12 +445,7 @@ pub fn update_military(
                 .sum();
             if defending {
                 let mut v = base * terrain_defense_permille(terrain) / 1000;
-                // Home soil: province is still held by its 1950 owner.
-                if data
-                    .provinces
-                    .get(province)
-                    .is_some_and(|p| !military.occupation.contains_key(province) && ids.first().is_some_and(|i| military.formations[i].owner == p.owner))
-                {
+                if defender_home {
                     v = v * HOME_DEFENSE_PERMILLE / 1000;
                 }
                 v
@@ -331,6 +459,71 @@ pub fn update_military(
         let (va, vb) = (variance(), variance());
         let damage_to_b = a_power * COHESION_DAMAGE_SCALE * va / 100;
         let damage_to_a = b_power * COHESION_DAMAGE_SCALE * vb / 100;
+
+        // Pre-damage snapshot for the UI battle view.
+        let side_stats = |ids: &[FormationId]| -> (u32, u64, u64, u64, Vec<CountryTag>) {
+            let n = ids.len().max(1) as u64;
+            let men: u64 = ids
+                .iter()
+                .map(|i| military.formations[i].strength * MEN_PER_STRENGTH_POINT)
+                .sum();
+            let coh: u64 = ids.iter().map(|i| military.formations[i].cohesion).sum();
+            let qual: u64 = ids.iter().map(|i| military.formations[i].quality).sum();
+            let mut owners: Vec<CountryTag> = ids
+                .iter()
+                .map(|i| military.formations[i].owner.clone())
+                .collect();
+            owners.sort();
+            owners.dedup();
+            (ids.len() as u32, men, coh / n, qual / n, owners)
+        };
+        let (att_ids, def_ids, att_power, def_power, att_damage, def_damage) = if a_defends {
+            (side_b, side_a, b_power, a_power, damage_to_b, damage_to_a)
+        } else {
+            (side_a, side_b, a_power, b_power, damage_to_a, damage_to_b)
+        };
+        let (att_div, att_men, att_coh, att_qual, att_owners) = side_stats(att_ids);
+        let (def_div, def_men, def_coh, def_qual, def_owners) = side_stats(def_ids);
+        let since_tick = prev_battles
+            .iter()
+            .find(|b| b.province == *province)
+            .map(|b| b.since_tick)
+            .unwrap_or(clock.tick);
+        if since_tick == clock.tick {
+            let name = data
+                .provinces
+                .get(province)
+                .map(|p| p.name.to_uppercase())
+                .unwrap_or_default();
+            let att_names: Vec<&str> = att_owners.iter().map(|t| t.0.as_str()).collect();
+            military.log(
+                clock.tick,
+                format!(
+                    "BATTLE OF {name} BEGINS -- {} ATTACK WITH {att_div} DIV VS {def_div} DIV",
+                    att_names.join("/")
+                ),
+            );
+        }
+        battle_views.push(BattleView {
+            province: *province,
+            since_tick,
+            attacker_owners: att_owners,
+            defender_owners: def_owners,
+            attacker_divisions: att_div,
+            defender_divisions: def_div,
+            attacker_men: att_men,
+            defender_men: def_men,
+            attacker_cohesion: att_coh,
+            defender_cohesion: def_coh,
+            attacker_quality: att_qual,
+            defender_quality: def_qual,
+            attacker_power: att_power,
+            defender_power: def_power,
+            attacker_hourly_loss: (att_damage / att_ids.len().max(1) as u64).max(1),
+            defender_hourly_loss: (def_damage / def_ids.len().max(1) as u64).max(1),
+            terrain,
+            defender_home,
+        });
 
         let apply = |military: &mut Military, ids: &[FormationId], total: u64| {
             if ids.is_empty() {
@@ -349,6 +542,7 @@ pub fn update_military(
         apply(&mut military, side_a, damage_to_a);
         apply(&mut military, side_b, damage_to_b);
     }
+    military.active_battles = battle_views;
 
     // Regen for formations not in battle.
     for (id, f) in military.formations.iter_mut() {
@@ -398,6 +592,15 @@ pub fn update_military(
             }
             _ => {
                 military.formations.remove(&id); // destroyed or pocketed
+                let name = data
+                    .provinces
+                    .get(&location)
+                    .map(|p| p.name.to_uppercase())
+                    .unwrap_or_default();
+                military.log(
+                    clock.tick,
+                    format!("{} DIVISION DESTROYED AT {name}", owner.0),
+                );
             }
         }
     }
@@ -408,6 +611,54 @@ pub fn update_military(
     }
     for f in military.formations.values_mut() {
         f.move_cooldown = f.move_cooldown.saturating_sub(1);
+    }
+
+    // Wartime mobilization: belligerents add men to the pool monthly.
+    if clock.new_month {
+        let at_war: Vec<CountryTag> = military
+            .wars
+            .iter()
+            .flat_map(|(a, b)| [a.clone(), b.clone()])
+            .collect();
+        let mut pop_by_country: BTreeMap<CountryTag, u64> = BTreeMap::new();
+        for (id, c) in &demo.provinces {
+            if let Some(p) = data.provinces.get(id) {
+                if at_war.contains(&p.owner) {
+                    *pop_by_country.entry(p.owner.clone()).or_default() += c.total();
+                }
+            }
+        }
+        for (tag, pop) in pop_by_country {
+            *military.manpower.entry(tag).or_default() +=
+                pop * MOBILIZE_PERMILLE_PER_MONTH / 1000;
+        }
+    }
+
+    // Reinforcement: resting formations on non-enemy soil draw men from
+    // the national pool.
+    let reinforce: Vec<FormationId> = military
+        .formations
+        .iter()
+        .filter(|(id, f)| {
+            f.strength < 1000
+                && !in_battle.contains(id)
+                && data.provinces.get(&f.location).is_some_and(|p| {
+                    let holder = military.owner_of(f.location, &p.owner);
+                    !military.at_war(&f.owner, &holder)
+                })
+        })
+        .map(|(id, _)| *id)
+        .collect();
+    for id in reinforce {
+        let owner = military.formations[&id].owner.clone();
+        let pool = military.manpower.entry(owner).or_default();
+        let points = REINFORCE_PER_DAY.min(*pool / MEN_PER_STRENGTH_POINT);
+        if points == 0 {
+            continue;
+        }
+        *pool -= points * MEN_PER_STRENGTH_POINT;
+        let f = military.formations.get_mut(&id).unwrap();
+        f.strength = (f.strength + points).min(1000);
     }
 
     // Advancing formations move into adjacent enemy provinces, or march
@@ -464,6 +715,12 @@ pub fn update_military(
         military.last_line_change_tick = clock.tick;
     }
     for (province, occupier) in flips {
+        let name = data
+            .provinces
+            .get(&province)
+            .map(|p| p.name.to_uppercase())
+            .unwrap_or_default();
+        military.log(clock.tick, format!("{} FORCES TAKE {name}", occupier.0));
         military.occupation.insert(province, occupier);
     }
 
@@ -654,5 +911,49 @@ mod tests {
         assert_eq!(count("PRK"), 10, "KPA divisions");
         assert_eq!(count("KOR"), 8, "ROK divisions");
         assert!(military.wars.is_empty(), "peace at campaign start");
+        assert!(
+            military.manpower.get(&CountryTag("KOR".into())).copied().unwrap_or(0) > 100_000,
+            "ROK manpower pool seeded from population"
+        );
+    }
+
+    #[test]
+    fn war_produces_legible_information() {
+        let mut app = app_with_scenario();
+        // To the eve of the June 25 invasion, then watch a month of
+        // fighting hour by hour: battles are live snapshots, so sample.
+        run_ticks(&mut app, 24 * 175);
+        let mut seen_battle = None;
+        for _ in 0..(24 * 35) {
+            run_ticks(&mut app, 1);
+            let military = app.world().resource::<Military>();
+            if seen_battle.is_none() {
+                seen_battle = military.active_battles.first().cloned();
+            }
+        }
+        let military = app.world().resource::<Military>();
+        assert!(!military.wars.is_empty(), "Korean War underway");
+        let b = seen_battle.expect("at least one battle visible during the invasion month");
+        assert!(b.attacker_men > 0 && b.defender_men > 0, "men counted");
+        assert!(
+            b.attacker_hourly_loss > 0 && b.defender_hourly_loss > 0,
+            "hourly attrition reported"
+        );
+        assert!(!military.war_log.is_empty(), "war ticker has entries");
+        let log: Vec<&str> = military.war_log.iter().map(|(_, l)| l.as_str()).collect();
+        assert!(
+            log.iter().any(|l| l.contains("BATTLE OF")),
+            "battle openings logged: {log:?}"
+        );
+        assert!(
+            log.iter().any(|l| l.contains("FORCES TAKE")),
+            "captures logged: {log:?}"
+        );
+        let won: u32 = military.battles_won.values().sum();
+        let lost: u32 = military.battles_lost.values().sum();
+        assert!(won > 0 && lost > 0, "battle outcomes tallied ({won}W/{lost}L)");
+        // Mobilization grows the belligerents' pools while neutral pools hold.
+        let prk = military.manpower.get(&CountryTag("PRK".into())).copied().unwrap();
+        assert!(prk > 0, "KPA still has a manpower pool");
     }
 }
