@@ -594,17 +594,14 @@ pub fn update_nuclear_use(
                 ));
                 // The enemy's patron — the nuclear power of its bloc —
                 // answers with an ultimatum crisis.
-                let enemy_alignment = enemies
-                    .first()
-                    .and_then(|e| data.countries.get(e))
-                    .map(|c| c.alignment);
+                let enemy_alignment = enemies.first().map(|e| military.alignment_of(data, e));
                 let patron = programs
                     .programs
                     .keys()
                     .find(|t| {
                         **t != me
                             && !enemies.contains(t)
-                            && data.countries.get(t).map(|c| c.alignment) == enemy_alignment
+                            && Some(military.alignment_of(data, t)) == enemy_alignment
                     })
                     .cloned();
                 if let Some(patron) = patron {

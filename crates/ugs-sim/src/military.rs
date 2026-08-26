@@ -321,6 +321,14 @@ pub struct Military {
     /// Consecutive months of unpaid upkeep.
     #[serde(default)]
     pub upkeep_arrears: BTreeMap<CountryTag, u16>,
+    /// Dynamic bloc alignment overrides (events flip countries; the
+    /// CountryDef value is the 1950 baseline). ALL alignment reads go
+    /// through `alignment_of` — never read CountryDef directly.
+    #[serde(default)]
+    pub alignments: BTreeMap<CountryTag, ugs_data::Alignment>,
+    /// Dynamic stability overrides, 0-100 (baseline: CountryDef).
+    #[serde(default)]
+    pub stability: BTreeMap<CountryTag, u8>,
     next_id: u32,
 }
 
@@ -355,6 +363,27 @@ pub struct BattleView {
 }
 
 impl Military {
+    /// The single source of truth for a country's current bloc.
+    pub fn alignment_of(
+        &self,
+        data: &ugs_data::ScenarioData,
+        tag: &CountryTag,
+    ) -> ugs_data::Alignment {
+        self.alignments.get(tag).copied().unwrap_or_else(|| {
+            data.countries
+                .get(tag)
+                .map(|c| c.alignment)
+                .unwrap_or(ugs_data::Alignment::NonAligned)
+        })
+    }
+
+    pub fn stability_of(&self, data: &ugs_data::ScenarioData, tag: &CountryTag) -> u8 {
+        self.stability
+            .get(tag)
+            .copied()
+            .unwrap_or_else(|| data.countries.get(tag).map(|c| c.stability).unwrap_or(50))
+    }
+
     pub fn at_war(&self, a: &CountryTag, b: &CountryTag) -> bool {
         let key = if a < b { (a, b) } else { (b, a) };
         self.wars.iter().any(|(x, y)| (x, y) == key)
@@ -536,11 +565,11 @@ impl Military {
         use ugs_data::Alignment;
         matches!(
             (
-                data.countries.get(country).map(|c| c.alignment),
-                data.countries.get(holder).map(|c| c.alignment),
+                self.alignment_of(data, country),
+                self.alignment_of(data, holder),
             ),
-            (Some(Alignment::WesternBloc), Some(Alignment::WesternBloc))
-                | (Some(Alignment::EasternBloc), Some(Alignment::EasternBloc))
+            (Alignment::WesternBloc, Alignment::WesternBloc)
+                | (Alignment::EasternBloc, Alignment::EasternBloc)
         )
     }
 
@@ -684,6 +713,14 @@ impl Military {
         for (tag, men) in &self.manpower {
             fold_tag(&mut h, tag);
             fold(&mut h, *men);
+        }
+        for (tag, a) in &self.alignments {
+            fold_tag(&mut h, tag);
+            fold(&mut h, *a as u64 + 1);
+        }
+        for (tag, st) in &self.stability {
+            fold_tag(&mut h, tag);
+            fold(&mut h, *st as u64);
         }
         h
     }

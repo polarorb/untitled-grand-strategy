@@ -54,7 +54,7 @@ fn snapshot(app: &App) -> String {
             .resource::<ugs_sim::nuclear::NuclearPrograms>()
             .digest()
     ) + &format!(
-        "|det:{:x}|cri:{:x}|int:{:x}|set:{:x}|reg:{:x}|con:{:x}",
+        "|det:{:x}|cri:{:x}|int:{:x}|set:{:x}|reg:{:x}|con:{:x}|own:{:x}",
         world.resource::<ugs_sim::deterrence::Deterrence>().digest(),
         world.resource::<ugs_sim::crisis::Crises>().digest(),
         world.resource::<ugs_sim::intel::Intel>().digest(),
@@ -66,7 +66,8 @@ fn snapshot(app: &App) -> String {
             .digest(),
         world
             .resource::<ugs_sim::construction::Construction>()
-            .digest()
+            .digest(),
+        world.resource::<ugs_sim::economy::EconomyStatic>().digest()
     )
 }
 

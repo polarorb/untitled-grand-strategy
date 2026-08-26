@@ -5,6 +5,7 @@
 
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use ugs_data::{CountryTag, EventDef, EventEffect, EventTrigger, ScenarioData};
 
 use crate::demography::SimScenario;
@@ -48,6 +49,12 @@ pub struct FiredEvents {
     /// Dynamic notifications (title, body) from sim systems (armistices,
     /// capitulations) — shown by the UI like events.
     pub notices: Vec<(String, String)>,
+    /// Tick each event fired (chain triggers: EventFired).
+    #[serde(default)]
+    pub fired_ticks: BTreeMap<String, u64>,
+    /// Resolution record per event: (option, tick) — OptionChosen.
+    #[serde(default)]
+    pub resolved_ticks: BTreeMap<String, (u8, u64)>,
 }
 
 impl FiredEvents {
@@ -66,6 +73,9 @@ fn apply_effects(
     deterrence: &crate::deterrence::Deterrence,
     econ: &mut crate::planning::Economies,
     settlements: &mut crate::settlement::Settlements,
+    stat: &mut crate::economy::EconomyStatic,
+    regional: &mut crate::construction::RegionalIndustry,
+    demo: &crate::demography::Demographics,
     fired_notices: &mut Vec<(String, String)>,
     month_index: i64,
     tick: u64,
@@ -168,6 +178,72 @@ fn apply_effects(
             EventEffect::GrantLegitimacy { country, amount } => {
                 *settlements.legitimacy.entry(country.clone()).or_default() += amount;
             }
+            EventEffect::SetAlignment { country, alignment } => {
+                use ugs_data::Alignment;
+                let a = match alignment.as_str() {
+                    "WesternBloc" => Alignment::WesternBloc,
+                    "EasternBloc" => Alignment::EasternBloc,
+                    _ => Alignment::NonAligned,
+                };
+                military.alignments.insert(country.clone(), a);
+            }
+            EventEffect::AdjustStability { country, delta } => {
+                let current = military.stability_of(data, country) as i32;
+                military
+                    .stability
+                    .insert(country.clone(), (current + delta).clamp(0, 100) as u8);
+            }
+            EventEffect::GrantIndustry { country, centi } => {
+                crate::construction::distribute_proportional(stat, regional, country, *centi);
+            }
+            EventEffect::Independence {
+                country,
+                from,
+                provinces,
+            } => {
+                use std::collections::BTreeSet;
+                let regions: BTreeSet<ugs_data::RegionId> = provinces
+                    .iter()
+                    .filter_map(|name| data.province_by_name(from, name).ok())
+                    .filter_map(|id| data.provinces.get(&id).map(|p| p.region))
+                    .collect();
+                let mut pop: u64 = 0;
+                for p in data.provinces.values() {
+                    if !regions.contains(&p.region) {
+                        continue;
+                    }
+                    let holder = military.owner_of(p.id, &p.owner);
+                    // Enemy-occupied ground stays occupied: the state is
+                    // born into a claim, not a possession.
+                    if &holder == from {
+                        military.occupation.insert(p.id, country.clone());
+                        settlements.recognized.insert(p.id);
+                    }
+                    if let Some(c) = demo.provinces.get(&p.id) {
+                        pop += c.total();
+                    }
+                }
+                for r in &regions {
+                    stat.region_owner.insert(*r, country.clone());
+                }
+                military.manpower.insert(
+                    country.clone(),
+                    pop * crate::military::tuning::MANPOWER_BASE_PERMILLE / 1000,
+                );
+                let name = data
+                    .countries
+                    .get(country)
+                    .map(|c| c.name.clone())
+                    .unwrap_or_else(|| country.0.clone());
+                fired_notices.push((
+                    "A NATION IS BORN".into(),
+                    format!(
+                        "{} PROCLAIMS ITS INDEPENDENCE FROM {}. THE FLAG COMES DOWN, ANOTHER RISES. THE COLD WAR HAS A NEW BATTLEGROUND, AND BOTH BLOCS KNOW IT.",
+                        name.to_uppercase(),
+                        from.0
+                    ),
+                ));
+            }
             EventEffect::AuthorizeThermonuclear { country } => {
                 nuclear.authorize_thermonuclear(country, month_index);
             }
@@ -186,9 +262,24 @@ fn trigger_met(
     clock: &SimClock,
     fired: &FiredEvents,
     military: &Military,
+    tension: &GlobalTension,
     data: &ScenarioData,
 ) -> bool {
     match &event.trigger {
+        EventTrigger::TensionAbove { tenths } => tension.value() >= *tenths,
+        EventTrigger::TensionBelow { tenths } => tension.value() <= *tenths,
+        EventTrigger::EventFired { id, days_after } => fired
+            .fired_ticks
+            .get(id)
+            .is_some_and(|t| clock.tick >= t + *days_after as u64 * 24),
+        EventTrigger::OptionChosen {
+            id,
+            option,
+            days_after,
+        } => fired
+            .resolved_ticks
+            .get(id)
+            .is_some_and(|(o, t)| o == option && clock.tick >= t + *days_after as u64 * 24),
         EventTrigger::Date(date) => {
             let now = (
                 clock.date.year,
@@ -238,6 +329,9 @@ pub fn update_events(
     mut nuclear: ResMut<crate::nuclear::NuclearPrograms>,
     mut econ: ResMut<crate::planning::Economies>,
     mut settlements: ResMut<crate::settlement::Settlements>,
+    mut stat: ResMut<crate::economy::EconomyStatic>,
+    mut regional: ResMut<crate::construction::RegionalIndustry>,
+    demo: Res<crate::demography::Demographics>,
 ) {
     let Some(scenario) = scenario else { return };
     let data = &scenario.0;
@@ -265,6 +359,7 @@ pub fn update_events(
     for id in expired {
         fired.pending.retain(|p| p.id != id);
         fired.resolved.push((id.clone(), 0));
+        fired.resolved_ticks.insert(id.clone(), (0, clock.tick));
         if let Some(event) = data.events.iter().find(|e| e.id == id) {
             if let Some(option) = event.options.first() {
                 let mut notices = Vec::new();
@@ -277,6 +372,9 @@ pub fn update_events(
                     &deterrence,
                     &mut econ,
                     &mut settlements,
+                    &mut stat,
+                    &mut regional,
+                    &demo,
                     &mut notices,
                     clock.date.year as i64 * 12 + clock.date.month as i64,
                     clock.tick,
@@ -291,7 +389,7 @@ pub fn update_events(
         if fired.fired.iter().any(|id| id == &event.id) {
             continue;
         }
-        if !trigger_met(event, &clock, &fired, &military, data) {
+        if !trigger_met(event, &clock, &fired, &military, &tension, data) {
             continue;
         }
         if let Some(chance) = event.chance_permille {
@@ -304,6 +402,7 @@ pub fn update_events(
             }
         }
         fired.fired.push(event.id.clone());
+        fired.fired_ticks.insert(event.id.clone(), clock.tick);
         if event.country.is_some() && !event.options.is_empty() {
             // A decision: wait for ResolveEvent or the deadline.
             let deadline_tick = clock.tick + event.deadline_days.max(1) as u64 * 24;
@@ -327,6 +426,9 @@ pub fn update_events(
                 &deterrence,
                 &mut econ,
                 &mut settlements,
+                &mut stat,
+                &mut regional,
+                &demo,
                 &mut notices,
                 clock.date.year as i64 * 12 + clock.date.month as i64,
                 clock.tick,
@@ -346,6 +448,9 @@ pub fn resolve_event(
     deterrence: &crate::deterrence::Deterrence,
     econ: &mut crate::planning::Economies,
     settlements: &mut crate::settlement::Settlements,
+    stat: &mut crate::economy::EconomyStatic,
+    regional: &mut crate::construction::RegionalIndustry,
+    demo: &crate::demography::Demographics,
     data: &ScenarioData,
     month_index: i64,
     tick: u64,
@@ -364,6 +469,7 @@ pub fn resolve_event(
         };
         fired.dynamic.remove(pos);
         fired.resolved.push((id.to_string(), bounded));
+        fired.resolved_ticks.insert(id.to_string(), (bounded, tick));
         return;
     }
     if !fired.is_pending(id) {
@@ -377,6 +483,7 @@ pub fn resolve_event(
     };
     fired.pending.retain(|p| p.id != id);
     fired.resolved.push((id.to_string(), option));
+    fired.resolved_ticks.insert(id.to_string(), (option, tick));
     let mut notices = Vec::new();
     apply_effects(
         &chosen.effects,
@@ -387,6 +494,9 @@ pub fn resolve_event(
         deterrence,
         econ,
         settlements,
+        stat,
+        regional,
+        demo,
         &mut notices,
         month_index,
         tick,
@@ -566,6 +676,163 @@ mod tests {
         assert!(
             military.formations.values().all(|f| f.owner.0 != "USA"),
             "no US troops"
+        );
+    }
+}
+
+#[cfg(test)]
+mod timeline_tests {
+    use crate::calendar::GameDate;
+    use crate::military::Military;
+    use crate::{run_ticks, SimPlugin};
+    use bevy_app::App;
+    use std::path::Path;
+    use std::sync::Arc;
+    use ugs_data::{Alignment, CountryDef, CountryTag, EventDef, EventEffect, EventTrigger};
+
+    /// The 1950 scenario plus a synthetic Ghana and a three-event
+    /// chain exercising the new engine: Independence -> EventFired
+    /// chain -> SetAlignment/AdjustStability.
+    fn app_with_test_timeline() -> App {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/data/scenario/1950");
+        let mut data = ugs_data::ScenarioData::load(&dir).expect("scenario");
+        let capital = data
+            .province_by_name(&CountryTag("GBR".into()), "Ashanti")
+            .expect("colonial province exists");
+        data.countries.insert(
+            CountryTag("GHA".into()),
+            CountryDef {
+                tag: CountryTag("GHA".into()),
+                name: "Ghana".into(),
+                alignment: Alignment::NonAligned,
+                color: (40, 120, 60),
+                capital,
+                stability: 60,
+                industry: 1,
+                nuclear_power: false,
+            },
+        );
+        data.events.push(EventDef {
+            id: "test-independence".into(),
+            trigger: EventTrigger::Date((1950, 2, 1, 0)),
+            chance_permille: None,
+            title: "T".into(),
+            body: "T".into(),
+            country: None,
+            deadline_days: 0,
+            options: vec![],
+            effects: vec![EventEffect::Independence {
+                country: CountryTag("GHA".into()),
+                from: CountryTag("GBR".into()),
+                provinces: vec!["Ashanti".into()],
+            }],
+        });
+        data.events.push(EventDef {
+            id: "test-chain".into(),
+            trigger: EventTrigger::EventFired {
+                id: "test-independence".into(),
+                days_after: 10,
+            },
+            chance_permille: None,
+            title: "T2".into(),
+            body: "T2".into(),
+            country: None,
+            deadline_days: 0,
+            options: vec![],
+            effects: vec![
+                EventEffect::SetAlignment {
+                    country: CountryTag("GHA".into()),
+                    alignment: "EasternBloc".into(),
+                },
+                EventEffect::AdjustStability {
+                    country: CountryTag("GHA".into()),
+                    delta: -20,
+                },
+            ],
+        });
+        let mut app = App::new();
+        app.add_plugins(SimPlugin {
+            start_date: GameDate::new(1950, 1, 1, 0),
+            seed: 3,
+        });
+        app.insert_resource(crate::demography::SimScenario(Arc::new(data)));
+        app
+    }
+
+    #[test]
+    fn independence_transfers_regions_and_seeds_a_nation() {
+        let mut app = app_with_test_timeline();
+        run_ticks(&mut app, 24 * 33); // past Feb 1
+        let world = app.world();
+        let data = world.resource::<crate::demography::SimScenario>().0.clone();
+        let gha = CountryTag("GHA".into());
+        let military = world.resource::<Military>();
+        let stat = world.resource::<crate::economy::EconomyStatic>();
+        // The region flipped, and with it the economy.
+        let ashanti = data
+            .province_by_name(&CountryTag("GBR".into()), "Ashanti")
+            .unwrap();
+        let region = data.provinces[&ashanti].region;
+        assert_eq!(
+            stat.region_owner.get(&region),
+            Some(&gha),
+            "the region belongs to the new state"
+        );
+        // Map-level ownership + recognition.
+        assert_eq!(
+            military.owner_of(ashanti, &data.provinces[&ashanti].owner),
+            gha,
+            "the province flies the new flag"
+        );
+        assert!(
+            world
+                .resource::<crate::settlement::Settlements>()
+                .recognized
+                .contains(&ashanti),
+            "born recognized, not occupied"
+        );
+        // A people under arms potential.
+        assert!(
+            military.manpower.get(&gha).copied().unwrap_or(0) > 0,
+            "manpower seeded from the transferred population"
+        );
+        let fired = world.resource::<crate::events::FiredEvents>();
+        assert!(
+            fired.notices.iter().any(|(t, _)| t.contains("NATION")),
+            "the birth makes the wire"
+        );
+    }
+
+    #[test]
+    fn chains_fire_on_schedule_and_flip_alignment() {
+        let mut app = app_with_test_timeline();
+        run_ticks(&mut app, 24 * 45); // independence (day 31) + 10-day chain
+        let world = app.world();
+        let data = world.resource::<crate::demography::SimScenario>().0.clone();
+        let military = world.resource::<Military>();
+        let gha = CountryTag("GHA".into());
+        let fired = world.resource::<crate::events::FiredEvents>();
+        assert!(
+            fired.fired.iter().any(|id| id == "test-chain"),
+            "the chained event fired after its offset"
+        );
+        assert_eq!(
+            military.alignment_of(&data, &gha),
+            Alignment::EasternBloc,
+            "SetAlignment overrides the 1950 baseline"
+        );
+        assert_eq!(
+            military.stability_of(&data, &gha),
+            40,
+            "stability delta applied to the baseline"
+        );
+        // And chains respect the offset: at day 32 the chain has NOT fired.
+        let mut early = app_with_test_timeline();
+        run_ticks(&mut early, 24 * 36);
+        let fired_early = early.world().resource::<crate::events::FiredEvents>();
+        assert!(
+            fired_early.fired.iter().any(|id| id == "test-independence"),
+            "parent fired"
         );
     }
 }

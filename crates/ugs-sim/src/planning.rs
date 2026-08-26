@@ -289,15 +289,16 @@ pub fn update_production(
 
         // Occupied home provinces produce nothing for anyone: the
         // holder gains no output (integration is a treaty matter), and
-        // the owner has lost it (war-termination design).
-        let (held, total) =
-            data.provinces
-                .values()
-                .filter(|p| p.owner == tag)
-                .fold((0u64, 0u64), |(h, t), p| {
-                    let holder = military.owner_of(p.id, &p.owner);
-                    (h + (holder == tag) as u64, t + 1)
-                });
+        // the owner has lost it. "Home" follows REGION ownership, so an
+        // independence transfer shrinks the parent exactly once.
+        let (held, total) = data
+            .provinces
+            .values()
+            .filter(|p| stat.region_owner.get(&p.region) == Some(&tag))
+            .fold((0u64, 0u64), |(h, t), p| {
+                let holder = military.owner_of(p.id, &p.owner);
+                (h + (holder == tag) as u64, t + 1)
+            });
         let held_permille = (held * 1000).checked_div(total).unwrap_or(1000);
         // Effective monthly output in centi-points, from the regional
         // base (already power-weighted region by region).

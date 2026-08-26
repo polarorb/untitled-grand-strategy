@@ -122,9 +122,24 @@ impl RegionalPower {
 #[derive(Resource, Debug, Default, Clone)]
 pub struct EconomyStatic {
     pub region_industry: BTreeMap<RegionId, u64>,
+    /// Regional ownership — seeded 1950, DYNAMIC thereafter
+    /// (independence transfers reassign whole regions).
     pub region_owner: BTreeMap<RegionId, CountryTag>,
     pub deposits: BTreeMap<CountryTag, BTreeMap<DepositKind, u64>>,
     pub initialized: bool,
+}
+
+impl EconomyStatic {
+    pub fn digest(&self) -> u64 {
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        for (r, tag) in &self.region_owner {
+            h = (h ^ r.0 as u64).wrapping_mul(0x0000_0100_0000_01b3);
+            for b in tag.0.bytes() {
+                h = (h ^ b as u64).wrapping_mul(0x0000_0100_0000_01b3);
+            }
+        }
+        h
+    }
 }
 
 /// Monthly balances. Runs after demography in `TickSet::Economy`.

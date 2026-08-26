@@ -190,7 +190,30 @@ pub enum EventTrigger {
     },
     /// Fires when at least `count` of `owner`'s 1950 provinces are held
     /// by countries at war with `owner`.
-    ProvincesLost { owner: CountryTag, count: u16 },
+    ProvincesLost {
+        owner: CountryTag,
+        count: u16,
+    },
+    /// Fires when global tension (internal tenths, displayed x10) is
+    /// at or above / below the threshold.
+    TensionAbove {
+        tenths: i32,
+    },
+    TensionBelow {
+        tenths: i32,
+    },
+    /// Chain: fires `days_after` days after the named event fired.
+    EventFired {
+        id: String,
+        days_after: u16,
+    },
+    /// Chain: fires `days_after` days after the named event was
+    /// resolved with the given option index.
+    OptionChosen {
+        id: String,
+        option: u8,
+        days_after: u16,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -238,6 +261,31 @@ pub enum EventEffect {
     GrantLegitimacy {
         country: CountryTag,
         amount: i32,
+    },
+    /// Realign a country's bloc: "WesternBloc" | "EasternBloc" |
+    /// "NonAligned". Flips basing, patronage, allocator behavior.
+    SetAlignment {
+        country: CountryTag,
+        alignment: String,
+    },
+    /// Coups, uprisings, and steadied governments (clamped 0-100).
+    AdjustStability {
+        country: CountryTag,
+        delta: i32,
+    },
+    /// Aid or war damage: centi-points of industry, distributed across
+    /// the recipient's regions proportionally.
+    GrantIndustry {
+        country: CountryTag,
+        centi: i64,
+    },
+    /// A new state is born: regions containing the named provinces
+    /// (owned by `from` in 1950) transfer to `country`, with manpower
+    /// seeded from the transferred population.
+    Independence {
+        country: CountryTag,
+        from: CountryTag,
+        provinces: Vec<String>,
     },
     /// Authorize the thermonuclear ("Super") follow-on program.
     AuthorizeThermonuclear {
@@ -443,6 +491,15 @@ impl ScenarioData {
         if projects_path.exists() {
             projects = load_ron(&projects_path)?;
         }
+        // Regional event files merge after the legacy events.ron, in
+        // sorted filename order (deterministic definition order).
+        let events_dir = scenario_dir.join("events");
+        if events_dir.is_dir() {
+            for entry in read_dir_sorted(&events_dir)? {
+                let more: Vec<EventDef> = load_ron(&entry)?;
+                events.extend(more);
+            }
+        }
 
         // Nation-select metadata is optional: the directory may not exist
         // yet, and coverage of minor tags may be partial.
@@ -470,6 +527,70 @@ impl ScenarioData {
         };
         data.validate()?;
         Ok(data)
+    }
+
+    fn validate_events(&self) -> Result<(), DataError> {
+        let ids: Vec<&String> = self.events.iter().map(|e| &e.id).collect();
+        let mut seen = std::collections::BTreeSet::new();
+        for id in &ids {
+            if !seen.insert(*id) {
+                return Err(DataError::Validation(format!("duplicate event id {id}")));
+            }
+        }
+        for event in &self.events {
+            match &event.trigger {
+                EventTrigger::EventFired { id, .. } | EventTrigger::OptionChosen { id, .. } => {
+                    if !seen.contains(id) {
+                        return Err(DataError::Validation(format!(
+                            "event {} chains from unknown event {id}",
+                            event.id
+                        )));
+                    }
+                }
+                _ => {}
+            }
+            let all_effects = event
+                .effects
+                .iter()
+                .chain(event.options.iter().flat_map(|o| o.effects.iter()));
+            for effect in all_effects {
+                match effect {
+                    EventEffect::SetAlignment { alignment, .. } => {
+                        if !["WesternBloc", "EasternBloc", "NonAligned"]
+                            .contains(&alignment.as_str())
+                        {
+                            return Err(DataError::Validation(format!(
+                                "event {}: unknown alignment {alignment}",
+                                event.id
+                            )));
+                        }
+                    }
+                    EventEffect::Independence {
+                        country,
+                        from,
+                        provinces,
+                    } => {
+                        if !self.countries.contains_key(country) {
+                            return Err(DataError::Validation(format!(
+                                "event {}: independence for unknown country {}",
+                                event.id, country.0
+                            )));
+                        }
+                        if provinces.is_empty() {
+                            return Err(DataError::Validation(format!(
+                                "event {}: independence with no provinces",
+                                event.id
+                            )));
+                        }
+                        for name in provinces {
+                            self.province_by_name(from, name)?;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        Ok(())
     }
 
     fn validate_projects(&self) -> Result<(), DataError> {
@@ -520,6 +641,7 @@ impl ScenarioData {
 
     fn validate(&self) -> Result<(), DataError> {
         self.validate_projects()?;
+        self.validate_events()?;
         for entry in &self.oob {
             self.province_by_name(&entry.owner, &entry.province)?;
             if !["Infantry", "Motorized", "Armor"].contains(&entry.archetype.as_str()) {

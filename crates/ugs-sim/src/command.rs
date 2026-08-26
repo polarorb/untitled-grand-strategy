@@ -246,7 +246,9 @@ impl PendingCommands {
 #[derive(bevy_ecs::system::SystemParam)]
 pub struct EconCtx<'w> {
     construction: ResMut<'w, crate::construction::Construction>,
-    stat: Res<'w, crate::economy::EconomyStatic>,
+    stat: ResMut<'w, crate::economy::EconomyStatic>,
+    regional: ResMut<'w, crate::construction::RegionalIndustry>,
+    demo: Res<'w, crate::demography::Demographics>,
     power: Res<'w, crate::economy::RegionalPower>,
     national: Res<'w, crate::economy::NationalBalances>,
 }
@@ -788,6 +790,9 @@ pub fn apply_commands(
                         &deterrence,
                         &mut econ,
                         &mut settlements,
+                        &mut econ_ctx.stat,
+                        &mut econ_ctx.regional,
+                        &econ_ctx.demo,
                         &scenario.0,
                         clock.date.year as i64 * 12 + clock.date.month as i64,
                         clock.tick,

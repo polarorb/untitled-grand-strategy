@@ -456,10 +456,9 @@ pub fn patrons_of(
     client: &CountryTag,
 ) -> BTreeSet<CountryTag> {
     let mut out = BTreeSet::new();
-    let alignment = data.countries.get(client).map(|c| c.alignment);
-    let superpower = match alignment {
-        Some(Alignment::WesternBloc) => Some(CountryTag("USA".into())),
-        Some(Alignment::EasternBloc) => Some(CountryTag("SOV".into())),
+    let superpower = match military.alignment_of(data, client) {
+        Alignment::WesternBloc => Some(CountryTag("USA".into())),
+        Alignment::EasternBloc => Some(CountryTag("SOV".into())),
         _ => None,
     };
     if let Some(sp) = superpower {
@@ -508,9 +507,7 @@ pub fn red_line_triggered(
     military: &Military,
     stakeholder: &CountryTag,
 ) -> bool {
-    let Some(my_alignment) = data.countries.get(stakeholder).map(|c| c.alignment) else {
-        return false;
-    };
+    let my_alignment = military.alignment_of(data, stakeholder);
     // Provinces adjacent to the stakeholder's home territory.
     let mut border_adjacent: BTreeSet<ProvinceId> = BTreeSet::new();
     for p in data.provinces.values() {
@@ -521,7 +518,8 @@ pub fn red_line_triggered(
     military.formations.values().any(|f| {
         border_adjacent.contains(&f.location)
             && data.countries.get(&f.owner).is_some_and(|c| {
-                c.industry >= tuning::GREAT_POWER_INDUSTRY && c.alignment != my_alignment
+                c.industry >= tuning::GREAT_POWER_INDUSTRY
+                    && military.alignment_of(data, &f.owner) != my_alignment
             })
             && f.owner != *stakeholder
     })
@@ -561,11 +559,11 @@ fn same_side(data: &ScenarioData, military: &Military, a: &CountryTag, b: &Count
     }
     matches!(
         (
-            data.countries.get(a).map(|c| c.alignment),
-            data.countries.get(b).map(|c| c.alignment),
+            military.alignment_of(data, a),
+            military.alignment_of(data, b),
         ),
-        (Some(Alignment::WesternBloc), Some(Alignment::WesternBloc))
-            | (Some(Alignment::EasternBloc), Some(Alignment::EasternBloc))
+        (Alignment::WesternBloc, Alignment::WesternBloc)
+            | (Alignment::EasternBloc, Alignment::EasternBloc)
     )
 }
 
