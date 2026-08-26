@@ -67,7 +67,8 @@ pub mod tuning {
     pub const DEFECTOR_SPIKE: u32 = 200;
 }
 
-/// A pending covert operation queued by command, resolved next month.
+/// A pending covert operation queued by command, resolved the same
+/// tick in the Politics stage (before the monthly pass).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OpKind {
     /// Set a nuclear facility back / apply a program malus.
@@ -133,19 +134,36 @@ pub struct Intel {
     /// (viewer, subject, domain) where the viewer has pierced the
     /// subject's deception — a one-way flag.
     pub seen_through: BTreeSet<(CountryTag, CountryTag, Domain)>,
-    /// Operations queued this tick, resolved on the next monthly pass.
+    /// Operations queued this tick, resolved same tick before the
+    /// monthly pass.
     pub pending_ops: Vec<PendingOp>,
+    /// The embassy/attaché baseline every pair shares — one accruing
+    /// scalar instead of an O(countries^2) table of identical values.
+    /// `knowledge()` floors every pair at this; only funded/active
+    /// pairs get their own table entry.
+    embassy_floor: u32,
     /// Cursor into FiredEvents.resolved for spy-trial outcomes.
     spy_cursor: usize,
     seeded: bool,
 }
 
 impl Intel {
+    /// Penetration a viewer has on a subject, floored at the shared
+    /// embassy baseline — so an absent table entry reads as embassy
+    /// coverage, not zero.
     pub fn penetration_of(&self, viewer: &CountryTag, subject: &CountryTag) -> DomainPenetration {
-        self.penetration
+        let stored = self
+            .penetration
             .get(&(viewer.clone(), subject.clone()))
             .copied()
-            .unwrap_or_default()
+            .unwrap_or_default();
+        let f = self.embassy_floor;
+        DomainPenetration {
+            nuclear: stored.nuclear.max(f),
+            military: stored.military.max(f),
+            economic: stored.economic.max(f),
+            political: stored.political.max(f),
+        }
     }
 
     /// Viewer's knowledge in a domain, 0-1000 — used by every consumer.
@@ -214,7 +232,8 @@ impl Intel {
             h = fold(h, &s.0);
             h = (h ^ *d as u64).wrapping_mul(0x0000_0100_0000_01b3);
         }
-        h
+        (h ^ self.embassy_floor as u64 ^ ((self.spy_cursor as u64) << 20))
+            .wrapping_mul(0x0000_0100_0000_01b3)
     }
 }
 
@@ -256,6 +275,11 @@ pub fn update_intel(
         return;
     }
 
+    // The shared embassy/attache baseline: one scalar every pair reads
+    // as a floor (all embassy-only pairs are identical — same start,
+    // rate, cap — so there is no reason to store them individually).
+    intel.embassy_floor = approach(intel.embassy_floor, EMBASSY_CAP, EMBASSY_RATE);
+
     // Network strength grows toward 100 * funding/3.
     let net_keys: Vec<(CountryTag, CountryTag)> = intel.networks.keys().cloned().collect();
     for key in &net_keys {
@@ -266,73 +290,79 @@ pub fn update_intel(
         }
     }
 
-    // Build the set of (viewer, subject) pairs that need updating: every
-    // funded network, plus every embassy pair (all country pairs with
-    // relations — v1: all pairs get the embassy floor).
-    let subjects: Vec<CountryTag> = data.countries.keys().cloned().collect();
-    for viewer in &subjects {
-        for subject in &subjects {
-            if viewer == subject {
-                continue;
+    // Only funded networks and pairs that already carry an above-floor
+    // entry (a lapsed network decaying back, or op-injected penetration)
+    // need per-pair work — never the full O(countries^2) table.
+    let mut active: Vec<(CountryTag, CountryTag)> = intel
+        .networks
+        .iter()
+        .filter(|(_, n)| n.funding > 0 && n.strength > 0)
+        .map(|(k, _)| k.clone())
+        .chain(intel.penetration.keys().cloned())
+        .collect();
+    active.sort();
+    active.dedup();
+
+    let floor = intel.embassy_floor;
+    for (viewer, subject) in active {
+        let net = intel
+            .networks
+            .get(&(viewer.clone(), subject.clone()))
+            .cloned()
+            .unwrap_or_default();
+        let ci = intel.ci_permille(&subject, data);
+        let ci_penalty = ci / CI_CAP_PENALTY_DIVISOR;
+        let net_active = net.funding > 0 && net.strength > 0;
+        let net_scale = net.strength.min(100);
+        let net_cap = |full: u32| -> u32 {
+            if !net_active {
+                return 0;
             }
-            let net = intel
-                .networks
-                .get(&(viewer.clone(), subject.clone()))
-                .cloned()
-                .unwrap_or_default();
-            let ci = intel.ci_permille(subject, data);
-            let ci_penalty = ci / CI_CAP_PENALTY_DIVISOR;
-            // Per-domain cap = best of embassy floor and (funded) network.
-            let net_active = net.funding > 0 && net.strength > 0;
-            let net_scale = net.strength.min(100); // 0-100
-            let net_cap = |full: u32| -> u32 {
-                if !net_active {
-                    return 0;
-                }
-                let reduced = full.saturating_sub(ci_penalty);
-                reduced * net_scale / 100
+            let reduced = full.saturating_sub(ci_penalty);
+            reduced * net_scale / 100
+        };
+        // Caps are the network ceilings; the embassy floor is applied at
+        // read time in penetration_of, so a lapsed pair decays toward 0.
+        let caps = [
+            (Domain::Nuclear, net_cap(NET_CAP_NUCLEAR), DECAY_NUCLEAR),
+            (Domain::Military, net_cap(NET_CAP_MILITARY), DECAY_MILITARY),
+            (Domain::Economic, net_cap(NET_CAP_ECONOMIC), DECAY_ECONOMIC),
+            (
+                Domain::Political,
+                net_cap(NET_CAP_POLITICAL),
+                DECAY_POLITICAL,
+            ),
+        ];
+        let rate = NET_RATE;
+        let entry = intel
+            .penetration
+            .entry((viewer.clone(), subject.clone()))
+            .or_default();
+        for (domain, cap, decay) in caps {
+            let cur = entry.get(domain);
+            let next = if cur < cap {
+                approach(cur, cap, rate)
+            } else {
+                decay_to(cur, cap, decay)
             };
-            let caps = [
-                (
-                    Domain::Nuclear,
-                    EMBASSY_CAP.max(net_cap(NET_CAP_NUCLEAR)),
-                    DECAY_NUCLEAR,
-                ),
-                (
-                    Domain::Military,
-                    EMBASSY_CAP.max(net_cap(NET_CAP_MILITARY)),
-                    DECAY_MILITARY,
-                ),
-                (
-                    Domain::Economic,
-                    EMBASSY_CAP.max(net_cap(NET_CAP_ECONOMIC)),
-                    DECAY_ECONOMIC,
-                ),
-                (
-                    Domain::Political,
-                    EMBASSY_CAP.max(net_cap(NET_CAP_POLITICAL)),
-                    DECAY_POLITICAL,
-                ),
-            ];
-            let rate = if net_active { NET_RATE } else { EMBASSY_RATE };
-            let entry = intel
-                .penetration
-                .entry((viewer.clone(), subject.clone()))
-                .or_default();
-            for (domain, cap, decay) in caps {
-                let cur = entry.get(domain);
-                let next = if cur < cap {
-                    approach(cur, cap, rate)
-                } else {
-                    decay_to(cur, cap, decay)
-                };
-                match domain {
-                    Domain::Nuclear => entry.nuclear = next,
-                    Domain::Military => entry.military = next,
-                    Domain::Economic => entry.economic = next,
-                    Domain::Political => entry.political = next,
-                }
+            match domain {
+                Domain::Nuclear => entry.nuclear = next,
+                Domain::Military => entry.military = next,
+                Domain::Economic => entry.economic = next,
+                Domain::Political => entry.political = next,
             }
+        }
+        // Prune only LAPSED pairs that have decayed to the shared floor:
+        // they read identically to an absent entry. An active network
+        // still building below the floor must keep its entry, or it
+        // could never accumulate past the baseline.
+        if !net_active
+            && entry.nuclear <= floor
+            && entry.military <= floor
+            && entry.economic <= floor
+            && entry.political <= floor
+        {
+            intel.penetration.remove(&(viewer, subject));
         }
     }
 }
