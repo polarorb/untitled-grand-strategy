@@ -228,6 +228,17 @@ pub enum EventEffect {
         country: CountryTag,
         amount: u64,
     },
+    /// Declare a war aim: "StatusQuoAnte" | "Punish" | "NewLine" | "Unify".
+    SetWarAim {
+        country: CountryTag,
+        enemy: CountryTag,
+        aim: String,
+    },
+    /// International standing (UN mandates, coalition breadth).
+    GrantLegitimacy {
+        country: CountryTag,
+        amount: i32,
+    },
     /// Authorize the thermonuclear ("Super") follow-on program.
     AuthorizeThermonuclear {
         country: CountryTag,

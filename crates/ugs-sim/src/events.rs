@@ -65,8 +65,10 @@ fn apply_effects(
     nuclear: &mut crate::nuclear::NuclearPrograms,
     deterrence: &crate::deterrence::Deterrence,
     econ: &mut crate::planning::Economies,
+    settlements: &mut crate::settlement::Settlements,
     fired_notices: &mut Vec<(String, String)>,
     month_index: i64,
+    tick: u64,
 ) {
     for effect in effects {
         match effect {
@@ -79,6 +81,16 @@ fn apply_effects(
                 // after events in the Politics chain) — deterministic,
                 // and thematically the general staff works from the
                 // last estimate. Do not reorder the chain casually.
+                if settlements.truce_active(a, b, tick) {
+                    fired_notices.push((
+                        "TRUCE HOLDS".into(),
+                        format!(
+                            "A SIGNED SETTLEMENT BARS WAR BETWEEN {} AND {}. THE TREATY, FOR NOW, IS STRONGER THAN THE GRIEVANCE.",
+                            a.0, b.0
+                        ),
+                    ));
+                    continue;
+                }
                 if deterrence.class(a, b) == crate::deterrence::DyadClass::Mutual {
                     fired_notices.push((
                         "WAR UNTHINKABLE".into(),
@@ -136,6 +148,25 @@ fn apply_effects(
                 if let Some(st) = econ.industry.get_mut(country) {
                     st.military_stock += amount;
                 }
+            }
+            EventEffect::SetWarAim {
+                country,
+                enemy,
+                aim,
+            } => {
+                use crate::settlement::WarAim;
+                let aim = match aim.as_str() {
+                    "Punish" => WarAim::Punish,
+                    "NewLine" => WarAim::NewLine,
+                    "Unify" => WarAim::Unify,
+                    _ => WarAim::StatusQuoAnte,
+                };
+                settlements
+                    .war_aims
+                    .insert((country.clone(), enemy.clone()), aim);
+            }
+            EventEffect::GrantLegitimacy { country, amount } => {
+                *settlements.legitimacy.entry(country.clone()).or_default() += amount;
             }
             EventEffect::AuthorizeThermonuclear { country } => {
                 nuclear.authorize_thermonuclear(country, month_index);
@@ -206,6 +237,7 @@ pub fn update_events(
     mut military: ResMut<Military>,
     mut nuclear: ResMut<crate::nuclear::NuclearPrograms>,
     mut econ: ResMut<crate::planning::Economies>,
+    mut settlements: ResMut<crate::settlement::Settlements>,
 ) {
     let Some(scenario) = scenario else { return };
     let data = &scenario.0;
@@ -244,8 +276,10 @@ pub fn update_events(
                     &mut nuclear,
                     &deterrence,
                     &mut econ,
+                    &mut settlements,
                     &mut notices,
                     clock.date.year as i64 * 12 + clock.date.month as i64,
+                    clock.tick,
                 );
                 fired.notices.extend(notices);
             }
@@ -292,8 +326,10 @@ pub fn update_events(
                 &mut nuclear,
                 &deterrence,
                 &mut econ,
+                &mut settlements,
                 &mut notices,
                 clock.date.year as i64 * 12 + clock.date.month as i64,
+                clock.tick,
             );
             fired.notices.extend(notices);
         }
@@ -309,8 +345,10 @@ pub fn resolve_event(
     nuclear: &mut crate::nuclear::NuclearPrograms,
     deterrence: &crate::deterrence::Deterrence,
     econ: &mut crate::planning::Economies,
+    settlements: &mut crate::settlement::Settlements,
     data: &ScenarioData,
     month_index: i64,
+    tick: u64,
     id: &str,
     option: u8,
 ) {
@@ -348,8 +386,10 @@ pub fn resolve_event(
         nuclear,
         deterrence,
         econ,
+        settlements,
         &mut notices,
         month_index,
+        tick,
     );
     fired.notices.extend(notices);
 }
@@ -471,15 +511,21 @@ mod tests {
                 military.wars
             );
             assert!(
-                fired
-                    .notices
-                    .iter()
-                    .any(|(t, _)| t.contains("ARMISTICE") || t.contains("RESISTANCE")),
-                "an armistice or capitulation notice should exist"
+                fired.notices.iter().any(|(t, _)| t.contains("ARMISTICE")
+                    || t.contains("RESISTANCE")
+                    || t.contains("SETTLEMENT")),
+                "a termination notice should exist (armistice, settlement, or collapse): {:?}",
+                fired.notices.iter().map(|(t, _)| t).collect::<Vec<_>>()
             );
+            // The ending is a recorded outcome: a signed treaty (which
+            // may restore the status quo ante and clear the occupation
+            // map), a frozen conflict, or a persisting line of control.
+            let settlements = app.world().resource::<crate::settlement::Settlements>();
             assert!(
-                !military.occupation.is_empty(),
-                "the line of control persists as the new map"
+                !settlements.treaties.is_empty()
+                    || !settlements.frozen.is_empty()
+                    || !military.occupation.is_empty(),
+                "the war's ending must leave an outcome object"
             );
         }
     }

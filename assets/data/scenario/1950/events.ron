@@ -77,6 +77,7 @@
         body: "SEOUL -- FLASH FLASH FLASH -- KOREAN PEOPLES ARMY CROSSES 38TH PARALLEL IN FORCE AT 0400 LOCAL. ARTILLERY PREPARATION FOLLOWED BY ARMORED COLUMNS ON KAESONG-SEOUL AXIS. ROK POSITIONS OVERRUN AT MULTIPLE POINTS. ATTACK APPEARS GENERAL ALONG ENTIRE PARALLEL. AMBASSADOR MUCCIO CONFIRMS INVASION UNDERWAY. THIS IS NOT A BORDER RAID.",
         effects: [
             DeclareWar(a: ("PRK"), b: ("KOR")),
+            SetWarAim(country: ("PRK"), enemy: ("KOR"), aim: "Unify"),
             SetPosture(country: ("PRK"), enemy: ("KOR"), posture: "Advance"),
             AdjustTension(200),
         ],
@@ -93,6 +94,12 @@
                 label: "COMMIT US GROUND FORCES",
                 effects: [
                     DeclareWar(a: ("USA"), b: ("PRK")),
+                    // UNSC Resolution 83: the mandate is to REPEL the
+                    // attack -- going north is the player's own upgrade.
+                    SetWarAim(country: ("USA"), enemy: ("PRK"), aim: "StatusQuoAnte"),
+                    SetWarAim(country: ("KOR"), enemy: ("PRK"), aim: "Unify"),
+                    GrantLegitimacy(country: ("USA"), amount: 25),
+                    GrantLegitimacy(country: ("KOR"), amount: 10),
                     SetPosture(country: ("USA"), enemy: ("PRK"), posture: "Advance"),
                     SetPosture(country: ("KOR"), enemy: ("PRK"), posture: "Advance"),
                     SpawnForces(owner: ("USA"), province_owner: ("KOR"), province: "South Gyeongsang", archetype: "Infantry", divisions: 3, quality: 1250),
@@ -131,6 +138,8 @@
         effects: [
             DeclareWar(a: ("PRC"), b: ("KOR")),
             DeclareWar(a: ("PRC"), b: ("USA")),
+            SetWarAim(country: ("PRC"), enemy: ("USA"), aim: "Punish"),
+            SetWarAim(country: ("PRC"), enemy: ("KOR"), aim: "Punish"),
             SetPosture(country: ("PRC"), enemy: ("KOR"), posture: "Advance"),
             SetPosture(country: ("PRC"), enemy: ("USA"), posture: "Advance"),
             SetPosture(country: ("USA"), enemy: ("PRK"), posture: "Hold"),

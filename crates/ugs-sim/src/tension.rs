@@ -24,6 +24,11 @@ pub mod tuning {
 #[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GlobalTension {
     value: i32,
+    /// Extra floor above the era floor, set by standing outcomes
+    /// (frozen conflicts, unrecognized annexations). Derived monthly
+    /// by the settlement system.
+    #[serde(default)]
+    pub extra_floor: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,6 +43,7 @@ impl GlobalTension {
     pub fn new(value: i32) -> Self {
         Self {
             value: value.clamp(0, tuning::MAX),
+            extra_floor: 0,
         }
     }
 
@@ -81,9 +87,10 @@ pub fn decay_tension(clock: Res<SimClock>, mut tension: ResMut<GlobalTension>) {
     if !clock.new_day {
         return;
     }
-    if tension.value > tuning::ERA_FLOOR {
+    let floor = tuning::ERA_FLOOR + tension.extra_floor.max(0);
+    if tension.value > floor {
         let decay = tuning::BASE_DECAY_PER_DAY + tension.value / tuning::DECAY_SCALE_DIVISOR;
-        tension.value = (tension.value - decay).max(tuning::ERA_FLOOR);
+        tension.value = (tension.value - decay).max(floor);
     }
 }
 

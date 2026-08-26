@@ -76,7 +76,10 @@ pub enum SimCommand {
         active: bool,
     },
     /// Create an empty player theater.
-    CreateTheater { country: CountryTag, name: String },
+    CreateTheater {
+        country: CountryTag,
+        name: String,
+    },
     /// Paint one province into (or out of) a theater. Exclusive within
     /// a country: adding removes it from that country's other theaters.
     PaintTheater {
@@ -86,7 +89,10 @@ pub enum SimCommand {
         add: bool,
     },
     /// Delete a theater; its formations go unassigned (walk home).
-    DeleteTheater { country: CountryTag, id: TheaterId },
+    DeleteTheater {
+        country: CountryTag,
+        id: TheaterId,
+    },
     /// Assign a formation to a theater (None = unassign).
     AssignTheater {
         country: CountryTag,
@@ -117,11 +123,44 @@ pub enum SimCommand {
         tag: CountryTag,
         forbidden: bool,
     },
+    /// Declare or upgrade a war aim (upgrades are priced in tension
+    /// and legitimacy; lowering is free).
+    SetWarAim {
+        country: CountryTag,
+        enemy: CountryTag,
+        aim: crate::settlement::WarAim,
+    },
+    /// Occupation zone policy posture.
+    SetZonePolicy {
+        holder: CountryTag,
+        original: CountryTag,
+        policy: crate::settlement::ZonePolicy,
+    },
+    /// Put a settlement package on the table (replaces any standing
+    /// proposal by the same proposer). Evaluated monthly.
+    ProposeSettlement {
+        proposer: CountryTag,
+        clauses: Vec<crate::settlement::Clause>,
+    },
+    WithdrawProposal {
+        proposer: CountryTag,
+    },
+    /// End the shooting unilaterally and keep what you hold: no truce,
+    /// no recognition — the holdings bleed until settled by later acts.
+    ImposeSettlement {
+        country: CountryTag,
+        enemy: CountryTag,
+    },
     /// Resolve a pending choice event with the given option index.
-    ResolveEvent { id: String, option: u8 },
+    ResolveEvent {
+        id: String,
+        option: u8,
+    },
     /// Identify the human player's country (part of the replay log so
     /// armistice AI knows who NOT to auto-decide for).
-    SetPlayerCountry { country: Option<CountryTag> },
+    SetPlayerCountry {
+        country: Option<CountryTag>,
+    },
     /// Offer (or retract) an armistice to an enemy.
     SetArmisticeOffer {
         country: CountryTag,
@@ -129,23 +168,40 @@ pub enum SimCommand {
         offer: bool,
     },
     /// Found a national nuclear weapons program.
-    FoundNuclearProgram { country: CountryTag, route: String },
+    FoundNuclearProgram {
+        country: CountryTag,
+        route: String,
+    },
     /// Set a nuclear program's secrecy/speed posture.
     SetProgramPosture {
         country: CountryTag,
         posture: String,
     },
     /// Queue construction of a fissile-production facility.
-    ExpandNuclearFacility { country: CountryTag, kind: String },
+    ExpandNuclearFacility {
+        country: CountryTag,
+        kind: String,
+    },
     /// Parade deception: inflate rival estimates of this arsenal.
     /// Works — and provokes (the bomber gap drove real procurement).
-    SetParadeDeception { country: CountryTag, on: bool },
+    SetParadeDeception {
+        country: CountryTag,
+        on: bool,
+    },
     /// Strategic-forces alert level 0-3.
-    SetAlertLevel { country: CountryTag, level: u8 },
+    SetAlertLevel {
+        country: CountryTag,
+        level: u8,
+    },
     /// Fund a collection network against a target (owner = player).
-    SetNetworkFunding { target: CountryTag, level: u8 },
+    SetNetworkFunding {
+        target: CountryTag,
+        level: u8,
+    },
     /// Set the player's counterintelligence funding level 0-3.
-    SetCounterintel { level: u8 },
+    SetCounterintel {
+        level: u8,
+    },
     /// Launch a covert operation against a target (owner = player).
     LaunchOperation {
         target: CountryTag,
@@ -179,6 +235,7 @@ pub fn apply_commands(
     mut player: ResMut<PlayerCountry>,
     mut nuclear: ResMut<crate::nuclear::NuclearPrograms>,
     mut intel: ResMut<crate::intel::Intel>,
+    mut settlements: ResMut<crate::settlement::Settlements>,
     deterrence: Res<crate::deterrence::Deterrence>,
     scenario: Option<Res<SimScenario>>,
 ) {
@@ -435,6 +492,76 @@ pub fn apply_commands(
                     }
                 }
             }
+            SimCommand::SetWarAim {
+                country,
+                enemy,
+                aim,
+            } => {
+                use crate::settlement::tuning as st;
+                if !military.at_war(&country, &enemy) {
+                    continue;
+                }
+                let current = settlements.aim(&country, &enemy);
+                if aim.rung() > current.rung() {
+                    // Upgrading the object of the war is itself an act.
+                    let dt: i32 = (current.rung() + 1..=aim.rung())
+                        .map(|r| st::AIM_TENSION[r])
+                        .sum();
+                    let dl: i32 = (current.rung() + 1..=aim.rung())
+                        .map(|r| st::AIM_LEGITIMACY[r])
+                        .sum();
+                    tension.apply(dt);
+                    *settlements.legitimacy.entry(country.clone()).or_default() += dl;
+                    military.log(
+                        clock.tick,
+                        format!(
+                            "{} EXPANDS ITS WAR AIMS -- THE OBJECT IS NOW {:?}",
+                            country.0, aim
+                        ),
+                    );
+                }
+                settlements.war_aims.insert((country, enemy), aim);
+            }
+            SimCommand::SetZonePolicy {
+                holder,
+                original,
+                policy,
+            } => {
+                if let Some(z) = settlements.zones.get_mut(&(holder, original)) {
+                    z.policy = policy;
+                }
+            }
+            SimCommand::ProposeSettlement { proposer, clauses } => {
+                settlements.proposals.retain(|p| p.proposer != proposer);
+                settlements.proposals.push(crate::settlement::Proposal {
+                    proposer,
+                    clauses,
+                    since_tick: clock.tick,
+                });
+            }
+            SimCommand::WithdrawProposal { proposer } => {
+                settlements.proposals.retain(|p| p.proposer != proposer);
+            }
+            SimCommand::ImposeSettlement { country, enemy } => {
+                if military.at_war(&country, &enemy) {
+                    crate::military::end_war(&mut military, &country, &enemy);
+                    military.log(
+                        clock.tick,
+                        format!(
+                            "{} IMPOSES ITS OWN PEACE ON {} -- NO TREATY, NO RECOGNITION, NO TRUCE",
+                            country.0, enemy.0
+                        ),
+                    );
+                    fired.notices.push((
+                        "PEACE WITHOUT TREATY".into(),
+                        format!(
+                            "{} UNILATERALLY ENDS HOSTILITIES WITH {} AND KEEPS WHAT IT HOLDS. NO POWER RECOGNIZES THE NEW FACTS. THE WORLD TAKES NOTE, AND TAKES SIDES.",
+                            country.0, enemy.0
+                        ),
+                    ));
+                    tension.apply(crate::settlement::tuning::ANNEX_TENSION_FLOOR);
+                }
+            }
             SimCommand::SetArmisticeOffer {
                 country,
                 enemy,
@@ -458,8 +585,10 @@ pub fn apply_commands(
                         &mut nuclear,
                         &deterrence,
                         &mut econ,
+                        &mut settlements,
                         &scenario.0,
                         clock.date.year as i64 * 12 + clock.date.month as i64,
+                        clock.tick,
                         &id,
                         option,
                     );

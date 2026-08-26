@@ -188,6 +188,7 @@ pub fn update_production(
     stat: Res<EconomyStatic>,
     balances: Res<NationalBalances>,
     power: Res<RegionalPower>,
+    military: Res<crate::military::Military>,
     mut econ: ResMut<Economies>,
     mut sol: ResMut<LivingStandards>,
 ) {
@@ -266,9 +267,22 @@ pub fn update_production(
             .unwrap_or(1000)
             .clamp(500, 1000);
 
+        // Occupied home provinces produce nothing for anyone: the
+        // holder gains no output (integration is a treaty matter), and
+        // the owner has lost it (war-termination design).
+        let (held, total) =
+            data.provinces
+                .values()
+                .filter(|p| p.owner == tag)
+                .fold((0u64, 0u64), |(h, t), p| {
+                    let holder = military.owner_of(p.id, &p.owner);
+                    (h + (holder == tag) as u64, t + 1)
+                });
+        let held_permille = (held * 1000).checked_div(total).unwrap_or(1000);
         let st = econ.industry.get_mut(&tag).unwrap();
         // Effective monthly output in centi-points.
-        let output = st.actual_centi * power_factor / 1000 * materials / 1000;
+        let output =
+            st.actual_centi * power_factor / 1000 * materials / 1000 * held_permille / 1000;
         let consumer_out = output * consumer_pm / 1000;
         let invest_out = output * invest_pm / 1000;
         st.military_stock += output * military_pm / 1000 / 100;

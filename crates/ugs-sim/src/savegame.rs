@@ -78,6 +78,7 @@ pub fn reset_sim(world: &mut World, start_date: GameDate, seed: u64) {
     world.insert_resource(crate::crisis::Crises::default());
     world.remove_resource::<crate::crisis::GameOver>();
     world.insert_resource(crate::intel::Intel::default());
+    world.insert_resource(crate::settlement::Settlements::default());
 }
 
 /// Rebuild the world from a save: reset, then replay every tick with the
@@ -132,12 +133,13 @@ mod tests {
     fn digest(app: &App) -> String {
         let world = app.world();
         format!(
-            "{:?}|{:x}|{:x}|{:x}|{:x}",
+            "{:?}|{:x}|{:x}|{:x}|{:x}|{:x}",
             world.resource::<SimClock>(),
             world.resource::<Demographics>().digest(),
             world.resource::<Economies>().digest(),
             world.resource::<crate::agriculture::Agriculture>().digest(),
             world.resource::<crate::military::Military>().digest(),
+            world.resource::<crate::settlement::Settlements>().digest(),
         )
     }
 

@@ -26,6 +26,7 @@ pub mod nuclear;
 pub mod planning;
 pub mod rng;
 pub mod savegame;
+pub mod settlement;
 pub mod tension;
 
 use bevy_app::{App, Plugin};
@@ -112,6 +113,7 @@ impl Plugin for SimPlugin {
         app.init_resource::<deterrence::Deterrence>();
         app.init_resource::<crisis::Crises>();
         app.init_resource::<intel::Intel>();
+        app.init_resource::<settlement::Settlements>();
         app.configure_sets(
             SimTick,
             (
@@ -133,6 +135,7 @@ impl Plugin for SimPlugin {
             (
                 tension::decay_tension,
                 events::update_events,
+                settlement::update_settlements,
                 nuclear::update_nuclear,
                 deterrence::update_deterrence,
                 crisis::update_crises,

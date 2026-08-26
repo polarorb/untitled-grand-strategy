@@ -695,12 +695,9 @@ impl Military {
 pub fn update_military(
     clock: Res<SimClock>,
     scenario: Option<Res<SimScenario>>,
-    player: Res<PlayerCountry>,
     mut demo: ResMut<crate::demography::Demographics>,
     mut rng: ResMut<SimRng>,
     mut military: ResMut<Military>,
-    mut fired: ResMut<crate::events::FiredEvents>,
-    mut tension: ResMut<crate::tension::GlobalTension>,
 ) {
     let Some(scenario) = scenario else { return };
     let data = &scenario.0;
@@ -1168,17 +1165,8 @@ pub fn update_military(
         military.occupation.insert(province, occupier);
     }
 
-    // --- Monthly: armistice diplomacy ------------------------------------
-    if clock.new_month {
-        settle_wars(
-            &clock,
-            data,
-            &player.0,
-            &mut military,
-            &mut fired,
-            &mut tension,
-        );
-    }
+    // (Armistice diplomacy moved to the settlement system:
+    // settlement::update_settlements owns war termination now.)
 }
 
 /// The country the human player controls (None = observer / headless).
@@ -1186,80 +1174,7 @@ pub fn update_military(
 #[derive(Resource, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct PlayerCountry(pub Option<CountryTag>);
 
-/// End wars at the line of control. Non-player countries become willing
-/// automatically (long war + static front, or a broken army); the player
-/// must offer explicitly. Total collapse (no army, no home provinces)
-/// ends a war unilaterally.
-fn settle_wars(
-    clock: &SimClock,
-    data: &ugs_data::ScenarioData,
-    player: &Option<CountryTag>,
-    military: &mut Military,
-    fired: &mut crate::events::FiredEvents,
-    tension: &mut crate::tension::GlobalTension,
-) {
-    use tuning::*;
-    let pairs: Vec<(CountryTag, CountryTag)> = military.wars.clone();
-    for (a, b) in pairs {
-        let start = military
-            .war_started
-            .get(&(a.clone(), b.clone()))
-            .copied()
-            .unwrap_or(0);
-        let war_months = (clock.tick.saturating_sub(start)) / (24 * 30);
-        let stale_months = (clock.tick.saturating_sub(military.last_line_change_tick)) / (24 * 30);
-
-        let formations_of = |m: &Military, tag: &CountryTag| {
-            m.formations.values().filter(|f| &f.owner == tag).count()
-        };
-        let holds_home = |m: &Military, tag: &CountryTag| {
-            data.provinces
-                .values()
-                .any(|p| p.owner == *tag && m.owner_of(p.id, &p.owner) == *tag)
-        };
-
-        // Total collapse: no army and no home soil — resistance ends.
-        let collapsed =
-            |m: &Military, tag: &CountryTag| formations_of(m, tag) == 0 && !holds_home(m, tag);
-        if collapsed(military, &a) || collapsed(military, &b) {
-            let loser = if collapsed(military, &a) { &a } else { &b };
-            end_war(military, &a, &b);
-            fired.notices.push((
-                "RESISTANCE ENDS".into(),
-                format!(
-                    "ORGANIZED RESISTANCE BY {} FORCES HAS CEASED. OCCUPYING AUTHORITIES ASSUME CONTROL. THE GUNS FALL SILENT OVER A CHANGED MAP.",
-                    loser.0
-                ),
-            ));
-            tension.apply(ARMISTICE_TENSION_RELIEF);
-            continue;
-        }
-
-        let willing = |m: &Military, tag: &CountryTag, enemy: &CountryTag| {
-            if player.as_ref() == Some(tag) {
-                m.has_offered_armistice(tag, enemy)
-            } else {
-                m.has_offered_armistice(tag, enemy)
-                    || (war_months >= ARMISTICE_WAR_MONTHS
-                        && stale_months >= ARMISTICE_STALE_MONTHS)
-                    || formations_of(m, tag) == 0
-            }
-        };
-        if willing(military, &a, &b) && willing(military, &b, &a) {
-            end_war(military, &a, &b);
-            fired.notices.push((
-                "ARMISTICE SIGNED".into(),
-                format!(
-                    "{} AND {} SIGN ARMISTICE AGREEMENT. HOSTILITIES SUSPENDED ALONG THE PRESENT LINE OF CONTACT. DEMARCATION LINE FOLLOWS THE FRONT. NO POLITICAL SETTLEMENT REACHED -- THE LINE IS THE BORDER NOW, UNTIL IT ISN'T.",
-                    a.0, b.0
-                ),
-            ));
-            tension.apply(ARMISTICE_TENSION_RELIEF);
-        }
-    }
-}
-
-fn end_war(military: &mut Military, a: &CountryTag, b: &CountryTag) {
+pub(crate) fn end_war(military: &mut Military, a: &CountryTag, b: &CountryTag) {
     let pair = if a < b {
         (a.clone(), b.clone())
     } else {
@@ -1282,11 +1197,15 @@ fn end_war(military: &mut Military, a: &CountryTag, b: &CountryTag) {
 fn passable_toward(
     data: &ugs_data::ScenarioData,
     military: &Military,
+    dmz: &std::collections::BTreeSet<ProvinceId>,
     owner: &CountryTag,
     theater: Option<&Theater>,
     province: ProvinceId,
     is_target: bool,
 ) -> bool {
+    if dmz.contains(&province) {
+        return false; // demilitarized by treaty or armistice
+    }
     let Some(p) = data.provinces.get(&province) else {
         return false;
     };
@@ -1312,9 +1231,11 @@ fn passable_toward(
 }
 
 /// First hop of the shortest legal path from `from` to `to`.
+#[allow(clippy::too_many_arguments)]
 fn find_step_toward(
     data: &ugs_data::ScenarioData,
     military: &Military,
+    dmz: &std::collections::BTreeSet<ProvinceId>,
     owner: &CountryTag,
     theater: Option<&Theater>,
     from: ProvinceId,
@@ -1343,7 +1264,7 @@ fn find_step_toward(
             if *adj == to {
                 return hop;
             }
-            if passable_toward(data, military, owner, theater, *adj, false) {
+            if passable_toward(data, military, dmz, owner, theater, *adj, false) {
                 queue.push_back((*adj, hop));
             }
         }
@@ -1424,12 +1345,14 @@ pub fn update_command(
     clock: Res<SimClock>,
     scenario: Option<Res<SimScenario>>,
     player: Res<PlayerCountry>,
+    settlements: Res<crate::settlement::Settlements>,
     mut econ: ResMut<crate::planning::Economies>,
     mut military: ResMut<Military>,
     mut tension: ResMut<crate::tension::GlobalTension>,
 ) {
     let Some(scenario) = scenario else { return };
     let data = &scenario.0;
+    let dmz = settlements.dmz_provinces();
     if military.next_id == 0 {
         return; // OOB not seeded yet (update_military's first tick does it)
     }
@@ -1853,6 +1776,7 @@ pub fn update_command(
         let mut front: std::collections::BTreeSet<ProvinceId> = theater
             .provinces
             .iter()
+            .filter(|p| !dmz.contains(p))
             .filter(|p| {
                 data.provinces.get(p).is_some_and(|pd| {
                     pd.adjacent.iter().any(|adj| {
@@ -1878,12 +1802,13 @@ pub fn update_command(
                         .unwrap_or_default()
                 })
                 .filter(|adj| {
-                    data.provinces.get(adj).is_some_and(|ap| {
-                        let holder = military.owner_of(*adj, &ap.owner);
-                        military.at_war(&owner, &holder)
-                            && !theater.forbidden.contains(&holder)
-                            && !theater.forbidden.contains(&ap.owner)
-                    })
+                    !dmz.contains(adj)
+                        && data.provinces.get(adj).is_some_and(|ap| {
+                            let holder = military.owner_of(*adj, &ap.owner);
+                            military.at_war(&owner, &holder)
+                                && !theater.forbidden.contains(&holder)
+                                && !theater.forbidden.contains(&ap.owner)
+                        })
                 })
                 .collect();
             front.extend(extra);
@@ -1893,8 +1818,10 @@ pub fn update_command(
             // the front so the advance aims instead of spreading evenly.
             for objective in &theater.objectives {
                 for p in objective_path(data, &military, &theater, &front, *objective) {
-                    on_path.insert(p);
-                    front.insert(p);
+                    if !dmz.contains(&p) {
+                        on_path.insert(p);
+                        front.insert(p);
+                    }
                 }
             }
         }
@@ -2093,7 +2020,15 @@ pub fn update_command(
             continue;
         }
         let theater = theater_id.and_then(|t| military.theaters.get(&t)).cloned();
-        let dest = find_step_toward(data, &military, &owner, theater.as_ref(), location, target);
+        let dest = find_step_toward(
+            data,
+            &military,
+            &dmz,
+            &owner,
+            theater.as_ref(),
+            location,
+            target,
+        );
         if let Some(dest) = dest {
             let (_, _, days) = military.formations[&id].archetype.stats();
             let f = military.formations.get_mut(&id).unwrap();
