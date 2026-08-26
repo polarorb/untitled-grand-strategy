@@ -80,6 +80,7 @@ long the peace held.
 - [Military mechanics — unit design and limited war](research/military-mechanics.md)
 - [War legibility — making a war readable while you watch it](research/war-legibility.md)
 - [Nuclear weapons — the program, the brink, and the bomb](research/nuclear-weapons.md)
+- [Espionage — knowing things, doing things, the price of being caught](research/espionage.md)
 - [Geodata sources & licensing](research/geodata.md)
 - [The 1950 sovereignty mapping](research/sovereignty-1950.md)
 

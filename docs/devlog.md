@@ -7,6 +7,46 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — Researching the shadow war
+
+With the nuclear pillar keying deterrence off what rivals *believe*, the
+intelligence pillar is the obvious next build — it's the machinery that
+moves those beliefs. A five-analyst swarm covered genre spy mechanics
+(what makes them a chore vs a game), the intelligence-quality economy,
+sourced 1945-62 tradecraft, covert-operation design, and how the layer
+couples to everything already built. Write-up in
+[espionage research](research/espionage.md); the
+[design doc](design/systems/espionage.md) is now **designed**.
+
+The findings were bracingly consistent. Every shipped grand-strategy spy
+system broke the same two ways — mandatory maintenance chores (HoI4's
+capture-rescue treadmill, "spy system too tedious" is a real forum
+thread) and payoffs too weak to change a decision — and Twilight
+Struggle got the feel right by having no spy subsystem at all, making
+covert action the opportunity-cost structure of the whole game. So: no
+agent roster (names are narrative, not units), networks that never decay
+from inaction, risk as a legible exposure clock rather than a die roll,
+and outcome *ladders* (named world-states with PROBABLE/POSSIBLE
+likelihoods) instead of the XCOM 95%-miss betrayal.
+
+The elegant part is how little new machinery it needs. Intelligence is
+one four-domain penetration score per (viewer, subject) — nuclear,
+military, economic, political — and each domain maps 1:1 onto a consumer
+that already exists: the deterrence opacity bias, the war-UI fuzz
+widths, the planned economy's reported-vs-actual books, the crisis
+resolve band. The first commit wires those four couplings before any new
+content, so every system visibly sharpens the moment you can see through
+the fog. A single overflight collapsing the bomber gap the way one
+Saratov-Engels photo did; a network that both collects and, when spent
+on sabotage, burns the estimates it was feeding you; blown ops becoming
+the crisis system's pretext factory with deniability as the damping
+currency. And the historical spine writes itself — Fuchs, Burgess and
+Maclean, the Rosenbergs, Petrov, the U-2 shootdown that killed the Paris
+summit, Corona deflating the missile gap in 1960 (truth arriving can
+*lower* tension). Implementation next.
+
+---
+
 ## 2026-08-25 — The bomb, in four movements
 
 The flagship pillar went from designed to playing in one long push —
