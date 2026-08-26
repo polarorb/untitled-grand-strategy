@@ -539,7 +539,7 @@ impl ScenarioData {
         }
         for event in &self.events {
             match &event.trigger {
-                (EventTrigger::EventFired { id, .. } | EventTrigger::OptionChosen { id, .. })
+                EventTrigger::EventFired { id, .. } | EventTrigger::OptionChosen { id, .. }
                     if !seen.contains(id) =>
                 {
                     return Err(DataError::Validation(format!(
