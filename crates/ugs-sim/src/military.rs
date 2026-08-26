@@ -501,10 +501,52 @@ impl Military {
         }
     }
 
-    /// Where a country may base divisions and paint theaters: provinces
-    /// owned or held by itself or a co-belligerent (a country sharing an
-    /// enemy, and not itself hostile). Co-belligerent basing IS the v1
-    /// overseas-deployment abstraction (no naval transport exists).
+    /// Friendly soil for basing, painting, and passage: the country's
+    /// own, a co-belligerent's (shares an enemy, not itself hostile), or
+    /// a fellow bloc member's (Western with Western, Eastern with
+    /// Eastern — NonAligned grants nothing). The bloc clause is what
+    /// keeps an expeditionary force legal after its host signs a
+    /// separate peace: the ROK's armistice must not strand the US Army
+    /// on suddenly-forbidden ground.
+    pub fn friendly_soil(
+        &self,
+        data: &ugs_data::ScenarioData,
+        country: &CountryTag,
+        holder: &CountryTag,
+    ) -> bool {
+        if holder == country {
+            return true;
+        }
+        if self.at_war(country, holder) {
+            return false;
+        }
+        let co_belligerent = self.wars.iter().any(|(a, b)| {
+            let enemy = if a == country {
+                Some(b)
+            } else if b == country {
+                Some(a)
+            } else {
+                None
+            };
+            enemy.is_some_and(|e| self.at_war(holder, e))
+        });
+        if co_belligerent {
+            return true;
+        }
+        use ugs_data::Alignment;
+        matches!(
+            (
+                data.countries.get(country).map(|c| c.alignment),
+                data.countries.get(holder).map(|c| c.alignment),
+            ),
+            (Some(Alignment::WesternBloc), Some(Alignment::WesternBloc))
+                | (Some(Alignment::EasternBloc), Some(Alignment::EasternBloc))
+        )
+    }
+
+    /// Where a country may base divisions and paint theaters: friendly
+    /// soil (own / co-belligerent / same bloc). Overseas basing IS the
+    /// v1 deployment abstraction (no naval transport exists).
     pub fn may_operate(
         &self,
         data: &ugs_data::ScenarioData,
@@ -515,22 +557,7 @@ impl Military {
             return false;
         };
         let holder = self.owner_of(province, &p.owner);
-        if &holder == country {
-            return true;
-        }
-        if self.at_war(country, &holder) {
-            return false;
-        }
-        self.wars.iter().any(|(a, b)| {
-            let enemy = if a == country {
-                Some(b)
-            } else if b == country {
-                Some(a)
-            } else {
-                None
-            };
-            enemy.is_some_and(|e| self.at_war(&holder, e))
-        })
+        self.friendly_soil(data, country, &holder)
     }
 
     pub fn create_theater(&mut self, owner: CountryTag, name: String, auto: bool) -> TheaterId {
@@ -1279,17 +1306,9 @@ fn passable_toward(
             _ => false,
         };
     }
-    // Not at war with the holder: passable only for co-belligerents.
-    military.wars.iter().any(|(a, b)| {
-        let enemy = if a == owner {
-            Some(b)
-        } else if b == owner {
-            Some(a)
-        } else {
-            None
-        };
-        enemy.is_some_and(|e| military.at_war(&holder, e))
-    })
+    // Not hostile: passable on friendly soil (co-belligerent or bloc),
+    // never through genuine neutrals.
+    military.friendly_soil(data, owner, &holder)
 }
 
 /// First hop of the shortest legal path from `from` to `to`.
@@ -1365,18 +1384,8 @@ fn objective_path(
                 let holder = military.owner_of(*adj, &ap.owner);
                 !theater.forbidden.contains(&holder)
                     && !theater.forbidden.contains(&ap.owner)
-                    && (military.at_war(owner, &holder) || holder == *owner || {
-                        military.wars.iter().any(|(a, b)| {
-                            let enemy = if a == owner {
-                                Some(b)
-                            } else if b == owner {
-                                Some(a)
-                            } else {
-                                None
-                            };
-                            enemy.is_some_and(|e| military.at_war(&holder, e))
-                        })
-                    })
+                    && (military.at_war(owner, &holder)
+                        || military.friendly_soil(data, owner, &holder))
             });
             if !enterable {
                 continue;
@@ -2514,5 +2523,129 @@ mod tests {
             "KPA spread across the front: {} provinces",
             spread("PRK")
         );
+    }
+
+    /// The separate-peace regression: the ROK signing its own armistice
+    /// must not strand the US expeditionary force. Basing rests on
+    /// friendly soil (co-belligerent OR same bloc), so US theaters and
+    /// raising on South Korean ground survive the KOR-PRK peace.
+    #[test]
+    fn separate_peace_does_not_strand_the_expeditionary_force() {
+        use crate::command::SimCommand;
+        let mut app = app_with_scenario();
+        run_ticks(&mut app, 24 * 200); // mid-war, US committed
+        let usa = CountryTag("USA".into());
+        let kor = CountryTag("KOR".into());
+        let prk = CountryTag("PRK".into());
+        {
+            let military = app.world().resource::<Military>();
+            assert!(military.at_war(&usa, &prk), "US in the war");
+            assert!(military.at_war(&kor, &prk), "ROK in the war");
+        }
+        // Both Koreas offer; the monthly settlement signs their armistice.
+        for (country, enemy) in [(kor.clone(), prk.clone()), (prk.clone(), kor.clone())] {
+            push(
+                &mut app,
+                SimCommand::SetArmisticeOffer {
+                    country,
+                    enemy,
+                    offer: true,
+                },
+            );
+        }
+        run_ticks(&mut app, 24 * 35); // across a month boundary
+        let scenario = app.world().resource::<SimScenario>().0.clone();
+        let busan = scenario.province_by_name(&kor, "Busan").unwrap();
+        {
+            let military = app.world().resource::<Military>();
+            assert!(!military.at_war(&kor, &prk), "separate peace signed");
+            assert!(military.at_war(&usa, &prk), "the US fights on");
+            // The core regression: ROK soil stays friendly for the US.
+            assert!(
+                military.may_operate(&scenario, &usa, busan),
+                "bloc basing survives the host's separate peace"
+            );
+        }
+        // Delete every US theater, then remake and paint one — the
+        // reported unrecoverable state.
+        let mine: Vec<TheaterId> = app
+            .world()
+            .resource::<Military>()
+            .theaters
+            .iter()
+            .filter(|(_, t)| t.owner == usa)
+            .map(|(id, _)| *id)
+            .collect();
+        for id in mine {
+            push(
+                &mut app,
+                SimCommand::DeleteTheater {
+                    country: usa.clone(),
+                    id,
+                },
+            );
+        }
+        push(
+            &mut app,
+            SimCommand::CreateTheater {
+                country: usa.clone(),
+                name: "KOREA".into(),
+            },
+        );
+        run_ticks(&mut app, 1);
+        let new_theater = *app
+            .world()
+            .resource::<Military>()
+            .theaters
+            .iter()
+            .filter(|(_, t)| t.owner == usa && !t.auto)
+            .map(|(id, _)| id)
+            .next_back()
+            .expect("theater recreated");
+        push(
+            &mut app,
+            SimCommand::PaintTheater {
+                country: usa.clone(),
+                id: new_theater,
+                province: busan,
+                add: true,
+            },
+        );
+        run_ticks(&mut app, 1);
+        let military = app.world().resource::<Military>();
+        assert!(
+            military.theaters[&new_theater].provinces.contains(&busan),
+            "painting ROK soil works after the separate peace"
+        );
+        // And raising there still works (the deployment abstraction).
+        {
+            let mut econ = app.world_mut().resource_mut::<crate::planning::Economies>();
+            econ.industry.get_mut(&usa).unwrap().military_stock = 10;
+        }
+        let before = app
+            .world()
+            .resource::<Military>()
+            .formations
+            .values()
+            .filter(|f| f.owner == usa)
+            .count();
+        push(
+            &mut app,
+            SimCommand::RaiseFormation {
+                country: usa.clone(),
+                archetype: Archetype::Infantry,
+                home: busan,
+                count: 1,
+            },
+        );
+        run_ticks(&mut app, 1);
+        let after = app
+            .world()
+            .resource::<Military>()
+            .formations
+            .values()
+            .filter(|f| f.owner == usa)
+            .count();
+        assert_eq!(after, before + 1, "raising on allied soil still works");
     }
 }

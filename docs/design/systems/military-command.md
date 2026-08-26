@@ -45,14 +45,19 @@ The player never moves a division directly. They decide what exists,
 where it's based, which theater owns it, and the theater's directive;
 province-level positioning is executed by the theater logic.
 
-**Where you may operate.** Theater painting and division homes are
-legal on provinces owned or held by you **or any co-belligerent**
-(a country you share a war with). Raising a division with home on
-co-belligerent soil IS the v1 overseas-deployment abstraction: the
-division trains up in place there, the 90–150 train days standing in
-for shipping and staging. This is what lets the US build up in Korea —
-there is no naval transport in v1. Painting a province into one of
-your theaters removes it from any other theater of yours (exclusive).
+**Where you may operate.** Theater painting, division homes, and
+friendly passage are legal on provinces owned or held by you, by a
+**co-belligerent** (a country you share a war with), or by a **fellow
+bloc member** (Western with Western, Eastern with Eastern; NonAligned
+grants nothing). The bloc clause matters when wars diverge: a host that
+signs a separate peace — the ROK ending its war while the US fights
+on — stops being a co-belligerent, and without bloc basing that would
+strand the expeditionary force on suddenly-forbidden ground
+(regression-tested). Raising a division on allied soil IS the v1
+overseas-deployment abstraction: the division trains up in place, the
+90–150 train days standing in for shipping and staging. There is no
+naval transport in v1. Painting a province into one of your theaters
+removes it from any other theater of yours (exclusive).
 
 ## State
 
