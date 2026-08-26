@@ -42,6 +42,9 @@ pub(crate) enum MapMode {
     /// Theater command view: the player's theaters fill their provinces
     /// in theater colors; painting a theater switches here automatically.
     War,
+    /// The triage map: regions tinted by their binding economic
+    /// constraint, in severity bands.
+    Economy,
 }
 
 /// Marker for spawned map layer entities (fill + borders).
@@ -105,6 +108,7 @@ impl Plugin for MapPlugin {
             Ok("power") => MapMode::Power,
             Ok("strategic") => MapMode::Strategic,
             Ok("war") => MapMode::War,
+            Ok("economy") => MapMode::Economy,
             _ => MapMode::Political,
         });
         // The map underlies both the nation-select screen and the game.
@@ -538,6 +542,12 @@ fn spawn_hud(
                     "WAR",
                     "Theater command view: your theaters fill their provinces in their colors, objectives glow bright, enemy ground burns red. Painting a theater switches here automatically.",
                 ),
+                (
+                    MapMode::Economy,
+                    "ui/icon_economy.jpg",
+                    "ECONOMY",
+                    "The triage map: every region tinted by its binding constraint -- amber for power-starved, blue-gray for materials, violet for labor -- brightening with severity. Click a region's province, then open its dossier from the econ panel.",
+                ),
             ] {
                 bar.spawn((
                     Button,
@@ -777,7 +787,8 @@ fn handle_input(
             MapMode::Terrain => MapMode::Power,
             MapMode::Power => MapMode::Strategic,
             MapMode::Strategic => MapMode::War,
-            MapMode::War => MapMode::Political,
+            MapMode::War => MapMode::Economy,
+            MapMode::Economy => MapMode::Political,
         };
     }
     for (key, level) in [
@@ -886,6 +897,7 @@ fn apply_map_mode(
     deterrence: Res<ugs_sim::deterrence::Deterrence>,
     player: Option<Res<PlayerNation>>,
     fill: Option<Res<MapFill>>,
+    snaps: Res<ugs_sim::construction::RegionSnapshots>,
     mut occupation_hash: Local<u64>,
     mut war_hash: Local<u64>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -941,6 +953,7 @@ fn apply_map_mode(
         && !(*mode == MapMode::Political && occupation_changed)
         && !(*mode == MapMode::Strategic && deterrence.is_changed())
         && !(*mode == MapMode::War && (war_changed || occupation_changed))
+        && !(*mode == MapMode::Economy && snaps.is_changed())
     {
         return;
     }
@@ -1000,6 +1013,22 @@ fn apply_map_mode(
                     (96, 78, 30) // phosphor wash: we can put a bomber here
                 } else {
                     (14, 17, 21) // beyond everyone's reach: dark board
+                };
+                wobbled(rgb, *id)
+            }
+            MapMode::Economy => {
+                use ugs_sim::construction::{ConstraintKind, Severity};
+                let snap = snaps.by_region.get(&p.region);
+                let rgb = match snap.map(|s| (s.constraint, s.severity)) {
+                    Some((ConstraintKind::Healthy, _)) => (38, 52, 42),
+                    Some((ConstraintKind::Power, Severity::Critical)) => (196, 128, 26),
+                    Some((ConstraintKind::Power, _)) => (128, 92, 30),
+                    Some((ConstraintKind::Materials, Severity::Critical)) => (70, 100, 140),
+                    Some((ConstraintKind::Materials, _)) => (54, 72, 96),
+                    Some((ConstraintKind::Labor, Severity::Critical)) => (128, 70, 140),
+                    Some((ConstraintKind::Labor, _)) => (88, 56, 96),
+                    Some((ConstraintKind::Contested, _)) => (118, 40, 34),
+                    None => (20, 24, 28),
                 };
                 wobbled(rgb, *id)
             }
