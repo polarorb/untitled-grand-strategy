@@ -63,6 +63,16 @@ an echelon share, and rules of engagement — "may not cross the Yalu"
 is a checkbox. The theater controller spreads divisions along the
 front; there is no unit micro, and unpaid armies melt.
 
+And wars now *end* — as the strategic act, not a timeout. Declare what
+you are fighting for (crossing the 38th is a priced escalation), govern
+what you occupy (control, hearts-and-minds, garrisons drawn from your
+real divisions, partisans fed by your rival), and settle at a table
+where every stakeholder's answer comes with its reasons: patron red
+lines, UN legitimacy, and — for democracies — whether Congress will
+swallow the annexation. Or impose your own peace and hold ground the
+world never recognizes. Frozen conflicts, trusteeships, neutralized
+unifications, and revanchist rump states are all reachable endings.
+
 ![The war room's theater directives, mid-war](media/war-room-theaters.png)
 ![The forces ledger: stockpile, upkeep, named divisions](media/war-room-forces.png)
 

@@ -1,6 +1,6 @@
 # War termination, occupation & settlement
 
-Status: designed
+Status: implemented (v1 slice)
 Pillars: 1 (escalation — aims, red lines, imposed outcomes are
 brinkmanship), 2 (influence — legitimacy, alignment drift, plebiscites),
 3 (intel — fuzzed red lines, sponsored insurgency), 4 (economy —
@@ -326,6 +326,31 @@ as event actors. The v1 data model must not hard-code
 `EconomicSystem` as the gate's key — route it through a
 `domestic_annexation_gate(country) -> GateKind` function so the axis
 can swap in without rework.
+
+## Implementation deviations (v1, deliberate)
+
+- **Templates are code builders, not RON data**: clauses bind to the
+  live line, zones, and belligerents at proposal time, which RON
+  cannot express. The clause grammar itself is the data surface.
+- **The sponsor tap reuses espionage collection networks** (funding
+  level vs the holder) instead of a dedicated `SponsorResistance` op —
+  an honest reuse; the dedicated op arrives with the espionage
+  expansion.
+- **Insurgency flares roll daily at one-seventh weekly odds** (the
+  determinism rules ban tick-modulo weekly gates).
+- Neutralization and ClientState clauses are recorded with wire
+  notices; their mechanical teeth (basing exclusion, orbit effects)
+  land with the influence pillar.
+- Trusteeship reviews and plebiscites fire as scheduled notices, not
+  yet influence contests.
+- Treaty-ceded territory does not yet transfer economic output —
+  industry is a country scalar until per-province industry exists;
+  occupation zeroing applies to the loser either way.
+- Unrecognized-holding alignment drift toward the rival bloc awaits
+  the influence system; v1 prices non-recognition through the tension
+  floor, zero production, and the discounted sponsor tap.
+- One package signs per month (ordering simplicity); the UI ledger
+  shows exact numbers per the decided v1-legibility cut.
 
 ## Open questions (leanings)
 

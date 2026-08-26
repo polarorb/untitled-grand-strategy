@@ -7,6 +7,45 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-26 — Wars end now: aims, occupation, and the settlement table
+
+The biggest system yet, born from a playtest dead-end: the player
+occupied all of North Korea, held the Yalu, and the game had nothing to
+say about it. A 7-analyst research swarm
+([readup](research/war-termination.md)) converged on an architecture,
+the [design doc](design/systems/war-termination.md) went through the
+review gate, and the v1 slice shipped:
+
+- **War aims**: wars are fought FOR something declared. The UN mandate
+  in Korea is *repel* — going north is one click that costs 6.0
+  tension and 25 legitimacy, and hardens every patron's red line.
+  Demands are capped by the declared aim.
+- **Occupation is live state**: an occupied country is a zone with
+  military control vs popular alignment, a policy posture, garrisons
+  drawn from your real division pool, monthly stockpile upkeep,
+  partisans fed by a hostile sanctuary border and your rival's
+  networks — and occupied provinces produce nothing for anyone.
+- **The settlement table**: propose packages (status quo ante, new
+  line + DMZ, trusteeship, client state, neutralized unification,
+  unification, incorporation) against a fully-readable monthly
+  acceptance ledger — every stakeholder, every blocker by name. Beijing
+  refuses while opposing-bloc divisions sit on its border (garrison
+  the Yalu with ROK troops instead: the NSC-81/1 play, now a
+  mechanic). Annexation is priced by your own constitution: command
+  systems annex by decree and pay the world forever; democracies hit
+  "CONGRESS WILL NOT INCORPORATE 9.6M KOREANS" (the 1898 lesson).
+- **Three endings, all objects**: signed treaties (real truces, DMZs
+  that bar movement, scheduled reviews), frozen conflicts (the Korea
+  1953 armistice-without-treaty, now with a DMZ strip and a tension
+  floor — first-class content, not a failure state), and unilateral
+  imposition — keep everything you hold, recognized by no one,
+  bleeding on every channel until some later treaty discharges it.
+
+The old auto-armistice didn't die; it became the frozen-conflict
+fallback. Fittingly, the historical-arc test now usually ends its
+Korean War in a *negotiated settlement* — the AI proposes and signs on
+its own. 65 tests green.
+
 ## 2026-08-26 — Legibility pass: real toggles, tooltips, and the WAR map view
 
 Player feedback from the first sessions with the command layer, all of

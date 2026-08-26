@@ -72,7 +72,7 @@ brake until the priced escalation ceiling lands.
 
 ## Limited war & armistice
 
-**Successor spec: [war-termination](war-termination.md) (designed)** —
+**Successor spec: [war-termination](war-termination.md) (implemented v1)** —
 war aims, the settlement table, occupation zones, and outcome objects
 (Treaty / FrozenConflict / ImposeSettlement) extend and supersede the
 v1 armistice below.

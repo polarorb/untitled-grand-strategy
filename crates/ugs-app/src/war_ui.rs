@@ -2400,8 +2400,8 @@ fn settle_tab(
                         format!("  {} SIGNS (U{:+})", v.stakeholder.0, v.utility)
                     } else {
                         let why = v.blockers.first().cloned().unwrap_or_default();
-                        let why = if why.len() > 64 {
-                            format!("{}...", &why[..64])
+                        let why: String = if why.chars().count() > 64 {
+                            why.chars().take(64).chain("...".chars()).collect()
                         } else {
                             why
                         };

@@ -484,7 +484,17 @@ mod tests {
                 fired.fired.iter().any(|id| id == "chinese-intervention"),
                 "China should have entered"
             );
-            assert!(military.at_war(&CountryTag("PRC".into()), &CountryTag("USA".into())));
+            // The PRC-USA war exists (it may already have found an
+            // ending -- termination timing is emergent since the
+            // settlement system landed).
+            assert!(
+                military
+                    .war_started
+                    .keys()
+                    .any(|(a, b)| (a.0 == "PRC" && b.0 == "USA") || (a.0 == "USA" && b.0 == "PRC"))
+                    || military.at_war(&CountryTag("PRC".into()), &CountryTag("USA".into())),
+                "China fought the US"
+            );
             let prc_troops = military
                 .formations
                 .values()

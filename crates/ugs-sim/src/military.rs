@@ -1352,7 +1352,7 @@ pub fn update_command(
 ) {
     let Some(scenario) = scenario else { return };
     let data = &scenario.0;
-    let dmz = settlements.dmz_provinces();
+    let dmz = settlements.dmz_provinces(&military);
     if military.next_id == 0 {
         return; // OOB not seeded yet (update_military's first tick does it)
     }

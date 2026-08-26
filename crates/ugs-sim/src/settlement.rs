@@ -292,10 +292,19 @@ impl Settlements {
     }
 
     /// Every province in the global DMZ set (from treaties and frozen
-    /// conflicts) — divisions may not enter these.
-    pub fn dmz_provinces(&self) -> BTreeSet<ProvinceId> {
+    /// conflicts) — divisions may not enter these. A DMZ is SUSPENDED
+    /// while war has resumed between its parties: a re-ignited front
+    /// must be fightable, not walled off by its own old armistice.
+    pub fn dmz_provinces(&self, military: &Military) -> BTreeSet<ProvinceId> {
         let mut out = BTreeSet::new();
         for t in &self.treaties {
+            let broken = t
+                .signatories
+                .iter()
+                .any(|a| t.signatories.iter().any(|b| military.at_war(a, b)));
+            if broken {
+                continue;
+            }
             for c in &t.clauses {
                 if let Clause::Dmz { provinces } = c {
                     out.extend(provinces.iter().copied());
@@ -303,7 +312,9 @@ impl Settlements {
             }
         }
         for f in &self.frozen {
-            out.extend(f.dmz.iter().copied());
+            if !military.at_war(&f.a, &f.b) {
+                out.extend(f.dmz.iter().copied());
+            }
         }
         out
     }
@@ -322,10 +333,17 @@ impl Settlements {
             .filter(|(p, h)| {
                 *h == holder
                     && !self.recognized.contains(p)
-                    && data
-                        .provinces
-                        .get(p)
-                        .is_some_and(|pd| pd.owner != **h && !military.at_war(holder, &pd.owner))
+                    && data.provinces.get(p).is_some_and(|pd| {
+                        pd.owner != **h
+                            && !military.at_war(holder, &pd.owner)
+                            // A frozen conflict's line is armistice
+                            // status, not annexation — priced by its
+                            // own (smaller) tension floor.
+                            && !self.frozen.iter().any(|f| {
+                                (f.a == **h && f.b == pd.owner)
+                                    || (f.b == **h && f.a == pd.owner)
+                            })
+                    })
             })
             .count()
     }
@@ -361,9 +379,63 @@ impl Settlements {
                 fold(&mut h, v);
             }
         }
-        fold(&mut h, self.proposals.len() as u64);
-        fold(&mut h, self.treaties.len() as u64);
-        fold(&mut h, self.frozen.len() as u64);
+        fn fold_clause(h: &mut u64, c: &Clause) {
+            fold(h, c.weight().unsigned_abs() as u64);
+            let disc = match c {
+                Clause::Restore { .. } => 1u64,
+                Clause::BorderChange { .. } => 2,
+                Clause::Dmz { .. } => 3,
+                Clause::ClientState { .. } => 4,
+                Clause::Trusteeship { .. } => 5,
+                Clause::Neutralization { .. } => 6,
+                Clause::Unification { .. } => 7,
+                Clause::Incorporation { .. } => 8,
+                Clause::Reparations { .. } => 9,
+            };
+            fold(h, disc);
+            if let Some(t) = c.sovereignty_of() {
+                fold_tag(h, t);
+            }
+            match c {
+                Clause::BorderChange { provinces, .. } | Clause::Dmz { provinces } => {
+                    for p in provinces {
+                        fold(h, p.0 as u64 + 1);
+                    }
+                }
+                Clause::Reparations { stock, .. } => fold(h, *stock),
+                _ => {}
+            }
+        }
+        for p in &self.proposals {
+            fold_tag(&mut h, &p.proposer);
+            for c in &p.clauses {
+                fold_clause(&mut h, c);
+            }
+        }
+        for t in &self.treaties {
+            for sig in &t.signatories {
+                fold_tag(&mut h, sig);
+            }
+            for c in &t.clauses {
+                fold_clause(&mut h, c);
+            }
+        }
+        for f in &self.frozen {
+            fold_tag(&mut h, &f.a);
+            fold_tag(&mut h, &f.b);
+            for p in &f.dmz {
+                fold(&mut h, p.0 as u64 + 1);
+            }
+        }
+        for n in &self.neutralized {
+            fold_tag(&mut h, n);
+        }
+        for (t, label) in &self.scheduled {
+            fold(&mut h, *t);
+            for b in label.bytes() {
+                fold(&mut h, b as u64);
+            }
+        }
         for p in &self.recognized {
             fold(&mut h, p.0 as u64 + 1);
         }
@@ -557,6 +629,16 @@ pub fn evaluate(
                 stakeholders.insert(p);
             }
         }
+        // Whoever currently HOLDS restore-affected ground must sign —
+        // a KOR-PRK restoration cannot hand back US-held provinces
+        // without Washington's signature.
+        if let Clause::Restore { to } = c {
+            for (p, holder) in &military.occupation {
+                if data.provinces.get(p).is_some_and(|pd| &pd.owner == to) {
+                    stakeholders.insert(holder.clone());
+                }
+            }
+        }
     }
     stakeholders.remove(&proposal.proposer);
 
@@ -624,23 +706,6 @@ pub fn evaluate(
                 }
             }
         }
-        // Legitimacy.
-        let legit_cost = match c {
-            Clause::Incorporation { annexer, .. } => {
-                if is_planned(econ, annexer) {
-                    2 * c.weight()
-                } else {
-                    c.weight()
-                }
-            }
-            _ => c.weight().max(0),
-        };
-        if legit_cost > 0 && settlements.legitimacy_of(&proposal.proposer) < legit_cost {
-            universal_blockers.push(format!(
-                "LEGITIMACY: NEEDS {legit_cost}, HAVE {}",
-                settlements.legitimacy_of(&proposal.proposer)
-            ));
-        }
         // Domestic gate for market-system annexers.
         if let Clause::Incorporation { territory, annexer } = c {
             if !is_planned(econ, annexer) {
@@ -667,6 +732,26 @@ pub fn evaluate(
             }
         }
     }
+
+    // Legitimacy gates on the SUMMED package cost — charging is summed
+    // at execution, so the gate must match (two W4 clauses at
+    // legitimacy 6 must NOT clear).
+    let total_legit: i32 = proposal
+        .clauses
+        .iter()
+        .map(|c| match c {
+            Clause::Incorporation { annexer, .. } if is_planned(econ, annexer) => 2 * c.weight(),
+            _ => c.weight().max(0),
+        })
+        .sum();
+    if total_legit > 0 && settlements.legitimacy_of(&proposal.proposer) < total_legit {
+        universal_blockers.push(format!(
+            "LEGITIMACY: PACKAGE NEEDS {total_legit}, HAVE {}",
+            settlements.legitimacy_of(&proposal.proposer)
+        ));
+    }
+    universal_blockers.sort();
+    universal_blockers.dedup();
 
     let mut verdicts = Vec::new();
     for s in stakeholders {
@@ -844,13 +929,32 @@ fn execute(
     signatories: BTreeSet<CountryTag>,
 ) {
     let w_total: i32 = proposal.clauses.iter().map(|c| c.weight().max(0)).sum();
-    for c in &proposal.clauses {
+    // Restores execute FIRST so cessions and restorations in one
+    // package compose the way the acceptance ledger priced them,
+    // regardless of authored clause order.
+    let ordered: Vec<&Clause> = proposal
+        .clauses
+        .iter()
+        .filter(|c| matches!(c, Clause::Restore { .. }))
+        .chain(
+            proposal
+                .clauses
+                .iter()
+                .filter(|c| !matches!(c, Clause::Restore { .. })),
+        )
+        .collect();
+    for c in ordered {
         match c {
             Clause::Restore { to } => {
+                // Only signatory-held ground is released — third
+                // parties' conquests are not this treaty's to give.
                 let restore: Vec<ProvinceId> = military
                     .occupation
                     .iter()
-                    .filter(|(p, _)| data.provinces.get(p).is_some_and(|pd| &pd.owner == to))
+                    .filter(|(p, holder)| {
+                        signatories.contains(*holder)
+                            && data.provinces.get(p).is_some_and(|pd| &pd.owner == to)
+                    })
                     .map(|(p, _)| *p)
                     .collect();
                 for p in restore {
@@ -1025,6 +1129,15 @@ pub fn update_settlements(
     tension.extra_floor = floor.min(tuning::EXTRA_FLOOR_CAP);
 
     // --- Monthly: evaluate standing proposals ----------------------------
+    // A proposal from a proposer no longer at war is stale — drop it
+    // before evaluation so old packages cannot sign into new wars.
+    {
+        let wars = military.wars.clone();
+        settlements.proposals.retain(|p| {
+            wars.iter()
+                .any(|(a, b)| a == &p.proposer || b == &p.proposer)
+        });
+    }
     let proposals = settlements.proposals.clone();
     let mut signed_any = false;
     for proposal in &proposals {
