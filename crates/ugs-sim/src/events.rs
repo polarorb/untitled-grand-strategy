@@ -64,6 +64,7 @@ fn apply_effects(
     military: &mut Military,
     nuclear: &mut crate::nuclear::NuclearPrograms,
     deterrence: &crate::deterrence::Deterrence,
+    econ: &mut crate::planning::Economies,
     fired_notices: &mut Vec<(String, String)>,
     month_index: i64,
 ) {
@@ -129,6 +130,11 @@ fn apply_effects(
                     for _ in 0..*divisions {
                         military.raise(data, owner.clone(), arch, location, home, *quality as u64);
                     }
+                }
+            }
+            EventEffect::GrantStock { country, amount } => {
+                if let Some(st) = econ.industry.get_mut(country) {
+                    st.military_stock += amount;
                 }
             }
             EventEffect::AuthorizeThermonuclear { country } => {
@@ -199,6 +205,7 @@ pub fn update_events(
     mut tension: ResMut<GlobalTension>,
     mut military: ResMut<Military>,
     mut nuclear: ResMut<crate::nuclear::NuclearPrograms>,
+    mut econ: ResMut<crate::planning::Economies>,
 ) {
     let Some(scenario) = scenario else { return };
     let data = &scenario.0;
@@ -236,6 +243,7 @@ pub fn update_events(
                     &mut military,
                     &mut nuclear,
                     &deterrence,
+                    &mut econ,
                     &mut notices,
                     clock.date.year as i64 * 12 + clock.date.month as i64,
                 );
@@ -283,6 +291,7 @@ pub fn update_events(
                 &mut military,
                 &mut nuclear,
                 &deterrence,
+                &mut econ,
                 &mut notices,
                 clock.date.year as i64 * 12 + clock.date.month as i64,
             );
@@ -299,6 +308,7 @@ pub fn resolve_event(
     military: &mut Military,
     nuclear: &mut crate::nuclear::NuclearPrograms,
     deterrence: &crate::deterrence::Deterrence,
+    econ: &mut crate::planning::Economies,
     data: &ScenarioData,
     month_index: i64,
     id: &str,
@@ -337,6 +347,7 @@ pub fn resolve_event(
         military,
         nuclear,
         deterrence,
+        econ,
         &mut notices,
         month_index,
     );

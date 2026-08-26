@@ -14,11 +14,15 @@ use ugs_data::CountryTag;
 use crate::agriculture::{self, Agriculture, Quota};
 use crate::demography::SimScenario;
 use crate::events::{self, FiredEvents};
-use crate::military::{Military, PlayerCountry, Posture};
+use crate::military::{
+    self, Archetype, FormationId, Military, PlayerCountry, Posture, Readiness, TheaterId,
+    TheaterPosture,
+};
 use crate::planning::{self, Economies, Procurement};
 use crate::savegame::CommandLog;
 use crate::tension::GlobalTension;
 use crate::SimClock;
+use ugs_data::ProvinceId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SimCommand {
@@ -45,10 +49,73 @@ pub enum SimCommand {
         quota: Quota,
     },
     /// Set a country's military posture toward an enemy it is at war with.
+    /// (Drives the AI/default auto-theater; player theaters override it.)
     SetPosture {
         country: CountryTag,
         enemy: CountryTag,
         posture: Posture,
+    },
+    /// Raise green divisions from the military stockpile
+    /// (military-command.md). Home must be own or co-belligerent soil.
+    RaiseFormation {
+        country: CountryTag,
+        archetype: Archetype,
+        home: ProvinceId,
+        count: u8,
+    },
+    /// Disband a division, returning most of its men to the pool.
+    DisbandFormation {
+        country: CountryTag,
+        id: FormationId,
+    },
+    /// Active <-> Reserve. Activation takes MOBILIZE_DAYS and is a
+    /// public signal (tension at peace).
+    SetReadiness {
+        country: CountryTag,
+        id: FormationId,
+        active: bool,
+    },
+    /// Create an empty player theater.
+    CreateTheater { country: CountryTag, name: String },
+    /// Paint one province into (or out of) a theater. Exclusive within
+    /// a country: adding removes it from that country's other theaters.
+    PaintTheater {
+        country: CountryTag,
+        id: TheaterId,
+        province: ProvinceId,
+        add: bool,
+    },
+    /// Delete a theater; its formations go unassigned (walk home).
+    DeleteTheater { country: CountryTag, id: TheaterId },
+    /// Assign a formation to a theater (None = unassign).
+    AssignTheater {
+        country: CountryTag,
+        formation: FormationId,
+        theater: Option<TheaterId>,
+    },
+    SetTheaterPosture {
+        country: CountryTag,
+        id: TheaterId,
+        posture: TheaterPosture,
+    },
+    /// Advance axes, <= MAX_OBJECTIVES, none on forbidden soil.
+    SetTheaterObjectives {
+        country: CountryTag,
+        id: TheaterId,
+        objectives: Vec<ProvinceId>,
+    },
+    /// Share of committed divisions held at the theater rear.
+    SetTheaterEchelon {
+        country: CountryTag,
+        id: TheaterId,
+        permille: u16,
+    },
+    /// ROE: toggle a country whose soil this theater may never enter.
+    SetTheaterRoe {
+        country: CountryTag,
+        id: TheaterId,
+        tag: CountryTag,
+        forbidden: bool,
     },
     /// Resolve a pending choice event with the given option index.
     ResolveEvent { id: String, option: u8 },
@@ -156,6 +223,218 @@ pub fn apply_commands(
             SimCommand::SetPlayerCountry { country } => {
                 player.0 = country;
             }
+            SimCommand::RaiseFormation {
+                country,
+                archetype,
+                home,
+                count,
+            } => {
+                if let Some(scenario) = &scenario {
+                    let data = &scenario.0;
+                    if military.may_operate(data, &country, home) {
+                        for _ in 0..count.min(5) {
+                            if !military::raise_division(
+                                data,
+                                &mut military,
+                                &mut econ,
+                                &mut tension,
+                                clock.tick,
+                                country.clone(),
+                                archetype,
+                                home,
+                            ) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            SimCommand::DisbandFormation { country, id } => {
+                if military
+                    .formations
+                    .get(&id)
+                    .is_some_and(|f| f.owner == country)
+                {
+                    military.disband(id);
+                }
+            }
+            SimCommand::SetReadiness {
+                country,
+                id,
+                active,
+            } => {
+                let at_war = military
+                    .wars
+                    .iter()
+                    .any(|(a, b)| a == &country || b == &country);
+                let Some(f) = military.formations.get_mut(&id) else {
+                    continue;
+                };
+                if f.owner != country {
+                    continue;
+                }
+                match (f.readiness, active) {
+                    (Readiness::Reserve, true) => {
+                        f.readiness = Readiness::Mobilizing {
+                            days_left: military::tuning::MOBILIZE_DAYS,
+                        };
+                        let name = f.name.clone();
+                        if !at_war {
+                            tension.apply(military::tuning::MOBILIZATION_TENSION);
+                        }
+                        military.log(clock.tick, format!("{name} MOBILIZING"));
+                    }
+                    (Readiness::Active | Readiness::Mobilizing { .. }, false) => {
+                        f.readiness = Readiness::Reserve;
+                        f.cohesion = f.cohesion.min(military::tuning::STAND_DOWN_COHESION);
+                        f.slot = None;
+                    }
+                    _ => {}
+                }
+            }
+            SimCommand::CreateTheater { country, name } => {
+                let mine = military
+                    .theaters
+                    .values()
+                    .filter(|t| t.owner == country)
+                    .count();
+                if mine < military::tuning::MAX_THEATERS {
+                    military.create_theater(country, name, false);
+                }
+            }
+            SimCommand::PaintTheater {
+                country,
+                id,
+                province,
+                add,
+            } => {
+                let Some(scenario) = &scenario else { continue };
+                let owned = military
+                    .theaters
+                    .get(&id)
+                    .is_some_and(|t| t.owner == country);
+                if !owned {
+                    continue;
+                }
+                if add {
+                    if !military.may_operate(&scenario.0, &country, province) {
+                        continue;
+                    }
+                    // Exclusive within the country.
+                    for (tid, t) in military.theaters.iter_mut() {
+                        if t.owner == country && *tid != id {
+                            t.provinces.remove(&province);
+                        }
+                    }
+                    let t = military.theaters.get_mut(&id).unwrap();
+                    t.provinces.insert(province);
+                    t.auto = false;
+                } else {
+                    let t = military.theaters.get_mut(&id).unwrap();
+                    t.provinces.remove(&province);
+                    t.auto = false;
+                }
+            }
+            SimCommand::DeleteTheater { country, id } => {
+                if military
+                    .theaters
+                    .get(&id)
+                    .is_some_and(|t| t.owner == country)
+                {
+                    military.theaters.remove(&id);
+                    for f in military.formations.values_mut() {
+                        if f.theater == Some(id) {
+                            f.theater = None;
+                            f.slot = None;
+                        }
+                    }
+                }
+            }
+            SimCommand::AssignTheater {
+                country,
+                formation,
+                theater,
+            } => {
+                let target_ok = match theater {
+                    None => true,
+                    Some(t) => military
+                        .theaters
+                        .get(&t)
+                        .is_some_and(|th| th.owner == country),
+                };
+                if !target_ok {
+                    continue;
+                }
+                if let Some(f) = military.formations.get_mut(&formation) {
+                    if f.owner == country {
+                        f.theater = theater;
+                        f.slot = None;
+                    }
+                }
+            }
+            SimCommand::SetTheaterPosture {
+                country,
+                id,
+                posture,
+            } => {
+                if let Some(t) = military.theaters.get_mut(&id) {
+                    if t.owner == country {
+                        t.posture = posture;
+                        t.auto = false;
+                    }
+                }
+            }
+            SimCommand::SetTheaterObjectives {
+                country,
+                id,
+                objectives,
+            } => {
+                let Some(scenario) = &scenario else { continue };
+                let data = &scenario.0;
+                if let Some(t) = military.theaters.get_mut(&id) {
+                    if t.owner == country {
+                        t.objectives = objectives
+                            .into_iter()
+                            .filter(|o| {
+                                data.provinces
+                                    .get(o)
+                                    .is_some_and(|p| !t.forbidden.contains(&p.owner))
+                            })
+                            .take(military::tuning::MAX_OBJECTIVES)
+                            .collect();
+                        t.auto = false;
+                    }
+                }
+            }
+            SimCommand::SetTheaterEchelon {
+                country,
+                id,
+                permille,
+            } => {
+                if let Some(t) = military.theaters.get_mut(&id) {
+                    if t.owner == country {
+                        t.echelon_permille = permille.min(1000);
+                        t.auto = false;
+                    }
+                }
+            }
+            SimCommand::SetTheaterRoe {
+                country,
+                id,
+                tag,
+                forbidden,
+            } => {
+                if let Some(t) = military.theaters.get_mut(&id) {
+                    if t.owner == country && tag != country {
+                        if forbidden {
+                            t.forbidden.insert(tag);
+                        } else {
+                            t.forbidden.remove(&tag);
+                        }
+                        t.auto = false;
+                    }
+                }
+            }
             SimCommand::SetArmisticeOffer {
                 country,
                 enemy,
@@ -178,6 +457,7 @@ pub fn apply_commands(
                         &mut military,
                         &mut nuclear,
                         &deterrence,
+                        &mut econ,
                         &scenario.0,
                         clock.date.year as i64 * 12 + clock.date.month as i64,
                         &id,

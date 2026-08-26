@@ -141,7 +141,12 @@ impl Plugin for SimPlugin {
                 .chain()
                 .in_set(TickSet::Politics),
         );
-        app.add_systems(SimTick, military::update_military.in_set(TickSet::Military));
+        app.add_systems(
+            SimTick,
+            (military::update_command, military::update_military)
+                .chain()
+                .in_set(TickSet::Military),
+        );
         app.add_systems(
             SimTick,
             (

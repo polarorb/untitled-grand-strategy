@@ -97,6 +97,9 @@
                     SetPosture(country: ("KOR"), enemy: ("PRK"), posture: "Advance"),
                     SpawnForces(owner: ("USA"), province_owner: ("KOR"), province: "South Gyeongsang", archetype: "Infantry", divisions: 3, quality: 1250),
                     SpawnForces(owner: ("USA"), province_owner: ("KOR"), province: "Busan", archetype: "Armor", divisions: 1, quality: 1300),
+                    // US materiel carries the ROK army (KOR industry
+                    // cannot cover its own upkeep -- by design).
+                    GrantStock(country: ("KOR"), amount: 15),
                     AdjustTension(100),
                 ],
             ),
@@ -134,6 +137,10 @@
             SetPosture(country: ("KOR"), enemy: ("PRK"), posture: "Hold"),
             SpawnForces(owner: ("PRC"), province_owner: ("PRC"), province: "Liaoning", archetype: "Infantry", divisions: 6, quality: 1050),
             SpawnForces(owner: ("PRC"), province_owner: ("PRC"), province: "Jilin", archetype: "Infantry", divisions: 2, quality: 1000),
+            // Soviet and Chinese materiel keeps the KPA and CPV fighting;
+            // without patron aid both would melt into arrears by 1951.
+            GrantStock(country: ("PRK"), amount: 25),
+            GrantStock(country: ("PRC"), amount: 15),
             AdjustTension(150),
         ],
     ),
@@ -145,6 +152,7 @@
         effects: [
             SpawnForces(owner: ("USA"), province_owner: ("KOR"), province: "South Gyeongsang", archetype: "Infantry", divisions: 4, quality: 1200),
             SpawnForces(owner: ("KOR"), province_owner: ("KOR"), province: "Busan", archetype: "Infantry", divisions: 4, quality: 950),
+            GrantStock(country: ("KOR"), amount: 10),
         ],
     ),
 ]

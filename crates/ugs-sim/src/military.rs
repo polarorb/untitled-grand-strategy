@@ -49,6 +49,66 @@ pub mod tuning {
     /// Tension released when guns fall silent.
     pub const ARMISTICE_TENSION_RELIEF: i32 = -50;
 
+    // --- Force generation (military-command.md) --------------------------
+    /// military_stock points to raise one division, by archetype.
+    pub const RAISE_STOCK_INFANTRY: u64 = 3;
+    pub const RAISE_STOCK_MOTORIZED: u64 = 5;
+    pub const RAISE_STOCK_ARMOR: u64 = 8;
+    /// Days of training to reach full (1000 permille) readiness.
+    pub const TRAIN_DAYS_INFANTRY: u64 = 90;
+    pub const TRAIN_DAYS_MOTORIZED: u64 = 120;
+    pub const TRAIN_DAYS_ARMOR: u64 = 150;
+    /// Monthly upkeep per Active division, centi-stock, by archetype.
+    pub const UPKEEP_CENTI_INFANTRY: u64 = 20;
+    pub const UPKEEP_CENTI_MOTORIZED: u64 = 30;
+    pub const UPKEEP_CENTI_ARMOR: u64 = 50;
+    /// Reserve/Mobilizing divisions accrue this share of Active upkeep.
+    pub const RESERVE_UPKEEP_PERMILLE: u64 = 200;
+    /// Upkeep multiplier for divisions off their owner's home soil.
+    pub const OVERSEAS_UPKEEP_MULT: u64 = 3;
+    /// Days from Reserve to Active.
+    pub const MOBILIZE_DAYS: u8 = 21;
+    /// Tension (internal tenths) per peacetime activation, and per raise
+    /// at peace or beyond the peace floor at war (commitment is public).
+    pub const MOBILIZATION_TENSION: i32 = 3;
+    pub const RAISE_TENSION: i32 = 3;
+    /// While in upkeep arrears: strength lost per division per month
+    /// (desertion/breakdown) and quality decay at full shortfall.
+    pub const ARREARS_MELT: u64 = 30;
+    pub const ARREARS_QUALITY_DECAY: u64 = 20;
+    /// Quality regained per fully-paid month, toward archetype baseline.
+    pub const QUALITY_RECOVER: u64 = 10;
+    /// Reserve divisions defend at this permille weight where they sit.
+    pub const RESERVE_DEFENSE_PERMILLE: u64 = 700;
+    /// Concentration soft-cap: side contribution scales by
+    /// min(1, (base + hostile_adjacent) / divisions).
+    pub const CONCENTRATION_BASE: u64 = 3;
+    /// Days a formation keeps its front slot after retargeting.
+    pub const RETARGET_COOLDOWN: u8 = 3;
+    /// Quota-controller thresholds: keep slot if over quota by <= 1;
+    /// only deficit >= 2 provinces pull from surplus >= 2 provinces.
+    pub const QUOTA_SLACK: i64 = 1;
+    pub const QUOTA_PULL_DEFICIT: i64 = 2;
+    /// AI: peacetime active divisions (majors: industry / this divisor).
+    pub const PEACE_FLOOR_DIVS: usize = 2;
+    pub const MAJOR_INDUSTRY: u32 = 50;
+    pub const MAJOR_FLOOR_DIVISOR: u32 = 20;
+    /// AI reserve activations per day while mobilizing for war.
+    pub const AI_ACTIVATIONS_PER_DAY: usize = 5;
+    /// AI raises 1 armor per this many infantry (when affordable).
+    pub const AI_ARMOR_RATIO: usize = 4;
+    /// Sanity caps (military-command.md edge cases).
+    pub const MAX_THEATERS: usize = 8;
+    pub const MAX_OBJECTIVES: usize = 3;
+    pub const MAX_FORMATIONS: usize = 200;
+    /// Share of a disbanded division's men returned to the pool.
+    pub const DISBAND_RETURN_PERMILLE: u64 = 800;
+    /// Newly raised divisions spawn at this strength (fill via the
+    /// reinforcement pipeline) and train from zero.
+    pub const RAISE_START_STRENGTH: u64 = 100;
+    /// Cohesion after standing down or completing mobilization.
+    pub const STAND_DOWN_COHESION: u64 = 300;
+
     pub fn terrain_defense_permille(t: ugs_data::Terrain) -> u64 {
         use ugs_data::Terrain::*;
         match t {
@@ -89,6 +149,27 @@ impl Archetype {
             Archetype::Armor => tuning::ARMOR,
         }
     }
+    pub fn raise_cost(self) -> u64 {
+        match self {
+            Archetype::Infantry => tuning::RAISE_STOCK_INFANTRY,
+            Archetype::Motorized => tuning::RAISE_STOCK_MOTORIZED,
+            Archetype::Armor => tuning::RAISE_STOCK_ARMOR,
+        }
+    }
+    pub fn train_days(self) -> u64 {
+        match self {
+            Archetype::Infantry => tuning::TRAIN_DAYS_INFANTRY,
+            Archetype::Motorized => tuning::TRAIN_DAYS_MOTORIZED,
+            Archetype::Armor => tuning::TRAIN_DAYS_ARMOR,
+        }
+    }
+    pub fn upkeep_centi(self) -> u64 {
+        match self {
+            Archetype::Infantry => tuning::UPKEEP_CENTI_INFANTRY,
+            Archetype::Motorized => tuning::UPKEEP_CENTI_MOTORIZED,
+            Archetype::Armor => tuning::UPKEEP_CENTI_ARMOR,
+        }
+    }
     fn parse(s: &str) -> Self {
         match s {
             "Motorized" => Archetype::Motorized,
@@ -96,6 +177,57 @@ impl Archetype {
             _ => Archetype::Infantry,
         }
     }
+}
+
+/// Mobilization state. Mobilizing counts as Reserve for upkeep, front
+/// slots, movement, and defense weight until `days_left` reaches zero.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum Readiness {
+    #[default]
+    Active,
+    Reserve,
+    Mobilizing {
+        days_left: u8,
+    },
+}
+
+impl Readiness {
+    /// Treated as stood-down (no slots, no movement, reduced weight)?
+    pub fn stood_down(self) -> bool {
+        !matches!(self, Readiness::Active)
+    }
+}
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
+pub struct TheaterId(pub u32);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TheaterPosture {
+    Defend,
+    Probe,
+    Offensive,
+}
+
+/// A player-painted (or AI auto-generated) command area. Formations are
+/// assigned to theaters, never moved directly; the daily controller
+/// distributes them across the theater's front.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Theater {
+    pub owner: CountryTag,
+    pub name: String,
+    pub provinces: std::collections::BTreeSet<ProvinceId>,
+    pub posture: TheaterPosture,
+    /// Advance axes (<= MAX_OBJECTIVES). Auto-cleared when captured or
+    /// their holder leaves the war.
+    pub objectives: Vec<ProvinceId>,
+    /// Share of the theater's committed divisions held at the rear.
+    pub echelon_permille: u16,
+    /// ROE: enemy countries whose soil this theater may never enter.
+    pub forbidden: std::collections::BTreeSet<CountryTag>,
+    /// Auto-theaters track the whole country and die at peace.
+    pub auto: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -122,6 +254,25 @@ pub struct Formation {
     pub quality: u64,
     /// Days until this formation may move again.
     pub move_cooldown: u8,
+    /// Mobilization state (military-command.md).
+    #[serde(default)]
+    pub readiness: Readiness,
+    /// Which theater commands this formation (None = walks home, sits).
+    #[serde(default)]
+    pub theater: Option<TheaterId>,
+    /// Training permille; combat weight scales by 500 + training/2.
+    #[serde(default = "full_training")]
+    pub training: u16,
+    /// Current front-slot assignment from the theater controller.
+    #[serde(default)]
+    pub slot: Option<ProvinceId>,
+    /// Days before the controller may hand this formation a new slot.
+    #[serde(default)]
+    pub retarget_cooldown: u8,
+}
+
+fn full_training() -> u16 {
+    1000
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -159,6 +310,17 @@ pub struct Military {
     pub active_battles: Vec<BattleView>,
     /// Wire-service war ticker: (tick, line). Capped ring buffer.
     pub war_log: Vec<(u64, String)>,
+    /// Command areas (military-command.md).
+    #[serde(default)]
+    pub theaters: BTreeMap<TheaterId, Theater>,
+    #[serde(default)]
+    next_theater_id: u32,
+    /// Upkeep accrued this month, centi-stock, settled at month end.
+    #[serde(default)]
+    pub upkeep_accrued_centi: BTreeMap<CountryTag, u64>,
+    /// Consecutive months of unpaid upkeep.
+    #[serde(default)]
+    pub upkeep_arrears: BTreeMap<CountryTag, u16>,
     next_id: u32,
 }
 
@@ -259,7 +421,135 @@ impl Military {
             strength: 1000,
             quality,
             move_cooldown: 0,
+            readiness: Readiness::Active,
+            theater: None,
+            training: 1000,
+            slot: None,
+            retarget_cooldown: 0,
         })
+    }
+
+    /// Raise a green division (player/AI force generation): spawns at
+    /// RAISE_START_STRENGTH and trains from zero. The caller has already
+    /// debited military_stock. Assigned to the owner's theater containing
+    /// the home province, else nearest by any member province, else None.
+    pub fn raise_recruit(
+        &mut self,
+        data: &ugs_data::ScenarioData,
+        owner: CountryTag,
+        archetype: Archetype,
+        home: ProvinceId,
+    ) -> FormationId {
+        let id = self.raise(data, owner, archetype, home, home, 1000);
+        let theater = self.theater_for(data, id, home);
+        let f = self.formations.get_mut(&id).unwrap();
+        f.strength = tuning::RAISE_START_STRENGTH;
+        f.training = 0;
+        f.theater = theater;
+        id
+    }
+
+    fn theater_for(
+        &self,
+        data: &ugs_data::ScenarioData,
+        id: FormationId,
+        home: ProvinceId,
+    ) -> Option<TheaterId> {
+        let owner = &self.formations[&id].owner;
+        let mine: Vec<(&TheaterId, &Theater)> = self
+            .theaters
+            .iter()
+            .filter(|(_, t)| &t.owner == owner)
+            .collect();
+        if let Some((tid, _)) = mine.iter().find(|(_, t)| t.provinces.contains(&home)) {
+            return Some(**tid);
+        }
+        // Nearest theater by BFS distance from home to any member province.
+        use std::collections::{BTreeSet, VecDeque};
+        if mine.is_empty() {
+            return None;
+        }
+        let mut visited: BTreeSet<ProvinceId> = BTreeSet::from([home]);
+        let mut queue: VecDeque<ProvinceId> = VecDeque::from([home]);
+        let mut expanded = 0usize;
+        while let Some(current) = queue.pop_front() {
+            expanded += 1;
+            if expanded > 2000 {
+                break;
+            }
+            if let Some((tid, _)) = mine.iter().find(|(_, t)| t.provinces.contains(&current)) {
+                return Some(**tid);
+            }
+            if let Some(p) = data.provinces.get(&current) {
+                for adj in &p.adjacent {
+                    if visited.insert(*adj) {
+                        queue.push_back(*adj);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// Disband: return DISBAND_RETURN_PERMILLE of the men to the pool;
+    /// training is lost. Disband-and-re-raise is the v1 rebase.
+    pub fn disband(&mut self, id: FormationId) {
+        if let Some(f) = self.formations.remove(&id) {
+            let men = f.strength * tuning::MEN_PER_STRENGTH_POINT * tuning::DISBAND_RETURN_PERMILLE
+                / 1000;
+            *self.manpower.entry(f.owner).or_default() += men;
+        }
+    }
+
+    /// Where a country may base divisions and paint theaters: provinces
+    /// owned or held by itself or a co-belligerent (a country sharing an
+    /// enemy, and not itself hostile). Co-belligerent basing IS the v1
+    /// overseas-deployment abstraction (no naval transport exists).
+    pub fn may_operate(
+        &self,
+        data: &ugs_data::ScenarioData,
+        country: &CountryTag,
+        province: ProvinceId,
+    ) -> bool {
+        let Some(p) = data.provinces.get(&province) else {
+            return false;
+        };
+        let holder = self.owner_of(province, &p.owner);
+        if &holder == country {
+            return true;
+        }
+        if self.at_war(country, &holder) {
+            return false;
+        }
+        self.wars.iter().any(|(a, b)| {
+            let enemy = if a == country {
+                Some(b)
+            } else if b == country {
+                Some(a)
+            } else {
+                None
+            };
+            enemy.is_some_and(|e| self.at_war(&holder, e))
+        })
+    }
+
+    pub fn create_theater(&mut self, owner: CountryTag, name: String, auto: bool) -> TheaterId {
+        self.next_theater_id += 1;
+        let id = TheaterId(self.next_theater_id);
+        self.theaters.insert(
+            id,
+            Theater {
+                owner,
+                name,
+                provinces: Default::default(),
+                posture: TheaterPosture::Defend,
+                objectives: Vec::new(),
+                echelon_permille: 0,
+                forbidden: Default::default(),
+                auto,
+            },
+        );
+        id
     }
 
     /// The most populous province a country owns — where its
@@ -301,15 +591,48 @@ impl Military {
     pub fn digest(&self) -> u64 {
         let mut h: u64 = 0xcbf2_9ce4_8422_2325;
         for (id, f) in &self.formations {
+            let readiness = match f.readiness {
+                Readiness::Active => 0,
+                Readiness::Reserve => 1,
+                Readiness::Mobilizing { days_left } => 2 + days_left as u64,
+            };
             for v in [
                 id.0 as u64,
                 f.location.0 as u64,
                 f.cohesion,
                 f.strength,
                 f.owner.0.bytes().map(u64::from).sum::<u64>(),
+                readiness,
+                f.training as u64,
+                f.theater.map(|t| t.0 as u64 + 1).unwrap_or(0),
+                f.slot.map(|p| p.0 as u64 + 1).unwrap_or(0),
             ] {
                 h = (h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
             }
+        }
+        for (id, t) in &self.theaters {
+            let posture = match t.posture {
+                TheaterPosture::Defend => 0u64,
+                TheaterPosture::Probe => 1,
+                TheaterPosture::Offensive => 2,
+            };
+            for v in [
+                id.0 as u64,
+                posture,
+                t.provinces.iter().map(|p| p.0 as u64).sum::<u64>(),
+                t.objectives.iter().map(|p| p.0 as u64).sum::<u64>(),
+                t.echelon_permille as u64,
+            ] {
+                h = (h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
+            }
+        }
+        for (tag, v) in &self.upkeep_accrued_centi {
+            h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>() ^ v)
+                .wrapping_mul(0x0000_0100_0000_01b3);
+        }
+        for (tag, v) in &self.upkeep_arrears {
+            h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>() ^ *v as u64)
+                .wrapping_mul(0x0000_0100_0000_01b3);
         }
         for (p, tag) in &self.occupation {
             h = (h ^ p.0 as u64).wrapping_mul(0x0000_0100_0000_01b3);
@@ -523,9 +846,43 @@ pub fn update_military(
                     let f = &military.formations[i];
                     let (attack, defense, _) = f.archetype.stats();
                     let stat = if defending { defense } else { attack };
-                    stat * f.strength / 1000 * f.quality / 1000
+                    // Green troops fight at half weight (500 + training/2);
+                    // stood-down divisions defend at reduced weight.
+                    let mut v = stat * f.strength / 1000 * f.quality / 1000
+                        * (500 + f.training as u64 / 2)
+                        / 1000;
+                    if f.readiness.stood_down() {
+                        v = v * RESERVE_DEFENSE_PERMILLE / 1000;
+                    }
+                    v
                 })
                 .sum();
+            // Concentration soft-cap: stand-in for frontage until real
+            // geometry lands — divisions beyond what the local edges
+            // support add nothing (kills the deliberate one-province blob).
+            let hostile_adjacent = ids
+                .first()
+                .map(|i| {
+                    let side_owner = &military.formations[i].owner;
+                    data.provinces
+                        .get(province)
+                        .map(|p| {
+                            p.adjacent
+                                .iter()
+                                .filter(|adj| {
+                                    data.provinces.get(adj).is_some_and(|ap| {
+                                        let holder = military.owner_of(**adj, &ap.owner);
+                                        military.at_war(side_owner, &holder)
+                                    })
+                                })
+                                .count() as u64
+                        })
+                        .unwrap_or(0)
+                })
+                .unwrap_or(0);
+            let n = ids.len().max(1) as u64;
+            let concentration = (1000 * (CONCENTRATION_BASE + hostile_adjacent) / n).min(1000);
+            let base = base * concentration / 1000;
             if defending {
                 let mut v = base * terrain_defense_permille(terrain) / 1000;
                 if defender_home {
@@ -704,12 +1061,11 @@ pub fn update_military(
         }
     }
 
-    // --- Daily movement & occupation -------------------------------------
+    // --- Daily occupation & monthly diplomacy ----------------------------
+    // (Movement, reinforcement, readiness, training, and upkeep live in
+    // `update_command`, which runs just before this system each tick.)
     if !clock.new_day {
         return;
-    }
-    for f in military.formations.values_mut() {
-        f.move_cooldown = f.move_cooldown.saturating_sub(1);
     }
 
     // Wartime mobilization: belligerents add men to the pool monthly.
@@ -729,58 +1085,6 @@ pub fn update_military(
         }
         for (tag, pop) in pop_by_country {
             *military.manpower.entry(tag).or_default() += pop * MOBILIZE_PERMILLE_PER_MONTH / 1000;
-        }
-    }
-
-    // Reinforcement: resting formations on non-enemy soil draw men from
-    // the national pool.
-    let reinforce: Vec<FormationId> = military
-        .formations
-        .iter()
-        .filter(|(id, f)| {
-            f.strength < 1000
-                && !in_battle.contains(id)
-                && data.provinces.get(&f.location).is_some_and(|p| {
-                    let holder = military.owner_of(f.location, &p.owner);
-                    !military.at_war(&f.owner, &holder)
-                })
-        })
-        .map(|(id, _)| *id)
-        .collect();
-    for id in reinforce {
-        let owner = military.formations[&id].owner.clone();
-        let pool = military.manpower.entry(owner).or_default();
-        let points = REINFORCE_PER_DAY.min(*pool / MEN_PER_STRENGTH_POINT);
-        if points == 0 {
-            continue;
-        }
-        *pool -= points * MEN_PER_STRENGTH_POINT;
-        let f = military.formations.get_mut(&id).unwrap();
-        f.strength = (f.strength + points).min(1000);
-    }
-
-    // Advancing formations move into adjacent enemy provinces, or march
-    // toward the nearest enemy front (BFS first-hop) when none is adjacent.
-    let movers: Vec<FormationId> = military
-        .formations
-        .iter()
-        .filter(|(id, f)| {
-            f.move_cooldown == 0 && f.cohesion >= RETREAT_COHESION && !in_battle.contains(id)
-        })
-        .map(|(id, _)| *id)
-        .collect();
-    for id in movers {
-        let (owner, location) = {
-            let f = &military.formations[&id];
-            (f.owner.clone(), f.location)
-        };
-        let dest = find_advance_step(data, &military, &owner, location);
-        if let Some(dest) = dest {
-            let (_, _, days) = military.formations[&id].archetype.stats();
-            let f = military.formations.get_mut(&id).unwrap();
-            f.last_location = Some(f.location);
-            f.location = dest;
-            f.move_cooldown = days;
         }
     }
 
@@ -925,25 +1229,67 @@ fn end_war(military: &mut Military, a: &CountryTag, b: &CountryTag) {
         .retain(|(c, e)| !((c == a && e == b) || (c == b && e == a)));
 }
 
-/// The next province an advancing formation should step into: an adjacent
-/// enemy province if one exists, else the first hop of the shortest path
-/// (through non-enemy territory) toward the nearest province held by an
-/// enemy this country is advancing against.
-fn find_advance_step(
+/// How a formation may traverse a province while stepping toward `to`.
+/// ROE first (forbidden soil is never enterable), then alignment:
+/// friendly soil (own or co-belligerent) is always passable, neutral
+/// soil never is, and enemy soil is gated by the theater posture —
+/// Defend never enters it, Probe only when it IS the slot, Offensive
+/// anywhere en route.
+fn passable_toward(
     data: &ugs_data::ScenarioData,
     military: &Military,
     owner: &CountryTag,
-    location: ProvinceId,
+    theater: Option<&Theater>,
+    province: ProvinceId,
+    is_target: bool,
+) -> bool {
+    let Some(p) = data.provinces.get(&province) else {
+        return false;
+    };
+    let holder = military.owner_of(province, &p.owner);
+    if let Some(t) = theater {
+        if t.forbidden.contains(&holder) || t.forbidden.contains(&p.owner) {
+            return false;
+        }
+    }
+    if &holder == owner {
+        return true;
+    }
+    if military.at_war(owner, &holder) {
+        return match theater.map(|t| t.posture) {
+            Some(TheaterPosture::Offensive) => true,
+            Some(TheaterPosture::Probe) => is_target,
+            _ => false,
+        };
+    }
+    // Not at war with the holder: passable only for co-belligerents.
+    military.wars.iter().any(|(a, b)| {
+        let enemy = if a == owner {
+            Some(b)
+        } else if b == owner {
+            Some(a)
+        } else {
+            None
+        };
+        enemy.is_some_and(|e| military.at_war(&holder, e))
+    })
+}
+
+/// First hop of the shortest legal path from `from` to `to`.
+fn find_step_toward(
+    data: &ugs_data::ScenarioData,
+    military: &Military,
+    owner: &CountryTag,
+    theater: Option<&Theater>,
+    from: ProvinceId,
+    to: ProvinceId,
 ) -> Option<ProvinceId> {
     use std::collections::{BTreeSet, VecDeque};
-    let is_target = |id: ProvinceId| {
-        data.provinces.get(&id).is_some_and(|p| {
-            let holder = military.owner_of(id, &p.owner);
-            military.at_war(owner, &holder) && military.posture(owner, &holder) == Posture::Advance
-        })
-    };
-    let mut visited: BTreeSet<ProvinceId> = BTreeSet::from([location]);
-    let mut queue: VecDeque<(ProvinceId, Option<ProvinceId>)> = VecDeque::from([(location, None)]);
+    if from == to {
+        return None;
+    }
+    let mut visited: BTreeSet<ProvinceId> = BTreeSet::from([from]);
+    let mut queue: VecDeque<(ProvinceId, Option<ProvinceId>)> = VecDeque::from([(from, None)]);
     let mut expanded = 0usize;
     while let Some((current, first_hop)) = queue.pop_front() {
         expanded += 1;
@@ -958,20 +1304,823 @@ fn find_advance_step(
                 continue;
             }
             let hop = first_hop.or(Some(*adj));
-            if is_target(*adj) {
+            if *adj == to {
                 return hop;
             }
-            // March only through territory we are not at war with.
-            let passable = data.provinces.get(adj).is_some_and(|ap| {
-                let holder = military.owner_of(*adj, &ap.owner);
-                !military.at_war(owner, &holder)
-            });
-            if passable {
+            if passable_toward(data, military, owner, theater, *adj, false) {
                 queue.push_back((*adj, hop));
             }
         }
     }
     None
+}
+
+/// Multi-source BFS from the current front toward an objective; returns
+/// the enemy provinces along the path (they join the Offensive front set).
+fn objective_path(
+    data: &ugs_data::ScenarioData,
+    military: &Military,
+    theater: &Theater,
+    front: &std::collections::BTreeSet<ProvinceId>,
+    objective: ProvinceId,
+) -> Vec<ProvinceId> {
+    use std::collections::{BTreeMap, BTreeSet, VecDeque};
+    let owner = &theater.owner;
+    let mut visited: BTreeSet<ProvinceId> = front.clone();
+    let mut parent: BTreeMap<ProvinceId, ProvinceId> = BTreeMap::new();
+    let mut queue: VecDeque<ProvinceId> = front.iter().copied().collect();
+    let mut expanded = 0usize;
+    let mut found = None;
+    'search: while let Some(current) = queue.pop_front() {
+        expanded += 1;
+        if expanded > 4000 {
+            break;
+        }
+        let Some(p) = data.provinces.get(&current) else {
+            continue;
+        };
+        for adj in &p.adjacent {
+            if !visited.insert(*adj) {
+                continue;
+            }
+            // For path purposes Offensive theaters may cross enemy soil.
+            let enterable = data.provinces.get(adj).is_some_and(|ap| {
+                let holder = military.owner_of(*adj, &ap.owner);
+                !theater.forbidden.contains(&holder)
+                    && !theater.forbidden.contains(&ap.owner)
+                    && (military.at_war(owner, &holder) || holder == *owner || {
+                        military.wars.iter().any(|(a, b)| {
+                            let enemy = if a == owner {
+                                Some(b)
+                            } else if b == owner {
+                                Some(a)
+                            } else {
+                                None
+                            };
+                            enemy.is_some_and(|e| military.at_war(&holder, e))
+                        })
+                    })
+            });
+            if !enterable {
+                continue;
+            }
+            parent.insert(*adj, current);
+            if *adj == objective {
+                found = Some(*adj);
+                break 'search;
+            }
+            queue.push_back(*adj);
+        }
+    }
+    // Walk back, keeping the enemy-held provinces on the path.
+    let mut path = Vec::new();
+    let mut cursor = found;
+    while let Some(id) = cursor {
+        let hostile = data.provinces.get(&id).is_some_and(|p| {
+            let holder = military.owner_of(id, &p.owner);
+            military.at_war(owner, &holder)
+        });
+        if hostile {
+            path.push(id);
+        }
+        cursor = parent.get(&id).copied();
+    }
+    path
+}
+
+/// Daily force management (military-command.md): auto-theaters, AI
+/// mobilization and raising, readiness/training progression, upkeep
+/// accrual and monthly settlement, the theater front controller, and
+/// slot-directed movement. Runs before `update_military` so combat sees
+/// the day's positions.
+#[allow(clippy::too_many_arguments)]
+pub fn update_command(
+    clock: Res<SimClock>,
+    scenario: Option<Res<SimScenario>>,
+    player: Res<PlayerCountry>,
+    mut econ: ResMut<crate::planning::Economies>,
+    mut military: ResMut<Military>,
+    mut tension: ResMut<crate::tension::GlobalTension>,
+) {
+    let Some(scenario) = scenario else { return };
+    let data = &scenario.0;
+    if military.next_id == 0 {
+        return; // OOB not seeded yet (update_military's first tick does it)
+    }
+    if !clock.new_day {
+        return;
+    }
+    use tuning::*;
+
+    let at_war_tags: Vec<CountryTag> = {
+        let mut t: Vec<CountryTag> = military
+            .wars
+            .iter()
+            .flat_map(|(a, b)| [a.clone(), b.clone()])
+            .collect();
+        t.sort();
+        t.dedup();
+        t
+    };
+
+    // --- Auto-theaters ---------------------------------------------------
+    // Countries at war with no theater get one covering their whole
+    // holding; auto-theaters refresh daily and die at peace. Any player
+    // edit converts a theater to manual (auto = false) via commands.
+    let owners_with_theaters: Vec<CountryTag> = {
+        let mut t: Vec<CountryTag> = military
+            .theaters
+            .values()
+            .map(|t| t.owner.clone())
+            .collect();
+        t.sort();
+        t.dedup();
+        t
+    };
+    for tag in &at_war_tags {
+        if !owners_with_theaters.contains(tag) {
+            let id = military.create_theater(tag.clone(), "MAIN FRONT".into(), true);
+            military.theaters.get_mut(&id).unwrap().auto = true;
+        }
+    }
+    let auto_ids: Vec<TheaterId> = military
+        .theaters
+        .iter()
+        .filter(|(_, t)| t.auto)
+        .map(|(id, _)| *id)
+        .collect();
+    for id in auto_ids {
+        let owner = military.theaters[&id].owner.clone();
+        if !at_war_tags.contains(&owner) {
+            military.theaters.remove(&id);
+            for f in military.formations.values_mut() {
+                if f.theater == Some(id) {
+                    f.theater = None;
+                }
+            }
+            continue;
+        }
+        // Whole current holding; posture from the country-level posture
+        // (Advance toward any enemy -> Offensive); objectives = enemy
+        // capitals; ROE empty (neutral soil is impassable by rule).
+        let provinces: std::collections::BTreeSet<ProvinceId> = data
+            .provinces
+            .values()
+            .filter(|p| military.owner_of(p.id, &p.owner) == owner)
+            .map(|p| p.id)
+            .collect();
+        let advancing = military
+            .postures
+            .iter()
+            .any(|((c, _), p)| c == &owner && *p == Posture::Advance);
+        let mut objectives: Vec<ProvinceId> = Vec::new();
+        for (a, b) in &military.wars {
+            let enemy = if a == &owner {
+                b
+            } else if b == &owner {
+                a
+            } else {
+                continue;
+            };
+            if let Some(c) = data.countries.get(enemy) {
+                if objectives.len() < MAX_OBJECTIVES && !objectives.contains(&c.capital) {
+                    objectives.push(c.capital);
+                }
+            }
+        }
+        let t = military.theaters.get_mut(&id).unwrap();
+        t.provinces = provinces;
+        t.posture = if advancing {
+            TheaterPosture::Offensive
+        } else {
+            TheaterPosture::Defend
+        };
+        t.objectives = objectives;
+    }
+    // Unassigned formations of theater-owning countries adopt a theater.
+    let orphans: Vec<(FormationId, ProvinceId)> = military
+        .formations
+        .iter()
+        .filter(|(_, f)| f.theater.is_none())
+        .map(|(id, f)| (*id, f.location))
+        .collect();
+    for (id, location) in orphans {
+        if let Some(t) = military.theater_for(data, id, location) {
+            military.formations.get_mut(&id).unwrap().theater = Some(t);
+        }
+    }
+    // Drop assignments to theaters that no longer exist or changed hands.
+    let valid: Vec<(FormationId, Option<TheaterId>)> = military
+        .formations
+        .iter()
+        .map(|(id, f)| {
+            let ok = f.theater.is_some_and(|t| {
+                military
+                    .theaters
+                    .get(&t)
+                    .is_some_and(|th| th.owner == f.owner)
+            });
+            (*id, if ok { f.theater } else { None })
+        })
+        .collect();
+    for (id, theater) in valid {
+        military.formations.get_mut(&id).unwrap().theater = theater;
+    }
+
+    // --- Objectives lifecycle -------------------------------------------
+    // Captured (or holder left the war) => cleared.
+    let theater_ids: Vec<TheaterId> = military.theaters.keys().copied().collect();
+    for id in &theater_ids {
+        let owner = military.theaters[id].owner.clone();
+        let kept: Vec<ProvinceId> = military.theaters[id]
+            .objectives
+            .iter()
+            .filter(|o| {
+                data.provinces.get(o).is_some_and(|p| {
+                    let holder = military.owner_of(**o, &p.owner);
+                    military.at_war(&owner, &holder)
+                })
+            })
+            .copied()
+            .collect();
+        let t = military.theaters.get_mut(id).unwrap();
+        if kept.len() != t.objectives.len() {
+            t.objectives = kept;
+            if !t.auto {
+                let name = t.name.clone();
+                military.log(clock.tick, format!("{} OBJECTIVE SECURED", name));
+            }
+        }
+    }
+
+    // --- AI management (never the player's country) ----------------------
+    // War: activate reserves, staged; a readable 21+-day ramp. Monthly:
+    // raise 4:1 infantry:armor while solvent and manpower allows.
+    // Deviation from the design doc, deliberate: the AI never demotes its
+    // standing army at peace — the scripted 1950 OOBs (KPA fully mobilized
+    // in June) ARE the historical peacetime postures.
+    for tag in &at_war_tags {
+        if player.0.as_ref() == Some(tag) {
+            continue;
+        }
+        let reserves: Vec<FormationId> = military
+            .formations
+            .iter()
+            .filter(|(_, f)| &f.owner == tag && matches!(f.readiness, Readiness::Reserve))
+            .map(|(id, _)| *id)
+            .take(AI_ACTIVATIONS_PER_DAY)
+            .collect();
+        for id in reserves {
+            let f = military.formations.get_mut(&id).unwrap();
+            f.readiness = Readiness::Mobilizing {
+                days_left: MOBILIZE_DAYS,
+            };
+        }
+        if clock.new_month {
+            let fielded_men: u64 = military
+                .formations
+                .values()
+                .filter(|f| &f.owner == tag)
+                .map(|f| f.strength * MEN_PER_STRENGTH_POINT)
+                .sum();
+            let pool = military.manpower.get(tag).copied().unwrap_or(0);
+            let count = military
+                .formations
+                .values()
+                .filter(|f| &f.owner == tag)
+                .count();
+            if fielded_men < pool / 3 && count < MAX_FORMATIONS {
+                let archetype = if (count + 1) % (AI_ARMOR_RATIO + 1) == 0 {
+                    Archetype::Armor
+                } else {
+                    Archetype::Infantry
+                };
+                let monthly_upkeep: u64 = military
+                    .formations
+                    .values()
+                    .filter(|f| &f.owner == tag)
+                    .map(|f| f.archetype.upkeep_centi())
+                    .sum::<u64>()
+                    / 100;
+                let cost = archetype.raise_cost();
+                let stock = econ
+                    .industry
+                    .get(tag)
+                    .map(|s| s.military_stock)
+                    .unwrap_or(0);
+                if stock >= cost + 2 * monthly_upkeep {
+                    let home = Military::heartland_of(
+                        data,
+                        tag,
+                        data.provinces
+                            .keys()
+                            .next()
+                            .copied()
+                            .unwrap_or(ProvinceId(0)),
+                    );
+                    raise_division(
+                        data,
+                        &mut military,
+                        &mut econ,
+                        &mut tension,
+                        clock.tick,
+                        tag.clone(),
+                        archetype,
+                        home,
+                    );
+                }
+            }
+        }
+    }
+
+    // --- Readiness & training progression --------------------------------
+    for f in military.formations.values_mut() {
+        if let Readiness::Mobilizing { days_left } = f.readiness {
+            if days_left <= 1 {
+                f.readiness = Readiness::Active;
+                f.cohesion = f.cohesion.min(STAND_DOWN_COHESION);
+            } else {
+                f.readiness = Readiness::Mobilizing {
+                    days_left: days_left - 1,
+                };
+            }
+        }
+        if f.training < 1000 {
+            let per_day = 1000u64.div_ceil(f.archetype.train_days()) as u16;
+            f.training = (f.training + per_day).min(1000);
+        }
+        f.move_cooldown = f.move_cooldown.saturating_sub(1);
+        f.retarget_cooldown = f.retarget_cooldown.saturating_sub(1);
+    }
+
+    // --- Upkeep: monthly settlement, then daily accrual ------------------
+    // Accrued in centi-stock-days; a month's bill is accrued/30 centi.
+    // Settle BEFORE accruing so the settlement day's accrual counts
+    // toward the new month instead of being silently discarded.
+    if clock.new_month {
+        let bills: Vec<(CountryTag, u64)> = military
+            .upkeep_accrued_centi
+            .iter()
+            .map(|(t, acc)| (t.clone(), acc.div_ceil(30 * 100)))
+            .collect();
+        military.upkeep_accrued_centi.clear();
+        for (tag, due) in bills {
+            if due == 0 {
+                continue;
+            }
+            let stock = econ.industry.get_mut(&tag).map(|s| &mut s.military_stock);
+            let paid = match stock {
+                Some(s) => {
+                    let paid = due.min(*s);
+                    *s -= paid;
+                    paid
+                }
+                None => 0,
+            };
+            let shortfall = due - paid;
+            if shortfall > 0 {
+                *military.upkeep_arrears.entry(tag.clone()).or_default() += 1;
+                let decay = ARREARS_QUALITY_DECAY * shortfall / due;
+                for f in military.formations.values_mut() {
+                    if f.owner == tag {
+                        f.quality = f.quality.saturating_sub(decay).max(500);
+                        f.strength = f.strength.saturating_sub(ARREARS_MELT);
+                    }
+                }
+                military.log(
+                    clock.tick,
+                    format!("{} ARMY UNPAID -- DESERTION AND BREAKDOWN SPREAD", tag.0),
+                );
+            } else if military.upkeep_arrears.remove(&tag).is_some() {
+                military.log(clock.tick, format!("{} ARMY PAY RESTORED", tag.0));
+            } else {
+                for f in military.formations.values_mut() {
+                    if f.owner == tag && f.quality < 1000 {
+                        f.quality = (f.quality + QUALITY_RECOVER).min(1000);
+                    }
+                }
+            }
+        }
+        // Arrears melt destroys hollowed-out formations.
+        let dead: Vec<FormationId> = military
+            .formations
+            .iter()
+            .filter(|(_, f)| f.strength == 0)
+            .map(|(id, _)| *id)
+            .collect();
+        for id in dead {
+            military.formations.remove(&id);
+        }
+    }
+
+    let accruals: Vec<(CountryTag, u64)> = military
+        .formations
+        .values()
+        .map(|f| {
+            let mut centi = f.archetype.upkeep_centi();
+            if f.readiness.stood_down() {
+                centi = centi * RESERVE_UPKEEP_PERMILLE / 1000;
+            }
+            let overseas = data
+                .provinces
+                .get(&f.location)
+                .is_some_and(|p| p.owner != f.owner);
+            if overseas {
+                centi *= OVERSEAS_UPKEEP_MULT;
+            }
+            (f.owner.clone(), centi)
+        })
+        .collect();
+    for (tag, centi) in accruals {
+        *military.upkeep_accrued_centi.entry(tag).or_default() += centi;
+    }
+
+    // --- Reinforcement ---------------------------------------------------
+    // Actives first at full rate, stood-down at half; halted in arrears.
+    let battle_provinces: std::collections::BTreeSet<ProvinceId> =
+        military.active_battles.iter().map(|b| b.province).collect();
+    let mut reinforce: Vec<(FormationId, bool)> = military
+        .formations
+        .iter()
+        .filter(|(_, f)| {
+            f.strength < 1000
+                && !battle_provinces.contains(&f.location)
+                && !military.upkeep_arrears.contains_key(&f.owner)
+                && data.provinces.get(&f.location).is_some_and(|p| {
+                    let holder = military.owner_of(f.location, &p.owner);
+                    !military.at_war(&f.owner, &holder)
+                })
+        })
+        .map(|(id, f)| (*id, f.readiness.stood_down()))
+        .collect();
+    reinforce.sort_by_key(|(id, stood_down)| (*stood_down, *id));
+    for (id, stood_down) in reinforce {
+        let owner = military.formations[&id].owner.clone();
+        let rate = if stood_down {
+            REINFORCE_PER_DAY / 2
+        } else {
+            REINFORCE_PER_DAY
+        };
+        let pool = military.manpower.entry(owner).or_default();
+        let points = rate.min(*pool / MEN_PER_STRENGTH_POINT);
+        if points == 0 {
+            continue;
+        }
+        *pool -= points * MEN_PER_STRENGTH_POINT;
+        let f = military.formations.get_mut(&id).unwrap();
+        f.strength = (f.strength + points).min(1000);
+    }
+
+    // --- Theater front controller ----------------------------------------
+    for tid in &theater_ids {
+        let Some(theater) = military.theaters.get(tid).cloned() else {
+            continue;
+        };
+        let owner = theater.owner.clone();
+        // Committed = assigned, Active, alive. Echelon share (newest
+        // first — green divisions are the second echelon) holds the rear.
+        let mut committed: Vec<FormationId> = military
+            .formations
+            .iter()
+            .filter(|(_, f)| f.theater == Some(*tid) && !f.readiness.stood_down() && f.strength > 0)
+            .map(|(id, _)| *id)
+            .collect();
+        committed.sort();
+        let echelon_n = committed.len() * theater.echelon_permille as usize / 1000;
+        let echelon: Vec<FormationId> =
+            committed.split_off(committed.len().saturating_sub(echelon_n));
+
+        // Front set per posture.
+        let mut front: std::collections::BTreeSet<ProvinceId> = theater
+            .provinces
+            .iter()
+            .filter(|p| {
+                data.provinces.get(p).is_some_and(|pd| {
+                    pd.adjacent.iter().any(|adj| {
+                        data.provinces.get(adj).is_some_and(|ap| {
+                            let holder = military.owner_of(*adj, &ap.owner);
+                            military.at_war(&owner, &holder)
+                        })
+                    })
+                })
+            })
+            .copied()
+            .collect();
+        let mut on_path: std::collections::BTreeSet<ProvinceId> = Default::default();
+        if theater.posture != TheaterPosture::Defend {
+            // Probe and Offensive extend the front one province into
+            // enemy soil — the front rolls forward as occupation flips.
+            let extra: Vec<ProvinceId> = front
+                .iter()
+                .flat_map(|p| {
+                    data.provinces
+                        .get(p)
+                        .map(|pd| pd.adjacent.clone())
+                        .unwrap_or_default()
+                })
+                .filter(|adj| {
+                    data.provinces.get(adj).is_some_and(|ap| {
+                        let holder = military.owner_of(*adj, &ap.owner);
+                        military.at_war(&owner, &holder)
+                            && !theater.forbidden.contains(&holder)
+                            && !theater.forbidden.contains(&ap.owner)
+                    })
+                })
+                .collect();
+            front.extend(extra);
+        }
+        if theater.posture == TheaterPosture::Offensive {
+            // Objectives add depth: enemy provinces along the axis join
+            // the front so the advance aims instead of spreading evenly.
+            for objective in &theater.objectives {
+                for p in objective_path(data, &military, &theater, &front, *objective) {
+                    on_path.insert(p);
+                    front.insert(p);
+                }
+            }
+        }
+
+        if front.is_empty() {
+            // Peacetime garrison: disperse round-robin over the theater.
+            let provinces: Vec<ProvinceId> = theater.provinces.iter().copied().collect();
+            if provinces.is_empty() {
+                continue;
+            }
+            for (i, id) in committed.iter().chain(echelon.iter()).enumerate() {
+                let f = military.formations.get_mut(id).unwrap();
+                f.slot = Some(provinces[i % provinces.len()]);
+            }
+            continue;
+        }
+
+        // Slot weights: 1 + hostile_adjacent + 3*objective_path
+        // + 2*enemy_formation_adjacent (additive; path term boolean).
+        let enemy_positions: std::collections::BTreeSet<ProvinceId> = military
+            .formations
+            .values()
+            .filter(|f| military.at_war(&owner, &f.owner))
+            .map(|f| f.location)
+            .collect();
+        let front_vec: Vec<ProvinceId> = front.iter().copied().collect();
+        let weight: BTreeMap<ProvinceId, u64> = front_vec
+            .iter()
+            .map(|p| {
+                let hostile_adj = data
+                    .provinces
+                    .get(p)
+                    .map(|pd| {
+                        pd.adjacent
+                            .iter()
+                            .filter(|adj| {
+                                data.provinces.get(adj).is_some_and(|ap| {
+                                    let holder = military.owner_of(**adj, &ap.owner);
+                                    military.at_war(&owner, &holder)
+                                })
+                            })
+                            .count() as u64
+                    })
+                    .unwrap_or(0);
+                let enemy_adj = data
+                    .provinces
+                    .get(p)
+                    .is_some_and(|pd| pd.adjacent.iter().any(|a| enemy_positions.contains(a)));
+                let w = 1
+                    + hostile_adj
+                    + if on_path.contains(p) { 3 } else { 0 }
+                    + if enemy_adj { 2 } else { 0 };
+                (*p, w)
+            })
+            .collect();
+
+        // Largest-remainder quotas over the committed (non-echelon) pool.
+        let total_weight: u64 = weight.values().sum::<u64>().max(1);
+        let n = committed.len() as u64;
+        let mut quota: BTreeMap<ProvinceId, i64> = BTreeMap::new();
+        let mut remainders: Vec<(u64, ProvinceId)> = Vec::new();
+        let mut assigned: u64 = 0;
+        for p in &front_vec {
+            let ideal = n * weight[p];
+            let base = ideal / total_weight;
+            quota.insert(*p, base as i64);
+            assigned += base;
+            remainders.push((ideal % total_weight, *p));
+        }
+        remainders.sort_by_key(|(r, p)| (std::cmp::Reverse(*r), *p));
+        for (_, p) in remainders.into_iter().take((n - assigned.min(n)) as usize) {
+            *quota.get_mut(&p).unwrap() += 1;
+        }
+
+        // Assignment-preserving controller: invalid slots reassign to the
+        // deepest deficit; then deficit>=2 provinces pull from surplus>=2.
+        let mut occupancy: BTreeMap<ProvinceId, Vec<FormationId>> = BTreeMap::new();
+        let mut unslotted: Vec<FormationId> = Vec::new();
+        for id in &committed {
+            let slot = military.formations[id].slot;
+            match slot {
+                Some(s) if front.contains(&s) => occupancy.entry(s).or_default().push(*id),
+                _ => unslotted.push(*id),
+            }
+        }
+        for id in unslotted {
+            let best = front_vec
+                .iter()
+                .max_by_key(|p| {
+                    let occ = occupancy.get(p).map(|v| v.len() as i64).unwrap_or(0);
+                    (quota[p] - occ, std::cmp::Reverse(p.0))
+                })
+                .copied();
+            if let Some(p) = best {
+                occupancy.entry(p).or_default().push(id);
+                let f = military.formations.get_mut(&id).unwrap();
+                f.slot = Some(p);
+                f.retarget_cooldown = RETARGET_COOLDOWN;
+            }
+        }
+        let mut moves: Vec<(FormationId, ProvinceId)> = Vec::new();
+        loop {
+            let deficit = front_vec
+                .iter()
+                .filter(|p| {
+                    let occ = occupancy.get(p).map(|v| v.len() as i64).unwrap_or(0);
+                    quota[p] - occ >= QUOTA_PULL_DEFICIT
+                })
+                .max_by_key(|p| {
+                    let occ = occupancy.get(p).map(|v| v.len() as i64).unwrap_or(0);
+                    (quota[p] - occ, std::cmp::Reverse(p.0))
+                })
+                .copied();
+            let Some(needy) = deficit else { break };
+            let donor = front_vec
+                .iter()
+                .filter(|p| {
+                    let occ = occupancy.get(p).map(|v| v.len() as i64).unwrap_or(0);
+                    occ - quota[p] >= QUOTA_PULL_DEFICIT
+                        && occupancy[p]
+                            .iter()
+                            .any(|id| military.formations[id].retarget_cooldown == 0)
+                })
+                .max_by_key(|p| {
+                    let occ = occupancy.get(p).map(|v| v.len() as i64).unwrap_or(0);
+                    (occ - quota[p], std::cmp::Reverse(p.0))
+                })
+                .copied();
+            let Some(donor) = donor else { break };
+            let mover = occupancy[&donor]
+                .iter()
+                .filter(|id| military.formations[id].retarget_cooldown == 0)
+                .min()
+                .copied()
+                .unwrap();
+            occupancy.get_mut(&donor).unwrap().retain(|i| *i != mover);
+            occupancy.entry(needy).or_default().push(mover);
+            moves.push((mover, needy));
+        }
+        for (id, slot) in moves {
+            let f = military.formations.get_mut(&id).unwrap();
+            f.slot = Some(slot);
+            f.retarget_cooldown = RETARGET_COOLDOWN;
+        }
+
+        // Echelon holds the theater province nearest the front centroid
+        // that is not itself front; fall back to any theater province.
+        let rear = theater
+            .provinces
+            .iter()
+            .filter(|p| !front.contains(p))
+            .min_by_key(|p| {
+                data.provinces
+                    .get(p)
+                    .map(|pd| pd.adjacent.iter().filter(|a| front.contains(a)).count())
+                    .map(std::cmp::Reverse)
+                    .map(|r| (r, p.0))
+                    .unwrap_or((std::cmp::Reverse(0), p.0))
+            })
+            .or_else(|| theater.provinces.iter().next())
+            .copied();
+        if let Some(rear) = rear {
+            for id in &echelon {
+                military.formations.get_mut(id).unwrap().slot = Some(rear);
+            }
+        }
+    }
+
+    // --- Movement: one hop toward the slot --------------------------------
+    let movers: Vec<FormationId> = military
+        .formations
+        .iter()
+        .filter(|(_, f)| {
+            !f.readiness.stood_down()
+                && f.move_cooldown == 0
+                && f.cohesion >= RETREAT_COHESION
+                && !battle_provinces.contains(&f.location)
+        })
+        .map(|(id, _)| *id)
+        .collect();
+    for id in movers {
+        let (owner, location, slot, theater_id, home) = {
+            let f = &military.formations[&id];
+            (f.owner.clone(), f.location, f.slot, f.theater, f.home)
+        };
+        let target = slot.or({
+            // No theater, no slot: walk home and sit.
+            if theater_id.is_none() {
+                Some(home)
+            } else {
+                None
+            }
+        });
+        let Some(target) = target else { continue };
+        if target == location {
+            continue;
+        }
+        let theater = theater_id.and_then(|t| military.theaters.get(&t)).cloned();
+        let dest = find_step_toward(data, &military, &owner, theater.as_ref(), location, target);
+        if let Some(dest) = dest {
+            let (_, _, days) = military.formations[&id].archetype.stats();
+            let f = military.formations.get_mut(&id).unwrap();
+            f.last_location = Some(f.location);
+            f.location = dest;
+            f.move_cooldown = days;
+        }
+    }
+}
+
+/// Shared raise path (player command and AI): debit stock, price the
+/// escalation signal, spawn the green division. Returns false when the
+/// stockpile can't cover it.
+#[allow(clippy::too_many_arguments)]
+pub fn raise_division(
+    data: &ugs_data::ScenarioData,
+    military: &mut Military,
+    econ: &mut crate::planning::Economies,
+    tension: &mut crate::tension::GlobalTension,
+    tick: u64,
+    country: CountryTag,
+    archetype: Archetype,
+    home: ProvinceId,
+) -> bool {
+    use tuning::*;
+    let count = military
+        .formations
+        .values()
+        .filter(|f| f.owner == country)
+        .count();
+    if count >= MAX_FORMATIONS {
+        military.log(tick, format!("{} ARMY AT ORGANIZATIONAL LIMIT", country.0));
+        return false;
+    }
+    let cost = archetype.raise_cost();
+    let Some(stock) = econ
+        .industry
+        .get_mut(&country)
+        .map(|s| &mut s.military_stock)
+    else {
+        return false;
+    };
+    if *stock < cost {
+        military.log(
+            tick,
+            format!("{} PROCUREMENT SHORTFALL -- DIVISION NOT RAISED", country.0),
+        );
+        return false;
+    }
+    *stock -= cost;
+    let at_war = military
+        .wars
+        .iter()
+        .any(|(a, b)| a == &country || b == &country);
+    let floor = peace_floor(data, &country);
+    // Commitment is a public escalation signal: priced at peace, and at
+    // war beyond the peacetime establishment.
+    if !at_war || count >= floor {
+        tension.apply(RAISE_TENSION);
+        military.log(
+            tick,
+            format!(
+                "{} EXPANDS ARMED FORCES -- FOREIGN CAPITALS TAKE NOTE",
+                country.0
+            ),
+        );
+    }
+    let id = military.raise_recruit(data, country, archetype, home);
+    let name = military.formations[&id].name.clone();
+    military.log(tick, format!("{name} FORMING"));
+    true
+}
+
+/// Peacetime active-division establishment: majors scale with industry.
+pub fn peace_floor(data: &ugs_data::ScenarioData, country: &CountryTag) -> usize {
+    use tuning::*;
+    data.countries
+        .get(country)
+        .map(|c| {
+            if c.industry >= MAJOR_INDUSTRY {
+                (c.industry / MAJOR_FLOOR_DIVISOR) as usize
+            } else {
+                PEACE_FLOOR_DIVS
+            }
+        })
+        .unwrap_or(PEACE_FLOOR_DIVS)
 }
 
 #[cfg(test)]
@@ -1080,5 +2229,240 @@ mod tests {
             .copied()
             .unwrap();
         assert!(prk > 0, "KPA still has a manpower pool");
+    }
+
+    fn push(app: &mut App, cmd: crate::command::SimCommand) {
+        app.world_mut()
+            .resource_mut::<crate::command::PendingCommands>()
+            .push(cmd);
+    }
+
+    #[test]
+    fn raising_costs_stock_trains_and_signals() {
+        use crate::command::SimCommand;
+        let mut app = app_with_scenario();
+        run_ticks(&mut app, 25); // past OOB seeding, day 2, at peace
+        let usa = CountryTag("USA".into());
+        let home = {
+            let scenario = app.world().resource::<SimScenario>().0.clone();
+            Military::heartland_of(&scenario, &usa, ugs_data::ProvinceId(0))
+        };
+        {
+            let mut econ = app.world_mut().resource_mut::<crate::planning::Economies>();
+            econ.industry.get_mut(&usa).unwrap().military_stock = 20;
+        }
+        let tension_before = app
+            .world()
+            .resource::<crate::tension::GlobalTension>()
+            .value();
+        push(
+            &mut app,
+            SimCommand::RaiseFormation {
+                country: usa.clone(),
+                archetype: Archetype::Armor,
+                home,
+                count: 2,
+            },
+        );
+        run_ticks(&mut app, 1);
+        {
+            let military = app.world().resource::<Military>();
+            let econ = app.world().resource::<crate::planning::Economies>();
+            let raised: Vec<&Formation> = military
+                .formations
+                .values()
+                .filter(|f| f.owner == usa)
+                .collect();
+            assert_eq!(raised.len(), 2, "two armor divisions raised");
+            assert!(raised
+                .iter()
+                .all(|f| f.strength == tuning::RAISE_START_STRENGTH));
+            assert!(raised.iter().all(|f| f.training == 0), "green");
+            assert_eq!(
+                econ.industry[&usa].military_stock,
+                20 - 2 * tuning::RAISE_STOCK_ARMOR,
+                "stock debited"
+            );
+            // Peacetime force expansion is a public escalation signal.
+            assert!(
+                app.world()
+                    .resource::<crate::tension::GlobalTension>()
+                    .value()
+                    >= tension_before + 2 * tuning::RAISE_TENSION,
+                "raising at peace adds tension"
+            );
+        }
+        // A month later: training climbed and the reinforcement pipeline
+        // has been filling the division from the manpower pool.
+        run_ticks(&mut app, 24 * 30);
+        {
+            let military = app.world().resource::<Military>();
+            let f = military
+                .formations
+                .values()
+                .find(|f| f.owner == usa)
+                .unwrap();
+            assert!(f.training > 150, "a month of training: {}", f.training);
+            assert!(f.training < 1000, "armor takes 150 days");
+            assert!(f.strength > 400, "reinforcement filling: {}", f.strength);
+            // Daily upkeep accrual is running and settles monthly.
+            assert!(
+                military
+                    .upkeep_accrued_centi
+                    .get(&usa)
+                    .copied()
+                    .unwrap_or(0)
+                    > 0
+                    || military.upkeep_arrears.contains_key(&usa),
+                "upkeep accruing"
+            );
+        }
+    }
+
+    #[test]
+    fn raising_without_stock_is_a_logged_no_op() {
+        use crate::command::SimCommand;
+        let mut app = app_with_scenario();
+        run_ticks(&mut app, 25);
+        let prk = CountryTag("PRK".into());
+        {
+            let mut econ = app.world_mut().resource_mut::<crate::planning::Economies>();
+            econ.industry.get_mut(&prk).unwrap().military_stock = 0;
+        }
+        let before = app
+            .world()
+            .resource::<Military>()
+            .formations
+            .values()
+            .filter(|f| f.owner == prk)
+            .count();
+        let home = {
+            let scenario = app.world().resource::<SimScenario>().0.clone();
+            Military::heartland_of(&scenario, &prk, ugs_data::ProvinceId(0))
+        };
+        push(
+            &mut app,
+            SimCommand::RaiseFormation {
+                country: prk.clone(),
+                archetype: Archetype::Infantry,
+                home,
+                count: 1,
+            },
+        );
+        run_ticks(&mut app, 1);
+        let military = app.world().resource::<Military>();
+        let after = military
+            .formations
+            .values()
+            .filter(|f| f.owner == prk)
+            .count();
+        assert_eq!(after, before, "no division without stock");
+        assert!(
+            military
+                .war_log
+                .iter()
+                .any(|(_, l)| l.contains("PROCUREMENT SHORTFALL")),
+            "shortfall on the wire"
+        );
+    }
+
+    #[test]
+    fn mobilization_takes_weeks_and_is_public_at_peace() {
+        use crate::command::SimCommand;
+        let mut app = app_with_scenario();
+        run_ticks(&mut app, 25);
+        let kor = CountryTag("KOR".into());
+        let id = *app
+            .world()
+            .resource::<Military>()
+            .formations
+            .iter()
+            .find(|(_, f)| f.owner == kor)
+            .unwrap()
+            .0;
+        // Stand down: immediate, cohesion drops.
+        push(
+            &mut app,
+            SimCommand::SetReadiness {
+                country: kor.clone(),
+                id,
+                active: false,
+            },
+        );
+        run_ticks(&mut app, 1);
+        assert!(matches!(
+            app.world().resource::<Military>().formations[&id].readiness,
+            Readiness::Reserve
+        ));
+        // Reactivate at peace: 21-day ramp, tension signal.
+        let tension_before = app
+            .world()
+            .resource::<crate::tension::GlobalTension>()
+            .value();
+        push(
+            &mut app,
+            SimCommand::SetReadiness {
+                country: kor.clone(),
+                id,
+                active: true,
+            },
+        );
+        run_ticks(&mut app, 1);
+        {
+            let military = app.world().resource::<Military>();
+            assert!(matches!(
+                military.formations[&id].readiness,
+                Readiness::Mobilizing { .. }
+            ));
+            assert!(
+                app.world()
+                    .resource::<crate::tension::GlobalTension>()
+                    .value()
+                    > tension_before - 5,
+                "peacetime mobilization signals (net of daily decay)"
+            );
+        }
+        run_ticks(&mut app, 24 * (tuning::MOBILIZE_DAYS as u64 + 1));
+        assert!(
+            matches!(
+                app.world().resource::<Military>().formations[&id].readiness,
+                Readiness::Active
+            ),
+            "mobilization completes"
+        );
+    }
+
+    #[test]
+    fn theaters_spread_the_front_instead_of_blobbing() {
+        let mut app = app_with_scenario();
+        // Into the war: KPA offensive rolling south.
+        run_ticks(&mut app, 24 * 200);
+        let military = app.world().resource::<Military>();
+        assert!(!military.wars.is_empty(), "Korean War underway");
+        // Auto-theaters exist for the belligerents.
+        assert!(
+            military
+                .theaters
+                .values()
+                .any(|t| t.auto && t.owner.0 == "PRK"),
+            "KPA auto-theater created"
+        );
+        // The anti-blob check: the larger armies hold multiple distinct
+        // provinces rather than stacking into one death-ball.
+        use std::collections::BTreeSet;
+        let spread = |tag: &str| -> usize {
+            military
+                .formations
+                .values()
+                .filter(|f| f.owner.0 == tag)
+                .map(|f| f.location)
+                .collect::<BTreeSet<_>>()
+                .len()
+        };
+        assert!(
+            spread("PRK") >= 3,
+            "KPA spread across the front: {} provinces",
+            spread("PRK")
+        );
     }
 }

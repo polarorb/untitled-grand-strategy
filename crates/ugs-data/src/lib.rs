@@ -222,6 +222,12 @@ pub enum EventEffect {
         divisions: u32,
         quality: u32,
     },
+    /// Patron military aid: add points to a country's military stockpile
+    /// (the upkeep/raising currency). How PRK survives its own economy.
+    GrantStock {
+        country: CountryTag,
+        amount: u64,
+    },
     /// Authorize the thermonuclear ("Super") follow-on program.
     AuthorizeThermonuclear {
         country: CountryTag,
