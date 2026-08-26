@@ -15,6 +15,7 @@
 pub mod agriculture;
 pub mod calendar;
 pub mod command;
+pub mod construction;
 pub mod crisis;
 pub mod demography;
 pub mod deterrence;
@@ -114,6 +115,9 @@ impl Plugin for SimPlugin {
         app.init_resource::<crisis::Crises>();
         app.init_resource::<intel::Intel>();
         app.init_resource::<settlement::Settlements>();
+        app.init_resource::<construction::RegionalIndustry>();
+        app.init_resource::<construction::Construction>();
+        app.init_resource::<construction::RegionSnapshots>();
         app.configure_sets(
             SimTick,
             (
@@ -158,7 +162,9 @@ impl Plugin for SimPlugin {
                 demography::update_demographics,
                 economy::update_economy,
                 planning::update_production,
+                construction::update_construction,
                 agriculture::update_agriculture,
+                construction::update_snapshots,
             )
                 .chain()
                 .in_set(TickSet::Economy),

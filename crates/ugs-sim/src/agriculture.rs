@@ -74,6 +74,10 @@ pub struct AgriStatus {
 pub struct Agriculture {
     pub policy: BTreeMap<CountryTag, AgriPolicy>,
     pub status: BTreeMap<CountryTag, AgriStatus>,
+    /// Permanent yield bonuses from completed projects
+    /// (mechanization, Virgin Lands), permille.
+    #[serde(default)]
+    pub bonus_permille: BTreeMap<CountryTag, u64>,
 }
 
 impl Agriculture {
@@ -91,6 +95,7 @@ impl Agriculture {
         if policy.collectivized {
             modifier = modifier.saturating_sub(COLLECTIVE_YIELD_MALUS);
         }
+        modifier += self.bonus_permille.get(tag).copied().unwrap_or(0);
         if policy.shock_months > 0 {
             modifier = modifier.saturating_sub(TRANSITION_YIELD_MALUS);
         }
@@ -99,6 +104,10 @@ impl Agriculture {
 
     pub fn digest(&self) -> u64 {
         let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        for (tag, b) in &self.bonus_permille {
+            h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>() ^ *b)
+                .wrapping_mul(0x0000_0100_0000_01b3);
+        }
         for (tag, s) in &self.status {
             for v in [
                 tag.0.bytes().map(u64::from).sum::<u64>(),

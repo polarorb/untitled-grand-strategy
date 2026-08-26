@@ -307,6 +307,57 @@ pub struct OobEntry {
     pub quality: u32,
 }
 
+/// A named Great Project: era-authentic, condition-gated, historian-
+/// sourced (see comments in projects.ron). Site resolved by (country,
+/// province name) at load.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GreatProjectDef {
+    pub id: String,
+    pub name: String,
+    /// The sponsoring country (v1: only this country may build it).
+    pub country: CountryTag,
+    /// Site province name within `country` ("" = national, no site).
+    #[serde(default)]
+    pub province: String,
+    pub offered: OfferCondition,
+    /// Construction-pool cost, centi-points.
+    pub cost_centi: u64,
+    /// Physical minimum build time regardless of funding.
+    pub min_months: u16,
+    pub payload: ProjectPayload,
+    /// Teletype blurb for the offer board and completion ceremony.
+    pub blurb: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OfferCondition {
+    /// In progress at campaign start, at this completion permille.
+    AtStart { progress_permille: u16 },
+    /// Offerable on/after (year, month).
+    Date { year: i32, month: u8 },
+    /// Offerable when the site's regional grid runs a deficit.
+    PowerDeficit { after_year: i32 },
+    /// Offerable when the sponsor's grain ratio dips below permille.
+    GrainShortfall {
+        after_year: i32,
+        below_permille: u32,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProjectPayload {
+    /// Adds generation capacity to the site's regional grid.
+    Power { capacity: u64 },
+    /// Adds regional industry (centi-points).
+    Industry { centi: u64 },
+    /// Adds national agricultural yield (permille).
+    AgriYield { permille: u64 },
+    /// Adds enrichment levels to the sponsor's nuclear program.
+    Enrichment { levels: u32 },
+    /// Waterway/prestige: tension relief now, influence later.
+    Prestige { tension_relief: i32 },
+}
+
 /// Everything loaded from disk for one scenario, validated and cross-linked.
 #[derive(Debug, Clone)]
 pub struct ScenarioData {
@@ -324,6 +375,8 @@ pub struct ScenarioData {
     pub oob: Vec<OobEntry>,
     /// Nuclear-program seeds (nuclear.ron; optional).
     pub nuclear: Vec<NuclearSeedDef>,
+    /// Great Project catalog (projects.ron; optional).
+    pub projects: Vec<GreatProjectDef>,
 }
 
 impl ScenarioData {
@@ -385,6 +438,11 @@ impl ScenarioData {
         if nuclear_path.exists() {
             nuclear = load_ron(&nuclear_path)?;
         }
+        let mut projects: Vec<GreatProjectDef> = Vec::new();
+        let projects_path = scenario_dir.join("projects.ron");
+        if projects_path.exists() {
+            projects = load_ron(&projects_path)?;
+        }
 
         // Nation-select metadata is optional: the directory may not exist
         // yet, and coverage of minor tags may be partial.
@@ -408,9 +466,32 @@ impl ScenarioData {
             events,
             oob,
             nuclear,
+            projects,
         };
         data.validate()?;
         Ok(data)
+    }
+
+    fn validate_projects(&self) -> Result<(), DataError> {
+        let mut seen = std::collections::BTreeSet::new();
+        for p in &self.projects {
+            if !seen.insert(&p.id) {
+                return Err(DataError::Validation(format!(
+                    "duplicate project id {}",
+                    p.id
+                )));
+            }
+            if !self.countries.contains_key(&p.country) {
+                return Err(DataError::Validation(format!(
+                    "project {} references unknown country {}",
+                    p.id, p.country.0
+                )));
+            }
+            if !p.province.is_empty() {
+                self.province_by_name(&p.country, &p.province)?;
+            }
+        }
+        Ok(())
     }
 
     /// Resolve a province by (name, 1950 owner). Errors if missing or
@@ -438,6 +519,7 @@ impl ScenarioData {
     }
 
     fn validate(&self) -> Result<(), DataError> {
+        self.validate_projects()?;
         for entry in &self.oob {
             self.province_by_name(&entry.owner, &entry.province)?;
             if !["Infantry", "Motorized", "Armor"].contains(&entry.archetype.as_str()) {

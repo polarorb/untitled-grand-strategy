@@ -151,6 +151,26 @@ pub enum SimCommand {
         country: CountryTag,
         enemy: CountryTag,
     },
+    /// Commit the construction pool to a project in a region
+    /// (economic-agency.md). Market economies may only place public
+    /// works; industry placement belongs to firms.
+    StartProject {
+        country: CountryTag,
+        region: ugs_data::RegionId,
+        kind: crate::construction::ProjectKind,
+    },
+    /// Cancel a project, refunding part of the remaining cost.
+    CancelProject {
+        country: CountryTag,
+        id: crate::construction::ProjectId,
+    },
+    /// Market economies: mark a region as a development zone, tilting
+    /// the published private-investment allocator (cap 3).
+    SetDevelopmentZone {
+        country: CountryTag,
+        region: ugs_data::RegionId,
+        on: bool,
+    },
     /// Resolve a pending choice event with the given option index.
     ResolveEvent {
         id: String,
@@ -222,6 +242,15 @@ impl PendingCommands {
     }
 }
 
+/// Economy-side context bundled to stay under the system-param limit.
+#[derive(bevy_ecs::system::SystemParam)]
+pub struct EconCtx<'w> {
+    construction: ResMut<'w, crate::construction::Construction>,
+    stat: Res<'w, crate::economy::EconomyStatic>,
+    power: Res<'w, crate::economy::RegionalPower>,
+    national: Res<'w, crate::economy::NationalBalances>,
+}
+
 #[allow(clippy::too_many_arguments)] // the command hub touches every domain
 pub fn apply_commands(
     clock: Res<SimClock>,
@@ -236,6 +265,7 @@ pub fn apply_commands(
     mut nuclear: ResMut<crate::nuclear::NuclearPrograms>,
     mut intel: ResMut<crate::intel::Intel>,
     mut settlements: ResMut<crate::settlement::Settlements>,
+    mut econ_ctx: EconCtx,
     deterrence: Res<crate::deterrence::Deterrence>,
     scenario: Option<Res<SimScenario>>,
 ) {
@@ -573,6 +603,160 @@ pub fn apply_commands(
                         .retain(|(c, e)| !(c == &country && e == &enemy));
                     if offer {
                         military.armistice_offers.push((country, enemy));
+                    }
+                }
+            }
+            SimCommand::StartProject {
+                country,
+                region,
+                kind,
+            } => {
+                use crate::construction::{tuning as ct, Project, ProjectId, ProjectKind};
+                let Some(scenario) = &scenario else { continue };
+                let data = &scenario.0;
+                let owned = econ_ctx.stat.region_owner.get(&region) == Some(&country);
+                let held = crate::construction::region_held(data, &military, region);
+                let planned = matches!(
+                    econ.system.get(&country),
+                    Some(crate::planning::EconomicSystem::Planned)
+                );
+                let kind_legal =
+                    planned || matches!(kind, ProjectKind::PowerStation | ProjectKind::Great(_));
+                let (generic, great) = econ_ctx.construction.active_for(&country);
+                let slot_free = match &kind {
+                    ProjectKind::Great(_) => great == 0,
+                    _ => generic < ct::GENERIC_SLOTS,
+                };
+                // Base cost + site modifiers (the site report's numbers).
+                let power_pm = econ_ctx
+                    .power
+                    .by_region
+                    .get(&region)
+                    .map(|s| s.factor_permille)
+                    .unwrap_or(1000);
+                let has_deposit = data
+                    .provinces
+                    .values()
+                    .any(|p| p.region == region && !p.deposits.is_empty());
+                let cost = match &kind {
+                    ProjectKind::IndustrialExpansion => Some(ct::COST_INDUSTRIAL),
+                    ProjectKind::PowerStation => Some(ct::COST_POWER_STATION),
+                    ProjectKind::AgriMechanization => Some(ct::COST_AGRI_MECH),
+                    ProjectKind::Great(gid) => crate::construction::offered_projects(
+                        data,
+                        &clock,
+                        &econ_ctx.national,
+                        &econ_ctx.power,
+                        &econ_ctx.stat,
+                        &econ_ctx.construction,
+                        &country,
+                    )
+                    .iter()
+                    .find(|g| &g.id == gid)
+                    .map(|g| g.cost_centi),
+                };
+                let Some(mut cost) = cost else { continue };
+                if !matches!(kind, ProjectKind::Great(_)) {
+                    if has_deposit {
+                        cost = cost * (1000 - ct::SITE_DEPOSIT_DISCOUNT) / 1000;
+                    }
+                    if power_pm >= 1000 && !matches!(kind, ProjectKind::PowerStation) {
+                        cost = cost * (1000 - ct::SITE_POWER_SURPLUS_DISCOUNT) / 1000;
+                    }
+                    if power_pm < 1000 && !matches!(kind, ProjectKind::PowerStation) {
+                        cost = cost * (1000 + ct::SITE_POWER_DEFICIT_SURCHARGE) / 1000;
+                    }
+                }
+                let pool = econ_ctx
+                    .construction
+                    .pool
+                    .get(&country)
+                    .copied()
+                    .unwrap_or(0);
+                // Great Projects at AtStart inherit progress.
+                let progress = match &kind {
+                    ProjectKind::Great(gid) => data
+                        .projects
+                        .iter()
+                        .find(|g| &g.id == gid)
+                        .map(|g| match &g.offered {
+                            ugs_data::OfferCondition::AtStart { progress_permille } => {
+                                cost * *progress_permille as u64 / 1000
+                            }
+                            _ => 0,
+                        })
+                        .unwrap_or(0),
+                    _ => 0,
+                };
+                // Great sites come from the catalog, not the command.
+                let region = match &kind {
+                    ProjectKind::Great(gid) => data
+                        .projects
+                        .iter()
+                        .find(|g| &g.id == gid)
+                        .and_then(|g| crate::construction::project_region(data, &econ_ctx.stat, g))
+                        .unwrap_or(region),
+                    _ => region,
+                };
+                let great_ok = match &kind {
+                    ProjectKind::Great(_) => true, // ownership is the sponsor's
+                    _ => owned && held,
+                };
+                if great_ok && kind_legal && slot_free && pool >= cost / 10 {
+                    let name = kind.label().to_string();
+                    let id = ProjectId(econ_ctx.construction.next_id + 1);
+                    econ_ctx.construction.next_id += 1;
+                    econ_ctx.construction.projects.insert(
+                        id,
+                        Project {
+                            country: country.clone(),
+                            region,
+                            kind,
+                            progress_centi: progress,
+                            cost_centi: cost,
+                            started_tick: clock.tick,
+                            slowed_by: None,
+                        },
+                    );
+                    let region_label = crate::construction::region_name(data, region);
+                    econ_ctx
+                        .construction
+                        .log_line(clock.tick, format!("{name} BEGINS ({region_label})"));
+                }
+            }
+            SimCommand::CancelProject { country, id } => {
+                use crate::construction::tuning as ct;
+                let refund = econ_ctx
+                    .construction
+                    .projects
+                    .get(&id)
+                    .filter(|p| p.country == country)
+                    .map(|p| {
+                        p.cost_centi.saturating_sub(p.progress_centi) * ct::CANCEL_REFUND_PERMILLE
+                            / 1000
+                    });
+                if let Some(refund) = refund {
+                    econ_ctx.construction.projects.remove(&id);
+                    *econ_ctx.construction.pool.entry(country).or_default() += refund;
+                }
+            }
+            SimCommand::SetDevelopmentZone {
+                country,
+                region,
+                on,
+            } => {
+                use crate::construction::tuning as ct;
+                let market = matches!(
+                    econ.system.get(&country),
+                    Some(crate::planning::EconomicSystem::Market)
+                );
+                let owned = econ_ctx.stat.region_owner.get(&region) == Some(&country);
+                if market && owned {
+                    let zones = econ_ctx.construction.zones.entry(country).or_default();
+                    if on && zones.len() < ct::ZONE_CAP {
+                        zones.insert(region);
+                    } else if !on {
+                        zones.remove(&region);
                     }
                 }
             }

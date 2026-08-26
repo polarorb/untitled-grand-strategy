@@ -1,0 +1,138 @@
+// Great Projects catalog — historian-sourced (2026-08-26 research pass;
+// sources in each entry's comment block). Costs in construction-pool
+// centi-points, tuned to the pool accrual scale (US ~1000-1500/mo,
+// USSR ~800-1200/mo at typical allocations). Anachronism-checked:
+// only the Volga-Don is under construction on 1950-01-01; Kuibyshev
+// (decree Aug 1950) and the Turkmen Canal (decree Sep 1950) unlock
+// during the first year. The Aswan High Dam deliberately absent:
+// it arrives with the contested-foreign-bid system (first follow-up).
+[
+    // Volga-Don Shipping Canal. Construction resumed 1948, opened
+    // 1 Jun 1952: 101 km, 13 locks, links the five-sea waterway;
+    // companion Tsimlyansk dam ~160 MW class. MVD-run, Gulag labor
+    // (~75k-100k simultaneous forced laborers; estimates to ~1M
+    // cumulative incl. POWs). Flagship "Great Construction Project of
+    // Communism". Sources: Wikipedia Volga-Don Canal; Britannica;
+    // USNI Proceedings Jun 1956.
+    GreatProjectDef(
+        id: "volga-don",
+        name: "VOLGA-DON CANAL",
+        country: ("SOV"),
+        province: "Volgograd",
+        offered: AtStart(progress_permille: 600),
+        cost_centi: 1800,
+        min_months: 12,
+        payload: Prestige(tension_relief: -10),
+        blurb: "THE CANAL AT LAST UNITES FIVE SEAS INTO ONE SOVIET WATERWAY, OPENING DONBAS COAL AND BAKU OIL TO THE WHOLE VOLGA BASIN.",
+    ),
+    // Kuibyshev Hydroelectric Station (Zhiguli HPP). Decree Aug 1950,
+    // construction 1950-57, ~2,300 MW at completion -- largest in the
+    // world 1957-60; powered Moscow and the Urals via new transmission
+    // lines. Kunyeevlag Gulag labor early. Capacity figure is the
+    // period completion value, not the modern uprating. Sources:
+    // Wikipedia Zhiguli Hydroelectric Station.
+    GreatProjectDef(
+        id: "kuibyshev-hpp",
+        name: "KUIBYSHEV HYDROELECTRIC STATION",
+        country: ("SOV"),
+        province: "Samara",
+        offered: Date(year: 1950, month: 8),
+        cost_centi: 4200,
+        min_months: 60,
+        payload: Power(capacity: 2300),
+        blurb: "A SINGLE STATION ON THE VOLGA WILL POWER MOSCOW, THE URALS, AND THE ELECTRIFICATION OF AGRICULTURE ACROSS THE MIDDLE VOLGA.",
+    ),
+    // Main Turkmen Canal -- the priced trap. Decree Sep 1950; base
+    // camps from Nov 1950 (Takhiatash, near Nukus); halted within a
+    // month of Stalin's death, dead by Apr 1953 with essentially nil
+    // delivered beyond camps and survey work. Planned: ~1,100 km
+    // across the Karakum, 1.3M ha of new cotton. CIA tracked the slow
+    // progress. The catalog's deliberately overpriced gigantomania
+    // entry: enormous cost, thin payload, long clock. Sources:
+    // Wikipedia Main Turkmen Canal; CIA Reading Room; USNI 1967.
+    GreatProjectDef(
+        id: "turkmen-canal",
+        name: "MAIN TURKMEN CANAL",
+        country: ("SOV"),
+        province: "Karakalpakstan",
+        offered: Date(year: 1950, month: 9),
+        cost_centi: 9000,
+        min_months: 96,
+        payload: AgriYield(permille: 30),
+        blurb: "THE WATERS OF THE AMU DARYA WILL MAKE THE KARAKUM BLOOM WITH COTTON AND SETTLE THE DESERT WITH NEW SOVIET TOWNS.",
+    ),
+    // Virgin Lands Campaign. Launched Feb-Mar 1954 (gated here on
+    // date + grain pressure): ~33M ha plowed in two years, 1954 union
+    // harvest 85.5M tons (27.1M from virgin lands), yields wildly
+    // volatile (Kazakhstan 9.2 centners/ha 1954 -> 2.9 in 1955);
+    // ~20% of all Soviet agricultural investment 1954-59; wind
+    // erosion stripped >10M ha of topsoil 1956-58. The dated erosion
+    // reversal ships as an event (see events.ron, post-slice).
+    // Sources: Wikipedia Virgin Lands campaign; Seventeen Moments.
+    GreatProjectDef(
+        id: "virgin-lands",
+        name: "VIRGIN LANDS CAMPAIGN",
+        country: ("SOV"),
+        province: "Aqmola",
+        offered: GrainShortfall(after_year: 1954, below_permille: 1050),
+        cost_centi: 3000,
+        min_months: 24,
+        payload: AgriYield(permille: 80),
+        blurb: "IN THREE YEARS THE IDLE STEPPE WILL END THE GRAIN PROBLEM FOREVER, WITHOUT TOUCHING THE PEASANT'S PRIVATE PLOT.",
+    ),
+    // St. Lawrence Seaway + Moses-Saunders power. US authorization
+    // May 1954 (Wiley-Dondero Act; Canada had threatened to build
+    // alone); ground broken Aug 1954, open Apr 1959. 7 locks, 27-ft
+    // channels; Moses-Saunders first power Jul 1958: 912 MW US +
+    // 1,045 MW Canadian. Navigation cost $470M total ($133.8M US).
+    // Sources: Eisenhower Library; Canadian Encyclopedia; Wikipedia
+    // Moses-Saunders Power Dam.
+    GreatProjectDef(
+        id: "st-lawrence-seaway",
+        name: "ST. LAWRENCE SEAWAY",
+        country: ("USA"),
+        province: "New York",
+        offered: Date(year: 1954, month: 5),
+        cost_centi: 3600,
+        min_months: 48,
+        payload: Power(capacity: 900),
+        blurb: "OCEAN FREIGHTERS AT DULUTH AND CHEAP POWER FOR THE ALUMINUM PLANTS -- THE SEAWAY MAKES THE GREAT LAKES A FOURTH SEACOAST.",
+    ),
+    // Interstate Highway System. Federal-Aid Highway Act signed
+    // 29 Jun 1956: 41,000 miles, 90/10 federal funding via the new
+    // Highway Trust Fund. Authorized at $25B for 1957-69; the 1991
+    // final federal estimate was $114.3B -- the era's best-documented
+    // overrun, which is why its cost here is deliberately above its
+    // announcement scale. Sold partly as civil defense ("and Defense
+    // Highways"). National project: no single site. Sources: FHWA
+    // Highway History; US House records.
+    GreatProjectDef(
+        id: "interstate-highways",
+        name: "INTERSTATE HIGHWAY SYSTEM",
+        country: ("USA"),
+        province: "",
+        offered: Date(year: 1956, month: 6),
+        cost_centi: 8000,
+        min_months: 96,
+        payload: Industry(centi: 3000),
+        blurb: "A UNIFIED DEFENSE HIGHWAY NETWORK WILL MOVE ARMIES AND EVACUATE CITIES IN ATOMIC WAR, AND PAY FOR ITSELF IN COMMERCE MEANWHILE.",
+    ),
+    // Paducah Gaseous Diffusion Plant. AEC site approved Oct 1950,
+    // construction from late 1951, FIRST ENRICHMENT SEP 1952 while
+    // still building, complete 1954; ~$800M; a grid-monstrous power
+    // sink (dedicated TVA/EEI coal plants; ~3,000 MW at full draw --
+    // the game's enrichment-demand formula models exactly this).
+    // Part of the post-Soviet-test crash expansion. Sources: DOE
+    // Paducah Background; Wikipedia.
+    GreatProjectDef(
+        id: "paducah-plant",
+        name: "PADUCAH GASEOUS DIFFUSION PLANT",
+        country: ("USA"),
+        province: "Kentucky",
+        offered: Date(year: 1950, month: 10),
+        cost_centi: 2800,
+        min_months: 30,
+        payload: Enrichment(levels: 2),
+        blurb: "THE COMMISSION REQUIRES ENRICHMENT CAPACITY BEYOND OAK RIDGE IF THE STOCKPILE IS TO KEEP PACE WITH THE SOVIET BOMB.",
+    ),
+]

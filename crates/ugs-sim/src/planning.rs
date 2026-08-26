@@ -189,6 +189,8 @@ pub fn update_production(
     balances: Res<NationalBalances>,
     power: Res<RegionalPower>,
     military: Res<crate::military::Military>,
+    mut regional: ResMut<crate::construction::RegionalIndustry>,
+    mut construction: ResMut<crate::construction::Construction>,
     mut econ: ResMut<Economies>,
     mut sol: ResMut<LivingStandards>,
 ) {
@@ -226,18 +228,16 @@ pub fn update_production(
 
     use tuning::*;
 
-    // Country-average power factor, weighted by regional industry.
-    let mut power_num: BTreeMap<&CountryTag, u64> = BTreeMap::new();
-    let mut power_den: BTreeMap<&CountryTag, u64> = BTreeMap::new();
-    for (region, industry) in &stat.region_industry {
-        let owner = &stat.region_owner[region];
-        let factor = power
-            .by_region
-            .get(region)
-            .map(|s| s.factor_permille)
-            .unwrap_or(1000);
-        *power_num.entry(owner).or_default() += industry * factor;
-        *power_den.entry(owner).or_default() += *industry;
+    // Thaw: seed the live regional distribution once from the static
+    // urban-share split (x100 -> centi-points). From then on the
+    // regional map is authoritative and the country scalar is a cache.
+    if !regional.initialized && stat.initialized {
+        regional.by_region = stat
+            .region_industry
+            .iter()
+            .map(|(r, v)| (*r, v * 100))
+            .collect();
+        regional.initialized = true;
     }
 
     // Country populations for SoL.
@@ -250,16 +250,36 @@ pub fn update_production(
         }
     }
 
+    // Fresh attribution window each month (the dossier shows last
+    // month's private inflow, not an all-time total).
+    construction.attribution.clear();
     let tags: Vec<CountryTag> = econ.industry.keys().cloned().collect();
     for tag in tags {
         let system = econ.system[&tag];
         let policy = econ.policy[&tag];
         let (consumer_pm, invest_pm, military_pm) = split(&policy);
 
-        let power_factor = match (power_num.get(&tag), power_den.get(&tag)) {
-            (Some(num), Some(den)) if *den > 0 => num / den,
-            _ => 1000,
-        };
+        // Regional output: each region produces under ITS OWN grid
+        // factor — a browned-out Kuzbass hurts Kuzbass, not a national
+        // average (the thaw's point).
+        let my_regions: Vec<ugs_data::RegionId> = stat
+            .region_owner
+            .iter()
+            .filter(|(_, o)| **o == tag)
+            .map(|(r, _)| *r)
+            .collect();
+        let regional_base: u64 = my_regions
+            .iter()
+            .map(|r| {
+                let centi = regional.by_region.get(r).copied().unwrap_or(0);
+                let factor = power
+                    .by_region
+                    .get(r)
+                    .map(|s| s.factor_permille)
+                    .unwrap_or(1000);
+                centi * factor / 1000
+            })
+            .sum();
         let materials = balances
             .by_country
             .get(&tag)
@@ -279,20 +299,94 @@ pub fn update_production(
                     (h + (holder == tag) as u64, t + 1)
                 });
         let held_permille = (held * 1000).checked_div(total).unwrap_or(1000);
-        let st = econ.industry.get_mut(&tag).unwrap();
-        // Effective monthly output in centi-points.
-        let output =
-            st.actual_centi * power_factor / 1000 * materials / 1000 * held_permille / 1000;
+        // Effective monthly output in centi-points, from the regional
+        // base (already power-weighted region by region).
+        let output = regional_base * materials / 1000 * held_permille / 1000;
+        {
+            let st = econ.industry.get_mut(&tag).unwrap();
+            st.military_stock += output * military_pm / 1000 / 100;
+        }
         let consumer_out = output * consumer_pm / 1000;
         let invest_out = output * invest_pm / 1000;
-        st.military_stock += output * military_pm / 1000 / 100;
 
-        // Growth minus depreciation.
+        // Growth minus depreciation, distributed regionally. Half the
+        // investment gain is DIRECTED (the construction pool — the
+        // player's project money); the rest grows industry in place:
+        // planned economies proportionally, market economies through
+        // the published private-investment allocator.
         let gained = invest_out * INVEST_CONVERT_PERMILLE / 1000;
-        let lost = st.actual_centi * DEPRECIATION_PERMILLE / 1000;
-        let growth = gained as i64 - lost as i64;
-        st.actual_centi = st.actual_centi.saturating_add_signed(growth);
+        let directed = gained * crate::construction::tuning::DIRECTED_PERMILLE / 1000;
+        *construction.pool.entry(tag.clone()).or_default() += directed;
+        let organic = gained - directed;
+        let prior_sum: u64 = my_regions
+            .iter()
+            .map(|r| regional.by_region.get(r).copied().unwrap_or(0))
+            .sum();
+        let lost = prior_sum * DEPRECIATION_PERMILLE / 1000;
+        match system {
+            EconomicSystem::Planned => {
+                crate::construction::distribute_proportional(
+                    &stat,
+                    &mut regional,
+                    &tag,
+                    organic as i64,
+                );
+            }
+            EconomicSystem::Market => {
+                // Published allocator: score = grid health + urban labor
+                // + zone bonus - tax drag; largest remainder. Attribution
+                // recorded for the dossier ("where capital went and why").
+                let tax_pm: u64 = match policy {
+                    Policy::Market { tax_permille, .. } => tax_permille as u64,
+                    _ => 0,
+                };
+                let zones = construction.zones.get(&tag).cloned().unwrap_or_default();
+                let scores: Vec<(ugs_data::RegionId, u64)> = my_regions
+                    .iter()
+                    .map(|r| {
+                        let factor = power
+                            .by_region
+                            .get(r)
+                            .map(|s| s.factor_permille)
+                            .unwrap_or(1000);
+                        let urban_pm = {
+                            let centi = regional.by_region.get(r).copied().unwrap_or(0).max(1);
+                            (centi).min(1000) // proxy weight by size v1
+                        };
+                        let score = factor / 10
+                            + urban_pm / 10
+                            + if zones.contains(r) {
+                                crate::construction::tuning::ZONE_BONUS
+                            } else {
+                                0
+                            }
+                            + 100u64.saturating_sub(tax_pm / 20);
+                        (*r, score.max(1))
+                    })
+                    .collect();
+                let total_score: u64 = scores.iter().map(|(_, v)| *v).sum::<u64>().max(1);
+                let mut assigned = 0u64;
+                for (i, (r, score)) in scores.iter().enumerate() {
+                    let share = if i == scores.len() - 1 {
+                        organic - assigned
+                    } else {
+                        organic * score / total_score
+                    };
+                    assigned += share;
+                    *regional.by_region.entry(*r).or_default() += share;
+                    *construction.attribution.entry(*r).or_default() += share;
+                }
+            }
+        }
+        crate::construction::distribute_proportional(&stat, &mut regional, &tag, -(lost as i64));
+        let new_sum: u64 = my_regions
+            .iter()
+            .map(|r| regional.by_region.get(r).copied().unwrap_or(0))
+            .sum();
+        let st = econ.industry.get_mut(&tag).unwrap();
+        let growth = new_sum as i64 - prior_sum as i64;
         st.last_growth_centi = growth;
+        st.actual_centi = new_sum;
 
         // Inflation (market) and reported statistics (planned).
         match system {

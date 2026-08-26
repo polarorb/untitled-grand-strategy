@@ -135,6 +135,8 @@ pub fn update_economy(
     demo: Res<Demographics>,
     agri: Res<Agriculture>,
     nuclear: Option<Res<crate::nuclear::NuclearPrograms>>,
+    regional: Res<crate::construction::RegionalIndustry>,
+    construction: Res<crate::construction::Construction>,
     mut stat: ResMut<EconomyStatic>,
     mut national: ResMut<NationalBalances>,
     mut power: ResMut<RegionalPower>,
@@ -223,15 +225,23 @@ pub fn update_economy(
         }
     }
     let mut statuses = BTreeMap::new();
-    for (region, industry) in &stat.region_industry {
+    for (region, seed_industry) in &stat.region_industry {
         let owner = &stat.region_owner[region];
+        // Live regional industry once thawed; static seed before.
+        let industry = &if regional.initialized {
+            regional.by_region.get(region).copied().unwrap_or(0) / 100
+        } else {
+            *seed_industry
+        };
         let coal_ratio = balances
             .get(owner)
             .map(|b| b.coal_ratio_permille())
             .unwrap_or(1000)
             .clamp(FUEL_FLOOR_PERMILLE, 1000);
         let urban_k = region_urban.get(region).copied().unwrap_or(0);
-        let capacity = industry * POWER_CAP_PER_INDUSTRY + POWER_CAP_BASE;
+        let capacity = industry * POWER_CAP_PER_INDUSTRY
+            + POWER_CAP_BASE
+            + construction.built_power.get(region).copied().unwrap_or(0);
         let generation = capacity * coal_ratio / 1000;
         // Nuclear-weapons plants are grid-monstrous: an enrichment
         // complex visibly loads its host region (Oak Ridge drew ~1% of
