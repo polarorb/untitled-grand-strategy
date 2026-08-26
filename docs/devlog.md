@@ -7,6 +7,23 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-26 — The map gets a pulse: tension-band music
+
+A light music pass on the campaign map, following the
+[audio design](design/systems/audio.md)'s core identity: near-silence IS
+the Calm state, and a blindfolded player should be able to estimate the
+tension band by ear. Calm/Wary plays a barely-audible ambient bed (CC0
+tracks we already had on disk, unused since the audio research session);
+Crisis wakes the room with a tenser piece; and Brink does what the
+design demands — *strips the music away*, down to a synthesized bare
+pulse (45 BPM sub-bass under one thin tone, generated loop-clean by our
+stdlib-only synth script, so it's legally bulletproof). Band changes
+need 8 held seconds before the music follows — tension jitter at a
+boundary can't flap the mix — and pausing ducks the volume instead of
+stopping it, which reads exactly like holding your breath. Whole-track
+crossfades for now; the synced stem mixer and stingers still wait on
+the bevy_kira_audio migration.
+
 ## 2026-08-26 — The army becomes yours: theaters, readiness, force generation
 
 Playtesting verdict was blunt: outside of answering popups the player had

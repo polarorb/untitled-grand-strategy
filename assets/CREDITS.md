@@ -212,3 +212,4 @@ distribution.
 - `assets/audio/ui/*.ogg` — [Kenney Interface Sounds](https://kenney.nl/assets/interface-sounds) — CC0 (verified 2026-08-25)
 - `assets/audio/music/dark_ambient.mp3`, `cold_journey.mp3`, `tension.mp3` — FreePD catalog via [archive.org/details/freepd](https://archive.org/details/freepd) — CC0 public domain dedication (verified 2026-08-25)
 - `assets/audio/ui/teletype.wav`, `alert.wav` — synthesized in-house (tools/audio/synth_sfx.py); the alert uses the standard 853+960 Hz attention-signal frequencies (pure tones, not copyrightable)
+- `assets/audio/music/brink_pulse.wav` — synthesized in-house (tools/audio/synth_sfx.py): the Brink-band music bed (sub-bass pulse + one thin tone), per the audio design's strip-back-at-Brink direction

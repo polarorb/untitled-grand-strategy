@@ -1,7 +1,7 @@
 # Audio
 
-Status: designed (direction locked); v1 implemented = menu music + UI
-clicks
+Status: designed (direction locked); v1.5 implemented = menu music, UI
+clicks, and tension-band campaign music with hysteresis
 Research: [audio readup](../../research/audio.md)
 
 ## Identity
@@ -66,10 +66,31 @@ fragmentary radio voices only.
 ## v1 (implemented)
 
 Menu music: "Dark Ambient" (FreePD catalog, CC0) looping over
-MainMenu/NationSelect at 0.4 volume; stops on campaign start — the war
-room opens silent, which is both the placeholder and the point. UI click
+MainMenu/NationSelect at 0.4 volume; stops on campaign start. UI click
 (Kenney Interface Sounds, CC0) on every button press. Built-in
 bevy_audio (mp3 + ogg); kira migration deferred to the stem mixer.
+
+## v1.5 (implemented): tension-band campaign music
+
+A light pass within bevy_audio — whole-track switching, not the synced
+stem mixer, but it follows the band shape above:
+
+- **Calm + Wary**: "Cold Journey" (FreePD, CC0) at 0.16 linear —
+  barely there; near-silence stays the design.
+- **Crisis**: "Tension" (FreePD, CC0) at 0.26 — the room wakes.
+- **Brink**: the inversion — both tracks strip away and a synthesized
+  bare pulse plays (`brink_pulse.wav`, in-house: 45 BPM sub-bass thumps
+  under one thin tremolo'd tone, loop-clean by construction).
+- Band changes must hold 8 real seconds before the music follows
+  (hysteresis; boundary jitter can't flap the mix), then ~3s
+  crossfades. The first track starts immediately on campaign entry.
+- **Pause ducks to 50% instead of stopping** — holding your breath,
+  per the identity section.
+
+Still deferred to the stem-mixer milestone: synced vertical stems,
+stingers with enforced silence, threshold-crossing one-shots, the
+numbers station, and low-pass-on-pause (bevy_audio has no per-sink
+filter; the duck stands in).
 
 ## Banned
 
