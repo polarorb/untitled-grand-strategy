@@ -122,9 +122,11 @@ impl Plugin for WarUiPlugin {
             Update,
             (
                 announce_player_country,
-                show_event_popups,
-                show_dynamic_popups,
-                show_notices,
+                // Chained so each spawner's deferred `spawn` is flushed before
+                // the next one checks the `With<EventModal>` guard — unordered,
+                // all three can spawn a modal in the same frame and the popups
+                // stack on top of each other.
+                (show_event_popups, show_dynamic_popups, show_notices).chain(),
                 dismiss_popup,
                 choice_buttons,
                 toggle_war_panel,
