@@ -11,6 +11,7 @@ use crate::map::{project, Selected, WORLD_WRAP};
 use crate::{font, AppState, Fonts, GameSpeed, PlayerNation, World1950};
 use bevy::audio::{PlaybackSettings, Volume};
 use ugs_sim::demography::Demographics;
+use ugs_sim::intel::{Domain, Intel};
 use ugs_sim::military::{tuning, Posture};
 use ugs_sim::SimClock;
 
@@ -80,20 +81,37 @@ fn fmt_men(n: u64) -> String {
     }
 }
 
-/// Estimated enemy men as a low-high band around a fuzzed center.
-fn est_men_range(true_men: u64, seed: u64) -> (u64, u64) {
-    let factor = 800 + mix(seed) % 500; // 0.80x .. 1.30x
-    let center = true_men * factor / 1000;
+/// Estimate band width in permille from the player's military
+/// penetration of `subject`: ±35% blind, ±5% floor at deep intel.
+fn intel_width(
+    intel: &Intel,
+    viewer: Option<&ugs_data::CountryTag>,
+    subject: &ugs_data::CountryTag,
+) -> u64 {
+    let pen = viewer
+        .map(|v| intel.knowledge(v, subject, Domain::Military))
+        .unwrap_or(0) as u64;
+    50 + (1000 - pen.min(1000)) * 300 / 1000
+}
+
+/// Estimated enemy men as a low-high band; `width` permille half-band.
+fn est_men_range(true_men: u64, seed: u64, width: u64) -> (u64, u64) {
+    // Center jitter scales with width too: poor intel is biased, not
+    // just wide.
+    let jitter = 1000 - width / 2 + mix(seed) % (width + 1);
+    let center = true_men * jitter / 1000;
     (
-        round_sig2(center * 85 / 100),
-        round_sig2(center * 115 / 100),
+        round_sig2(center * (1000 - width) / 1000),
+        round_sig2(center * (1000 + width) / 1000),
     )
 }
 
-/// Estimated enemy division count band.
-fn est_div_range(count: u32, seed: u64) -> (u32, u32) {
-    let center = (count as i64 + (mix(seed) % 3) as i64 - 1).max(1) as u32;
-    (center.saturating_sub(1).max(1), center + 1)
+/// Estimated enemy division count band; width in permille.
+fn est_div_range(count: u32, seed: u64, width: u64) -> (u32, u32) {
+    let span = (count as u64 * width / 1000).max(1) as u32;
+    let center =
+        (count as i64 + (mix(seed) % (span as u64 * 2 + 1)) as i64 - span as i64).max(1) as u32;
+    (center.saturating_sub(span).max(1), center + span)
 }
 
 pub struct WarUiPlugin;
@@ -305,6 +323,7 @@ fn sync_formation_markers(
     military: Res<Military>,
     world: Res<World1950>,
     clock: Res<SimClock>,
+    intel: Res<Intel>,
     fonts: Res<Fonts>,
     player: Option<Res<PlayerNation>>,
     mut last_hash: Local<u64>,
@@ -398,7 +417,8 @@ fn sync_formation_markers(
         const H: f32 = 15.0;
         let label = if is_enemy {
             let seed = province as u64 ^ owner.bytes().map(u64::from).sum::<u64>() ^ month;
-            let (lo, hi) = est_div_range(stack.count, seed);
+            let width = intel_width(&intel, player.as_ref().map(|p| &p.0), &tag);
+            let (lo, hi) = est_div_range(stack.count, seed, width);
             format!("{lo}-{hi}?")
         } else {
             format!("{}", stack.count)
@@ -538,6 +558,7 @@ fn battle_inspector(
     military: Res<Military>,
     world: Res<World1950>,
     clock: Res<SimClock>,
+    intel: Res<Intel>,
     fonts: Res<Fonts>,
     player: Option<Res<PlayerNation>>,
     panel: Query<Entity, With<BattlePanel>>,
@@ -725,8 +746,12 @@ fn battle_inspector(
                 let names: Vec<&str> = owners.iter().map(|t| t.0.as_str()).collect();
                 let fogged = side_is_enemy(owners);
                 let (divs, men_s) = if fogged {
-                    let (lo, hi) = est_div_range(divisions, enemy_seed);
-                    let (mlo, mhi) = est_men_range(men, enemy_seed ^ 0x9e37);
+                    let w = owners
+                        .first()
+                        .map(|subj| intel_width(&intel, me, subj))
+                        .unwrap_or(350);
+                    let (lo, hi) = est_div_range(divisions, enemy_seed, w);
+                    let (mlo, mhi) = est_men_range(men, enemy_seed ^ 0x9e37, w);
                     (
                         format!("EST {lo}-{hi} DIV"),
                         format!("~{}-{}", fmt_men(mlo), fmt_men(mhi)),
@@ -1098,6 +1123,7 @@ fn refresh_war_panel(
     world: Res<World1950>,
     demo: Res<Demographics>,
     crises: Res<ugs_sim::crisis::Crises>,
+    intel: Res<Intel>,
     clock: Res<SimClock>,
     fonts: Res<Fonts>,
     player: Option<Res<PlayerNation>>,
@@ -1264,9 +1290,10 @@ fn refresh_war_panel(
             let enemy_dead =
                 military.casualties.get(&enemy).copied().unwrap_or(0)
                     * tuning::MEN_PER_STRENGTH_POINT;
-            let (dlo, dhi) = est_div_range(enemy_divs, seed);
-            let (mlo, mhi) = est_men_range(enemy_men, seed ^ 0x9e37);
-            let (klo, khi) = est_men_range(enemy_dead, seed ^ 0x51ed);
+            let ew = intel_width(&intel, Some(me), &enemy);
+            let (dlo, dhi) = est_div_range(enemy_divs, seed, ew);
+            let (mlo, mhi) = est_men_range(enemy_men, seed ^ 0x9e37, ew);
+            let (klo, khi) = est_men_range(enemy_dead, seed ^ 0x51ed, ew);
             p.spawn((
                 Text::new(format!(
                     "STRENGTH EST {dlo}-{dhi} DIV, {}-{} MEN",

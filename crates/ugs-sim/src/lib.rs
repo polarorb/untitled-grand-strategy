@@ -20,6 +20,7 @@ pub mod demography;
 pub mod deterrence;
 pub mod economy;
 pub mod events;
+pub mod intel;
 pub mod military;
 pub mod nuclear;
 pub mod planning;
@@ -110,6 +111,7 @@ impl Plugin for SimPlugin {
         app.init_resource::<nuclear::NuclearPrograms>();
         app.init_resource::<deterrence::Deterrence>();
         app.init_resource::<crisis::Crises>();
+        app.init_resource::<intel::Intel>();
         app.configure_sets(
             SimTick,
             (
@@ -133,6 +135,8 @@ impl Plugin for SimPlugin {
                 deterrence::update_deterrence,
                 crisis::update_crises,
                 nuclear::update_nuclear_use,
+                intel::update_intel,
+                intel::update_espionage,
             )
                 .chain()
                 .in_set(TickSet::Politics),

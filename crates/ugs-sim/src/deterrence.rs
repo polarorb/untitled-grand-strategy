@@ -24,6 +24,11 @@ pub mod tuning {
     /// its own inflation on top.
     pub const OPACITY_BIAS_PERMILLE: u64 = 1000;
     pub const DECEPTION_BIAS_PERMILLE: u64 = 600;
+    /// A program's own loudness reveals its EXISTENCE and rough size,
+    /// but never the exact count — the US never knew the true Soviet
+    /// number. Passive exposure closes opacity only this far; the last
+    /// slice requires real collection (penetration, overflights).
+    pub const PASSIVE_EXPOSURE_CAP: u64 = 700;
 }
 
 /// Integer great-circle-ish distance (equirectangular, km). Uses only
@@ -181,9 +186,11 @@ fn reach_weight(
 /// What `viewer` believes `subject` could land on it. Estimates run
 /// biased HIGH when the subject is opaque (the historical direction),
 /// higher still under parade deception.
+#[allow(clippy::too_many_arguments)]
 fn believed_deliverable(
     data: &ScenarioData,
     programs: &NuclearPrograms,
+    intel: &crate::intel::Intel,
     subject: &CountryTag,
     viewer: &CountryTag,
     years_elapsed: u64,
@@ -204,9 +211,19 @@ fn believed_deliverable(
     if weight == 0 {
         return 0;
     }
-    let opacity = 1000u64.saturating_sub(sp.exposure_permille as u64);
+    // Uncertainty falls from two independent sources: how loud the
+    // program is (its own exposure) and how deep the viewer has
+    // penetrated it. Both shrink the opacity multiplicatively — so
+    // spying on a KNOWN nuclear power still collapses the count
+    // overestimate, which is the bomber-gap cure.
+    let pen = intel.knowledge(viewer, subject, crate::intel::Domain::Nuclear) as u64;
+    let effective_exposure = (sp.exposure_permille as u64).min(PASSIVE_EXPOSURE_CAP);
+    let opacity =
+        (1000u64.saturating_sub(effective_exposure)) * (1000u64.saturating_sub(pen)) / 1000;
     let mut bias = 1000 + opacity * OPACITY_BIAS_PERMILLE / 1000;
-    if sp.deception {
+    // Deception inflates the estimate only until the viewer sees
+    // through it (a verification-class or deep-humint source).
+    if sp.deception && !intel.sees_through(viewer, subject, crate::intel::Domain::Nuclear) {
         bias += DECEPTION_BIAS_PERMILLE;
     }
     let believed_arsenal = sp.assembled as u64 * bias / 1000;
@@ -218,6 +235,7 @@ pub fn update_deterrence(
     clock: Res<SimClock>,
     scenario: Option<Res<SimScenario>>,
     programs: Res<NuclearPrograms>,
+    intel: Res<crate::intel::Intel>,
     mut deterrence: ResMut<Deterrence>,
 ) {
     use tuning::*;
@@ -236,8 +254,8 @@ pub fn update_deterrence(
     let mut dyads = BTreeMap::new();
     for (i, a) in tags.iter().enumerate() {
         for b in tags.iter().skip(i + 1) {
-            let a_believes = believed_deliverable(data, &programs, b, a, years_elapsed);
-            let b_believes = believed_deliverable(data, &programs, a, b, years_elapsed);
+            let a_believes = believed_deliverable(data, &programs, &intel, b, a, years_elapsed);
+            let b_believes = believed_deliverable(data, &programs, &intel, a, b, years_elapsed);
             let class = match (
                 b_believes >= MIN_DETERRENT, // a's arsenal deters b
                 a_believes >= MIN_DETERRENT, // b's arsenal deters a

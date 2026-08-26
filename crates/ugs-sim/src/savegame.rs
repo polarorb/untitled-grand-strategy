@@ -77,6 +77,7 @@ pub fn reset_sim(world: &mut World, start_date: GameDate, seed: u64) {
     world.insert_resource(crate::deterrence::Deterrence::default());
     world.insert_resource(crate::crisis::Crises::default());
     world.remove_resource::<crate::crisis::GameOver>();
+    world.insert_resource(crate::intel::Intel::default());
 }
 
 /// Rebuild the world from a save: reset, then replay every tick with the

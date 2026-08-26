@@ -123,6 +123,20 @@ impl Economies {
             _ => self.industry.get(tag).map(|s| s.actual_centi).unwrap_or(0),
         }
     }
+
+    /// What a foreign observer with `economic_penetration` (permille)
+    /// believes `tag`'s industry to be: the reported figure at zero
+    /// intel, sliding toward the truth as penetration deepens. For
+    /// market systems reported == actual, so intel changes nothing.
+    pub fn observed_industry_centi(&self, tag: &CountryTag, penetration: u32) -> u64 {
+        let Some(st) = self.industry.get(tag) else {
+            return 0;
+        };
+        let reported = st.reported_centi as i128;
+        let actual = st.actual_centi as i128;
+        let p = penetration.min(1000) as i128;
+        (reported + (actual - reported) * p / 1000).max(0) as u64
+    }
 }
 
 fn default_policy(system: EconomicSystem) -> Policy {

@@ -75,6 +75,15 @@ pub enum SimCommand {
     SetParadeDeception { country: CountryTag, on: bool },
     /// Strategic-forces alert level 0-3.
     SetAlertLevel { country: CountryTag, level: u8 },
+    /// Fund a collection network against a target (owner = player).
+    SetNetworkFunding { target: CountryTag, level: u8 },
+    /// Set the player's counterintelligence funding level 0-3.
+    SetCounterintel { level: u8 },
+    /// Launch a covert operation against a target (owner = player).
+    LaunchOperation {
+        target: CountryTag,
+        kind: crate::intel::OpKind,
+    },
 }
 
 /// Commands queued for the next tick. The presentation layer pushes;
@@ -102,6 +111,7 @@ pub fn apply_commands(
     mut fired: ResMut<FiredEvents>,
     mut player: ResMut<PlayerCountry>,
     mut nuclear: ResMut<crate::nuclear::NuclearPrograms>,
+    mut intel: ResMut<crate::intel::Intel>,
     deterrence: Res<crate::deterrence::Deterrence>,
     scenario: Option<Res<SimScenario>>,
 ) {
@@ -192,6 +202,21 @@ pub fn apply_commands(
                             tension.apply(10);
                         }
                     }
+                }
+            }
+            SimCommand::SetNetworkFunding { target, level } => {
+                if let Some(owner) = player.0.clone() {
+                    crate::intel::set_network_funding(&mut intel, owner, target, level);
+                }
+            }
+            SimCommand::SetCounterintel { level } => {
+                if let Some(country) = player.0.clone() {
+                    crate::intel::set_counterintel(&mut intel, country, level);
+                }
+            }
+            SimCommand::LaunchOperation { target, kind } => {
+                if let Some(owner) = player.0.clone() {
+                    crate::intel::queue_operation(&mut intel, owner, target, kind);
                 }
             }
             SimCommand::SetAlertLevel { country, level } => {

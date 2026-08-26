@@ -7,6 +7,49 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-25 — The fog gets a price: espionage v1
+
+The intelligence pillar is playing. Its whole thesis — that the game
+already trades in beliefs, so intelligence is just the system that moves
+them — held up in the code: the first thing built was one four-domain
+penetration score per (viewer, subject), and wiring it into the four
+consumers that already existed took a handful of lines each.
+
+**Nuclear** penetration now shrinks the deterrence opacity bias. This
+one needed a fix that turned out to be the right model anyway: the
+program's own exposure accumulator was saturating to certainty within
+two years, which is historically false — the US never knew the exact
+Soviet count. Capping passive exposure at 700 leaves a residual
+count-uncertainty that only real collection closes, so spying on a
+*known* nuclear power still collapses the overestimate. That is the
+bomber gap, and its cure. **Economic** penetration slides a rival's
+observed industry from Gosplan's reported figure toward the truth,
+flagged AS REPORTED / FIGURES SUSPECT / TRUE. **Military** penetration
+drives the war-room estimate widths that used to be hardcoded fuzz.
+**Political** feeds the crisis resolve band.
+
+The doing half is deliberately small: one abstract network per pair
+(no agent roster — every genre precedent says names are narrative, not
+units), funded 0-3, that both collects and, when spent on sabotage or
+design theft, burns the strength it was collecting with — the OSO/OPC
+tradeoff as one number. Operations roll blown-vs-clean from a labeled
+fork; a blown op spends deniability and spikes tension (doubled when
+your denials are already worthless — the U-2 problem). Counterintel
+sweeps catch the loudest hostile network and hand a player defender a
+spy-trial choice; defectors walk in from unstable rivals with a truth
+snapshot. Steal-designs pierces the target's nuclear opacity and, if
+you have a program of your own, speeds it — Fuchs, mechanized.
+
+The historical spine got its espionage beats: Burgess and Maclean
+vanish in 1951, the Rosenbergs are executed in 1953, Petrov defects in
+1954, alongside the Fuchs arrest already there. New Intelligence panel
+on I (coverage grades, never raw numbers). 54 tests green; determinism
+holds with the whole layer active, and the Korea arc still runs clean
+through the new deterrence math. v1.5 (mole hunts, turned agents,
+swaps) and v2 (overflights, Venona decrypts) are next when they are.
+
+---
+
 ## 2026-08-25 — Researching the shadow war
 
 With the nuclear pillar keying deterrence off what rivals *believe*, the

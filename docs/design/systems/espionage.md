@@ -1,6 +1,6 @@
 # Intelligence & Covert Ops
 
-Status: designed (research locked; implement v1 first, phases below)
+Status: v1 implemented (deviations noted below; v1.5/v2 still designed)
 Pillar: 3 (primary); couples to all others
 Research: [espionage](../../research/espionage.md) (5-analyst swarm)
 
@@ -141,14 +141,49 @@ Display fuzz stays presentation-side. Tests: same-seed bit-identical
 with espionage active; penetration monotonically narrows the deterrence
 bias; month-rollover and 1952 leap-year cadence.
 
-## Sequencing
+## Implementation status (v1)
 
-1. **v1** — IntelState + the four one-line couplings (land before any
-   new content, so every existing system visibly improves); networks +
-   funding commands; counterintel + sweeps + spy trials; nuclear
-   sabotage & steal-designs with blown-op → tension + pretext +
-   deniability; minimal defectors; the Intelligence panel; the fixed-
-   date public-shock events (Fuchs, Burgess/Maclean, Rosenberg, Petrov).
+Shipped in `crates/ugs-sim/src/intel.rs` (+ `intel_ui.rs`):
+- `Intel` resource: four-domain penetration per (viewer, subject),
+  networks per (owner, target), counterintel level, deniability,
+  seen-through flags. Monthly asymptotic accrual to the best source
+  cap; decay to the embassy floor; network strength grows to its
+  funding ceiling.
+- **The four couplings** all live: nuclear penetration shrinks the
+  deterrence opacity bias (multiplicatively with the program's own
+  exposure, which now caps at 700 so a residual count-uncertainty
+  always remains for intel to close — the missile-gap texture);
+  economic penetration lerps a rival's observed industry from reported
+  toward actual (shown on the intel card with an AS REPORTED / FIGURES
+  SUSPECT / TRUE flag); military penetration drives the war-UI estimate
+  widths (replacing the hardcoded fuzz); the political domain is stored
+  for the crisis resolve band.
+- Operations: `SetNetworkFunding`, `SetCounterintel`, `LaunchOperation`
+  (Sabotage / StealDesigns). Ops spend network strength, roll blown vs
+  clean from `b"op-resolve"` scaled by target CI and tension band, and
+  land their effect regardless; blown ops spend deniability and spike
+  tension (doubled when deniability is low) with a standing-grievance
+  wire notice.
+- Counterintel sweeps (`b"ci-sweep"`) roll monthly against the loudest
+  hostile network; a catch fires a spy-trial choice event (show trial
+  vs quiet expulsion) for a player defender. Defectors (`b"defector"`)
+  walk in to the best-placed network, likelier from unstable targets.
+- Deception seen-through: deep nuclear penetration pierces a subject's
+  parade deception ("SOURCES CONTRADICT OFFICIAL FIGURES").
+- Public-shock events: Burgess/Maclean (1951), Rosenberg execution
+  (1953), Petrov (1954) join the existing Fuchs arrest.
+- Intelligence panel (`UGS_PANEL=intel`, key I): coverage grades,
+  observed industry, network/CI/op controls. Never raw permille.
+
+### v1 deviations (deliberate)
+- One network per (owner, target) with a funding tier, not a per-op
+  exposure track — exposure lives on the network strength that ops
+  spend. Blown ops emit a grievance notice but do not yet auto-open a
+  crisis (the pretext is banked as tension + notice).
+- Spy trials offer trial/expel (no turn-the-agent yet — that's v1.5).
+- Embassy floor applies to all country pairs (no relations model yet).
+
+## Deferred sequencing
 2. **v1.5** — mole hunts, turned agents / radio playback, swaps,
    scapegoats.
 3. **v2** — overflights (shootdown crisis loop), Venona-style decrypts
