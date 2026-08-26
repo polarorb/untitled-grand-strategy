@@ -72,6 +72,12 @@ brake until the priced escalation ceiling lands.
 
 ## Limited war & armistice
 
+**Successor spec: [war-termination](war-termination.md) (designed)** —
+war aims, the settlement table, occupation zones, and outcome objects
+(Treaty / FrozenConflict / ImposeSettlement) extend and supersede the
+v1 armistice below.
+
+
 - Intervention levels, volunteer/proxy contingents with **cover levels**
   (deniability stripped by enemy espionage; proven ≫ suspected).
 - Tripwire risks (Chinese entry) shown as espionage-quality estimates.
