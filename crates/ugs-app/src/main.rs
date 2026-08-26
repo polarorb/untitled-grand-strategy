@@ -173,14 +173,17 @@ fn main() {
 }
 
 /// Dev aid: UGS_SHOT=<path.png> saves a screenshot of the game window a few
-/// seconds after boot (pairs with UGS_SCREEN to verify screens headlessly).
-fn dev_auto_screenshot(mut frames: Local<u32>, mut done: Local<bool>, mut commands: Commands) {
+/// seconds after boot (pairs with UGS_SCREEN to verify screens headlessly),
+/// then exits once the save has had time to flush — shot runs must not
+/// leave a game process behind.
+fn dev_auto_screenshot(
+    mut frames: Local<u32>,
+    mut shot: Local<bool>,
+    mut commands: Commands,
+    mut exit: MessageWriter<AppExit>,
+) {
     use bevy::render::view::screenshot::{save_to_disk, Screenshot};
-    if *done {
-        return;
-    }
     let Ok(path) = std::env::var("UGS_SHOT") else {
-        *done = true;
         return;
     };
     *frames += 1;
@@ -188,11 +191,14 @@ fn dev_auto_screenshot(mut frames: Local<u32>, mut done: Local<bool>, mut comman
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(120);
-    if *frames == target {
+    if *frames == target && !*shot {
         commands
             .spawn(Screenshot::primary_window())
             .observe(save_to_disk(path));
-        *done = true;
+        *shot = true;
+    }
+    if *shot && *frames >= target + 90 {
+        exit.write(AppExit::Success);
     }
 }
 
