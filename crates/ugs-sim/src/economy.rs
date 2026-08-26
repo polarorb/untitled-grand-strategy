@@ -199,13 +199,29 @@ pub fn update_economy(
             / 1000;
         b.grain_demand += cohorts.total();
     }
+    let per_country_live: BTreeMap<CountryTag, u64> = if regional.initialized {
+        let mut out: BTreeMap<CountryTag, u64> = BTreeMap::new();
+        for (region, owner) in &stat.region_owner {
+            *out.entry(owner.clone()).or_default() +=
+                regional.by_region.get(region).copied().unwrap_or(0);
+        }
+        out
+    } else {
+        BTreeMap::new()
+    };
     for (tag, country) in &data.countries {
         let b = balances.entry(tag.clone()).or_default();
         let deposits = stat.deposits.get(tag);
         let dep = |kind: DepositKind| deposits.and_then(|d| d.get(&kind)).copied().unwrap_or(0);
         b.coal_prod = dep(DepositKind::Coal) * EXTRACTION_PER_SIZE;
         b.oil_prod = dep(DepositKind::Oil) * EXTRACTION_PER_SIZE;
-        let industry = country.industry as u64;
+        // Live industry once the thaw runs (a doubled economy demands
+        // doubled coal); the scenario constant only seeds the first month.
+        let industry = if regional.initialized {
+            per_country_live.get(tag).copied().unwrap_or(0) / 100
+        } else {
+            country.industry as u64
+        };
         b.coal_demand = industry * COAL_PER_INDUSTRY;
         b.oil_demand = industry * OIL_PER_INDUSTRY;
         b.steel_prod = industry * b.coal_ratio_permille().min(1000) / 1000;

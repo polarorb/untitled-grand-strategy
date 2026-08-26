@@ -688,18 +688,32 @@ pub fn apply_commands(
                         .unwrap_or(0),
                     _ => 0,
                 };
-                // Great sites come from the catalog, not the command.
-                let region = match &kind {
+                // Great sites come from the catalog, NEVER the command
+                // (a crafted region must not relocate the Interstates
+                // into someone else's economy); None = national.
+                let site: Option<ugs_data::RegionId> = match &kind {
+                    ProjectKind::Great(gid) => {
+                        data.projects.iter().find(|g| &g.id == gid).and_then(|g| {
+                            crate::construction::project_region(data, &econ_ctx.stat, g)
+                        })
+                    }
+                    _ => Some(region),
+                };
+                // Physical schedule floor for Great Projects.
+                let monthly_cap = match &kind {
                     ProjectKind::Great(gid) => data
                         .projects
                         .iter()
                         .find(|g| &g.id == gid)
-                        .and_then(|g| crate::construction::project_region(data, &econ_ctx.stat, g))
-                        .unwrap_or(region),
-                    _ => region,
+                        .map(|g| {
+                            cost.saturating_sub(progress)
+                                .div_ceil((g.min_months as u64).max(1))
+                        })
+                        .unwrap_or(0),
+                    _ => 0,
                 };
                 let great_ok = match &kind {
-                    ProjectKind::Great(_) => true, // ownership is the sponsor's
+                    ProjectKind::Great(_) => true, // the catalog is the authority
                     _ => owned && held,
                 };
                 if great_ok && kind_legal && slot_free && pool >= cost / 10 {
@@ -710,15 +724,20 @@ pub fn apply_commands(
                         id,
                         Project {
                             country: country.clone(),
-                            region,
+                            region: site,
                             kind,
                             progress_centi: progress,
+                            paid_centi: 0,
                             cost_centi: cost,
+                            monthly_cap_centi: monthly_cap,
                             started_tick: clock.tick,
                             slowed_by: None,
                         },
                     );
-                    let region_label = crate::construction::region_name(data, region);
+                    let region_label = match site {
+                        Some(r) => crate::construction::region_name(data, r),
+                        None => "NATIONAL".to_string(),
+                    };
                     econ_ctx
                         .construction
                         .log_line(clock.tick, format!("{name} BEGINS ({region_label})"));
@@ -726,15 +745,14 @@ pub fn apply_commands(
             }
             SimCommand::CancelProject { country, id } => {
                 use crate::construction::tuning as ct;
+                // Refund comes from money actually PAID IN — inherited
+                // progress refunds nothing (start/cancel must never mint).
                 let refund = econ_ctx
                     .construction
                     .projects
                     .get(&id)
                     .filter(|p| p.country == country)
-                    .map(|p| {
-                        p.cost_centi.saturating_sub(p.progress_centi) * ct::CANCEL_REFUND_PERMILLE
-                            / 1000
-                    });
+                    .map(|p| p.paid_centi * ct::CANCEL_REFUND_PERMILLE / 1000);
                 if let Some(refund) = refund {
                     econ_ctx.construction.projects.remove(&id);
                     *econ_ctx.construction.pool.entry(country).or_default() += refund;

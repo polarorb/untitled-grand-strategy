@@ -63,6 +63,17 @@ an echelon share, and rules of engagement — "may not cross the Yalu"
 is a checkbox. The theater controller spreads divisions along the
 front; there is no unit micro, and unpaid armies melt.
 
+The economy is a place now, not a dashboard: ~250 named regions each
+compute their binding constraint ("OUTPUT LIMITED BY POWER") into a
+worst-first ledger, a teletype region dossier with the verbs in its
+footer, and an ECONOMY map mode. Planners decree industry into named
+regions from a capped construction pool; market players zone and steer
+a published private-investment allocator that answers back with
+attribution. Seven historian-sourced Great Projects — the USSR starts
+with the Volga-Don Canal already at 60% — put real megawatts on real
+grids, and planner dashboards show what officials *report* beside
+what the plan demanded.
+
 And wars now *end* — as the strategic act, not a timeout. Declare what
 you are fighting for (crossing the 38th is a priced escalation), govern
 what you occupy (control, hearts-and-minds, garrisons drawn from your

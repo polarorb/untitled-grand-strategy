@@ -51,8 +51,10 @@ pub mod tuning {
     /// Constraint severity bands (permille of the limiting factor).
     pub const SEVERITY_CRITICAL: u64 = 700;
     pub const SEVERITY_STRAINED: u64 = 900;
-    /// Labor constraint: urban workers per centi-point of industry.
-    pub const LABOR_URBAN_PER_CENTI: u64 = 900;
+    /// Labor constraint: urban workers required per centi-point of
+    /// industry (1 centi = 0.01 industry points; ~40 workers/centi
+    /// makes labor bind in crammed, under-urbanized regions).
+    pub const LABOR_URBAN_PER_CENTI: u64 = 40;
     /// Monthly wire lines cap.
     pub const WIRE_LINES: usize = 6;
 }
@@ -103,10 +105,20 @@ impl ProjectKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Project {
     pub country: CountryTag,
-    pub region: RegionId,
+    /// None = national project (Interstates): no site gating, national
+    /// payload distribution.
+    pub region: Option<RegionId>,
     pub kind: ProjectKind,
     pub progress_centi: u64,
+    /// Pool actually paid in (the refund basis — inherited AtStart
+    /// progress is NOT refundable; cancel-mint exploits die here).
+    #[serde(default)]
+    pub paid_centi: u64,
     pub cost_centi: u64,
+    /// Physical schedule floor: max monthly intake (0 = uncapped),
+    /// from the catalog's min_months for Great Projects.
+    #[serde(default)]
+    pub monthly_cap_centi: u64,
     pub started_tick: u64,
     /// What slowed last month's intake, for the card and the wire.
     pub slowed_by: Option<ConstraintKind>,
@@ -118,6 +130,9 @@ pub enum ConstraintKind {
     Materials,
     Labor,
     Contested,
+    /// The construction pool is empty (project cards only; never a
+    /// region verdict).
+    Funding,
     #[default]
     Healthy,
 }
@@ -129,6 +144,7 @@ impl ConstraintKind {
             ConstraintKind::Materials => "MATERIALS-LIMITED",
             ConstraintKind::Labor => "LABOR-LIMITED",
             ConstraintKind::Contested => "CONTESTED",
+            ConstraintKind::Funding => "UNFUNDED",
             ConstraintKind::Healthy => "HEALTHY",
         }
     }
@@ -201,8 +217,9 @@ impl Construction {
         for (id, p) in &self.projects {
             fold(&mut h, id.0 as u64);
             fold_tag(&mut h, &p.country);
-            fold(&mut h, p.region.0 as u64);
+            fold(&mut h, p.region.map(|r| r.0 as u64 + 1).unwrap_or(0));
             fold(&mut h, p.progress_centi);
+            fold(&mut h, p.paid_centi);
             fold(&mut h, p.cost_centi);
             if let ProjectKind::Great(gid) = &p.kind {
                 for b in gid.bytes() {
@@ -383,9 +400,15 @@ pub fn update_construction(
     let ids: Vec<ProjectId> = construction.projects.keys().copied().collect();
     let mut completions: Vec<(ProjectId, Project)> = Vec::new();
     for id in ids {
-        let (country, region, cost, progress) = {
+        let (country, region, cost, progress, monthly_cap) = {
             let p = &construction.projects[&id];
-            (p.country.clone(), p.region, p.cost_centi, p.progress_centi)
+            (
+                p.country.clone(),
+                p.region,
+                p.cost_centi,
+                p.progress_centi,
+                p.monthly_cap_centi,
+            )
         };
         let active = construction
             .projects
@@ -394,11 +417,19 @@ pub fn update_construction(
             .count()
             .max(1) as u64;
         let pool = construction.pool.get(&country).copied().unwrap_or(0);
-        let draw_cap = (pool / active).min(INTAKE_MAX_CENTI);
+        let mut draw_cap = (pool / active).min(INTAKE_MAX_CENTI);
+        if monthly_cap > 0 {
+            // The physical schedule floor: money cannot compress the
+            // catalog's minimum build time.
+            draw_cap = draw_cap.min(monthly_cap);
+        }
+        // Never draw more than the project can absorb (the clamp used
+        // to destroy up to a month's overshoot).
+        draw_cap = draw_cap.min(cost.saturating_sub(progress));
         // The cannot-buy-itself gate: host grid + national materials.
-        let power_pm = power
-            .by_region
-            .get(&region)
+        // National projects (no site) skip the grid gate.
+        let power_pm = region
+            .and_then(|r| power.by_region.get(&r))
             .map(|s| s.factor_permille)
             .unwrap_or(1000);
         let materials_pm = balances
@@ -407,28 +438,31 @@ pub fn update_construction(
             .map(|b| b.coal_ratio_permille().min(1000))
             .unwrap_or(1000)
             .clamp(500, 1000);
-        let held = region_held(data, &military, region);
+        let held = region.is_none_or(|r| region_held(data, &military, r));
         let intake = if held {
-            draw_cap * power_pm / 1000 * materials_pm / 1000
+            // Floor at 1 so the last few centi can't strand a project
+            // at 99% forever under integer truncation.
+            (draw_cap * power_pm / 1000 * materials_pm / 1000).max(draw_cap.min(1))
         } else {
             0 // war severed the site: the project suspends
         };
         let slowed = if !held {
             Some(ConstraintKind::Contested)
+        } else if pool == 0 {
+            Some(ConstraintKind::Funding)
         } else if intake < draw_cap {
             Some(if power_pm <= materials_pm {
                 ConstraintKind::Power
             } else {
                 ConstraintKind::Materials
             })
-        } else if draw_cap == 0 {
-            Some(ConstraintKind::Materials)
         } else {
             None
         };
         *construction.pool.entry(country.clone()).or_default() = pool.saturating_sub(intake);
         let p = construction.projects.get_mut(&id).unwrap();
         p.progress_centi = (progress + intake).min(cost);
+        p.paid_centi += intake;
         p.slowed_by = slowed;
         if p.progress_centi >= cost {
             completions.push((id, p.clone()));
@@ -449,16 +483,17 @@ pub fn update_construction(
         };
         match &p.kind {
             ProjectKind::IndustrialExpansion => {
-                *regional.by_region.entry(p.region).or_default() += EXPANSION_CENTI;
+                if let Some(region) = p.region {
+                    *regional.by_region.entry(region).or_default() += EXPANSION_CENTI;
+                }
             }
             ProjectKind::PowerStation => {
-                let demand = power
-                    .by_region
-                    .get(&p.region)
-                    .map(|s| s.demand)
-                    .unwrap_or(0);
-                let capacity = (demand * STATION_DEMAND_PERMILLE / 1000).max(STATION_MIN_CAPACITY);
-                *construction.built_power.entry(p.region).or_default() += capacity;
+                if let Some(region) = p.region {
+                    let demand = power.by_region.get(&region).map(|s| s.demand).unwrap_or(0);
+                    let capacity =
+                        (demand * STATION_DEMAND_PERMILLE / 1000).max(STATION_MIN_CAPACITY);
+                    *construction.built_power.entry(region).or_default() += capacity;
+                }
             }
             ProjectKind::AgriMechanization => {
                 *agri.bonus_permille.entry(p.country.clone()).or_default() += MECH_YIELD_PERMILLE;
@@ -468,11 +503,26 @@ pub fn update_construction(
                 if let Some(def) = data.projects.iter().find(|g| &g.id == gid) {
                     match &def.payload {
                         ProjectPayload::Power { capacity } => {
-                            *construction.built_power.entry(p.region).or_default() += capacity / 10;
-                            // MW -> grid units scale
+                            if let Some(region) = p.region {
+                                // MW -> grid units scale.
+                                *construction.built_power.entry(region).or_default() +=
+                                    capacity / 10;
+                            }
                         }
                         ProjectPayload::Industry { centi } => {
-                            *regional.by_region.entry(p.region).or_default() += centi;
+                            match p.region {
+                                Some(region) => {
+                                    *regional.by_region.entry(region).or_default() += centi;
+                                }
+                                // National payload (Interstates): the
+                                // whole country's regions share it.
+                                None => distribute_proportional(
+                                    &stat,
+                                    &mut regional,
+                                    &p.country,
+                                    *centi as i64,
+                                ),
+                            }
                         }
                         ProjectPayload::AgriYield { permille } => {
                             *agri.bonus_permille.entry(p.country.clone()).or_default() += permille;
@@ -498,10 +548,11 @@ pub fn update_construction(
         if let Some(st) = econ.industry.get_mut(&p.country) {
             st.actual_centi = sums.get(&p.country).copied().unwrap_or(st.actual_centi);
         }
-        construction.log_line(
-            clock.tick,
-            format!("{name} COMPLETE ({})", region_name(data, p.region)),
-        );
+        let where_label = match p.region {
+            Some(r) => region_name(data, r),
+            None => "NATIONAL".to_string(),
+        };
+        construction.log_line(clock.tick, format!("{name} COMPLETE ({where_label})"));
     }
 
     // --- Pool cap: surplus auto-converts to growth (AI guardrail) --------
@@ -623,7 +674,7 @@ pub fn update_snapshots(
         let labor_pm = if industry == 0 {
             1000
         } else {
-            (urban * 1000 / (industry * LABOR_URBAN_PER_CENTI / 100).max(1)).min(1000)
+            (urban * 1000 / (industry * LABOR_URBAN_PER_CENTI).max(1)).min(1000)
         };
         let power_pm = if ps.demand == 0 {
             1000
@@ -979,12 +1030,13 @@ mod tests {
                 "inherited at its historical progress"
             );
         }
-        run_ticks(&mut app, 24 * 30 * 14);
+        run_ticks(&mut app, 24 * 30 * 30);
         let world = app.world();
         let c = world.resource::<Construction>();
         assert!(
             c.completed_great.contains("volga-don"),
-            "the canal opens (historically: June 1952)"
+            "the canal opens on a historical schedule (real: June 1952): {:?}",
+            c.projects.values().next()
         );
         let fired = world.resource::<crate::events::FiredEvents>();
         assert!(

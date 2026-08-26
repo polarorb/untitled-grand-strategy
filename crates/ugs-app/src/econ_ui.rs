@@ -854,7 +854,10 @@ fn projects_tab(
                 format!(
                     "{} ({}) {}% -- {}",
                     pr.kind.label(),
-                    construction::region_name(&world.0, pr.region),
+                    match pr.region {
+                        Some(r) => construction::region_name(&world.0, r),
+                        None => "NATIONAL".to_string(),
+                    },
                     pct,
                     status
                 ),
@@ -1004,7 +1007,7 @@ fn refresh_dossier(
     let project = cons
         .projects
         .iter()
-        .find(|(_, p)| p.region == region)
+        .find(|(_, p)| p.region == Some(region))
         .map(|(id, p)| (*id, p.clone()));
 
     commands
@@ -1193,6 +1196,8 @@ fn refresh_dossier(
                     "OUTPUT LIMITED BY LABOR: NOT ENOUGH URBAN WORKERS".to_string(),
                 ugs_sim::construction::ConstraintKind::Contested =>
                     "REGION CONTESTED: WAR SUSPENDS THE CIVIL ECONOMY".to_string(),
+                ugs_sim::construction::ConstraintKind::Funding =>
+                    "PROJECT UNFUNDED: THE CONSTRUCTION POOL IS EMPTY".to_string(),
                 ugs_sim::construction::ConstraintKind::Healthy =>
                     "NO BINDING CONSTRAINT: THE REGION RUNS AT CAPACITY".to_string(),
             };

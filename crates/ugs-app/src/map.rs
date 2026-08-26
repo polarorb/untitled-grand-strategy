@@ -1028,6 +1028,7 @@ fn apply_map_mode(
                     Some((ConstraintKind::Labor, Severity::Critical)) => (128, 70, 140),
                     Some((ConstraintKind::Labor, _)) => (88, 56, 96),
                     Some((ConstraintKind::Contested, _)) => (118, 40, 34),
+                    Some((ConstraintKind::Funding, _)) => (60, 60, 68),
                     None => (20, 24, 28),
                 };
                 wobbled(rgb, *id)

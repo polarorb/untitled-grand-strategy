@@ -1,6 +1,6 @@
 # Economic agency & regional legibility
 
-Status: designed
+Status: implemented (v1 slice)
 Pillar: 4 (the systems-competition pillar becomes playable; asymmetric
 verbs over one substrate), feeding 1 (enrichment projects), 2
 (project influence payouts), 3 (espionage-filtered foreign dossiers).
@@ -193,6 +193,31 @@ funding; sovnarkhoz reform; sim-drafted proposal engine (the briefing
 recommendation line is UI-derived only); regional agriculture and
 labor drafts; auto-pause briefing popup (the OVERVIEW leads with the
 briefing instead — popups stay reserved for events).
+
+## Implementation deviations (v1, deliberate)
+
+- The allocator's urban-labor score term uses regional industry size
+  as its v1 proxy (true cohort-derived labor weighting arrives with
+  the labor-market work); the formula stays published and integer.
+- Great Projects skip the region-ownership check (the catalog is the
+  authority on the site; only the sponsor may start them) — a
+  contested site still throttles intake to zero via the held check.
+- The briefing card is the OVERVIEW's leading wire section rather
+  than an auto-pause popup (popups stay reserved for events); the
+  single templated recommendation line is deferred with it.
+- Region character lines derive from deposit kinds ("COAL / OIL")
+  rather than authored complex names (named complexes arrive with
+  the industry-chain work).
+- `RegionSnapshots.wire` lives on the sim resource but is derived
+  display state like the rest of the snapshot (digest-excluded,
+  never read by sim logic).
+- Pool-cap surplus converts proportionally for BOTH systems (the
+  market variant routing it through the allocator is a fast-follow
+  nicety, not a correctness issue).
+- Treaty-annexed regions keep their stock keyed to the 1950 owner
+  (conquest transfers no industry) — consistent with the
+  war-termination deviation that economic integration is a
+  post-slice; revisit with per-province industry.
 
 ## Open questions (leanings)
 

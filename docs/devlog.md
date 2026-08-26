@@ -7,6 +7,43 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-26 — The economy becomes a place: regions, constraints, projects
+
+Same complaint that produced the military command layer, same cure:
+"the economy feels like watching a simulation." A 7-analyst swarm
+([readup](research/economic-agency.md)) converged on the loop — *see a
+place, read its computed constraint, commit a project, get graded by
+next month's document* — and the
+[design doc](design/systems/economic-agency.md) shipped as a slice:
+
+- **The thaw**: regional industry is live state now, and every region
+  produces under its own grid factor. A browned-out Kuzbass hurts
+  Kuzbass. The country number is just the sum.
+- **The verdict**: each region's binding constraint is computed and
+  *said* — "OUTPUT LIMITED BY POWER: GENERATION COVERS 82% OF
+  DEMAND" — in a sortable worst-first ledger, a one-page teletype
+  Region Dossier with verb buttons in its footer, and a new ECONOMY
+  map mode. At 250 regions, the argmin is the interface.
+- **The verb**: a construction pool (half your investment, the rest
+  grows on its own — AI countries are bit-compatible with zero new AI
+  code) spent through 2+1 project slots. Intake is throttled by the
+  host grid and national materials, so construction can't buy its own
+  inputs and every delay names its bottleneck.
+- **The asymmetry, played**: planners place industry with decrees;
+  market players never do — they zone and tilt a *published*
+  deterministic allocator, and the dossier attributes the response
+  ("PRIVATE INVESTMENT THIS MONTH: +0.4 — power surplus, zone
+  active"). Planner dashboards show REPORTED beside PLAN; market
+  figures are honest but a quarter late.
+- **Great Projects**: seven historian-sourced, condition-gated
+  catalog entries. The USSR inherits the Volga-Don Canal at 60% on
+  day one — a portfolio before your first move — and in tests it
+  opens on its historical schedule. The Turkmen Canal is priced as
+  the trap it was; Kuibyshev and the Seaway put real MW on real
+  grids; Paducah welds the economy to the enrichment demand formula.
+
+71 tests green, determinism suite extended twice over.
+
 ## 2026-08-26 — Wars end now: aims, occupation, and the settlement table
 
 The biggest system yet, born from a playtest dead-end: the player
