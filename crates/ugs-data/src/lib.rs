@@ -539,13 +539,13 @@ impl ScenarioData {
         }
         for event in &self.events {
             match &event.trigger {
-                EventTrigger::EventFired { id, .. } | EventTrigger::OptionChosen { id, .. } => {
-                    if !seen.contains(id) {
-                        return Err(DataError::Validation(format!(
-                            "event {} chains from unknown event {id}",
-                            event.id
-                        )));
-                    }
+                (EventTrigger::EventFired { id, .. } | EventTrigger::OptionChosen { id, .. })
+                    if !seen.contains(id) =>
+                {
+                    return Err(DataError::Validation(format!(
+                        "event {} chains from unknown event {id}",
+                        event.id
+                    )));
                 }
                 _ => {}
             }
