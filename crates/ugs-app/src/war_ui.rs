@@ -43,7 +43,8 @@ struct WarPanel;
 
 #[derive(Component, Clone)]
 enum WarButton {
-    TogglePosture(ugs_data::CountryTag),
+    /// Set the country posture explicitly (radio segments, not a cycle).
+    SetPostureTo(ugs_data::CountryTag, Posture),
     ToggleArmistice(ugs_data::CountryTag),
     Tab(WarTab),
     /// Raise one division of this archetype, home = selected province.
@@ -54,8 +55,10 @@ enum WarButton {
     /// Batch readiness for a whole theater group (None = unassigned).
     GroupReadiness(Option<TheaterId>, bool),
     NewTheater,
-    CycleTheaterPosture(TheaterId),
-    CycleTheaterEchelon(TheaterId),
+    /// Set a theater posture explicitly (radio segments).
+    SetTheaterPostureTo(TheaterId, TheaterPosture),
+    /// Set the echelon share explicitly (radio segments).
+    SetEchelonTo(TheaterId, u16),
     ToggleTheaterRoe(TheaterId, ugs_data::CountryTag),
     DeleteTheater(TheaterId),
     /// Toggle map paint mode for this theater's provinces.
@@ -97,7 +100,7 @@ const THEATER_COLORS: [Color; 6] = [
     Color::srgb(0.90, 0.60, 0.35),
 ];
 
-fn theater_color(id: TheaterId) -> Color {
+pub(crate) fn theater_color(id: TheaterId) -> Color {
     THEATER_COLORS[id.0 as usize % THEATER_COLORS.len()]
 }
 
@@ -182,7 +185,6 @@ impl Plugin for WarUiPlugin {
             (
                 announce_player_country,
                 theater_map_edit,
-                draw_theater_overlay,
                 // Chained so each spawner's deferred `spawn` is flushed before
                 // the next one checks the `With<EventModal>` guard — unordered,
                 // all three can spawn a modal in the same frame and the popups
@@ -1238,27 +1240,24 @@ fn refresh_war_panel(
             ..default()
         })
         .with_children(|row| {
-            for (t, label) in [
-                (WarTab::Overview, "OVERVIEW"),
-                (WarTab::Forces, "FORCES"),
-                (WarTab::Theaters, "THEATERS"),
+            for (t, label, tip) in [
+                (
+                    WarTab::Overview,
+                    "OVERVIEW",
+                    "The war at a glance: manpower pipeline, momentum, crises, posture and armistice controls per enemy.",
+                ),
+                (
+                    WarTab::Forces,
+                    "FORCES",
+                    "Your army roster: raise divisions from the military stockpile, set Active/Reserve readiness, assign divisions to theaters.",
+                ),
+                (
+                    WarTab::Theaters,
+                    "THEATERS",
+                    "Command areas: paint provinces, set posture, objectives, echelon share, and rules of engagement. Divisions execute; you direct.",
+                ),
             ] {
-                row.spawn((
-                    Button,
-                    WarButton::Tab(t),
-                    Node {
-                        padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
-                        ..default()
-                    },
-                    BackgroundColor(if *tab == t {
-                        Color::srgb(0.55, 0.44, 0.18)
-                    } else {
-                        Color::srgba(0.14, 0.17, 0.21, 0.95)
-                    }),
-                ))
-                .with_children(|b| {
-                    b.spawn((Text::new(label), font(&fonts.display, 12.0), TextColor(MAIN)));
-                });
+                crate::widgets::segment(row, WarButton::Tab(t), label, *tab == t, &fonts, 12.0, tip);
             }
         });
         match *tab {
@@ -1317,11 +1316,14 @@ fn refresh_war_panel(
         let reserve = military.manpower.get(me).copied().unwrap_or(0);
         let dead = military.casualties.get(me).copied().unwrap_or(0)
             * tuning::MEN_PER_STRENGTH_POINT;
-        p.spawn((
-            Text::new("MANPOWER PIPELINE"),
-            font(&fonts.mono_bold, 11.0),
-            TextColor(Color::srgb(0.62, 0.66, 0.70)),
-        ));
+        crate::widgets::tipped_text(
+            p,
+            "MANPOWER PIPELINE".into(),
+            &fonts,
+            11.0,
+            Color::srgb(0.62, 0.66, 0.70),
+            "Conservation of men: population feeds the reserve pool (1.5% at peace, +0.2%/month at war), the pool fills fielded divisions, casualties leave permanently - debited from each division's real home province.",
+        );
         p.spawn((
             Text::new(format!(
                 "POP {} > RESERVE {} > FIELD {} ({} DIV) > DEAD {}",
@@ -1478,13 +1480,16 @@ fn refresh_war_panel(
                     BackgroundColor(Color::srgb(0.62, 0.24, 0.20)),
                 ));
             });
-            p.spawn((
-                Text::new(format!(
+            crate::widgets::tipped_text(
+                p,
+                format!(
                     "MOMENTUM {momentum:+}   GROUND {occ_term:+}  EXCHANGE {ex_term:+}  BATTLES {battle_term:+}"
-                )),
-                font(&fonts.mono, 10.5),
-                TextColor(Color::srgb(0.75, 0.78, 0.82)),
-            ));
+                ),
+                &fonts,
+                10.5,
+                Color::srgb(0.75, 0.78, 0.82),
+                "Who is winning, decomposed: GROUND = provinces taken vs lost, EXCHANGE = casualty ratio, BATTLES = recent win/loss run. -100 to +100; every term is shown so the number explains itself.",
+            );
             let assessment = {
                 let terms = [
                     (occ_term, "GROUND", "THE GROUND WAR"),
@@ -1513,53 +1518,43 @@ fn refresh_war_panel(
             ));
             p.spawn(Node {
                 column_gap: Val::Px(8.0),
+                align_items: AlignItems::Center,
                 ..default()
             })
             .with_children(|row| {
                 row.spawn((
-                    Button,
-                    WarButton::TogglePosture(enemy.clone()),
-                    Node {
-                        padding: UiRect::axes(Val::Px(12.0), Val::Px(5.0)),
-                        ..default()
-                    },
-                    BackgroundColor(if posture == Posture::Advance {
-                        Color::srgb(0.5, 0.25, 0.18)
-                    } else {
-                        Color::srgba(0.14, 0.17, 0.21, 0.95)
-                    }),
-                ))
-                .with_children(|b| {
-                    b.spawn((
-                        Text::new(format!("{posture:?}").to_uppercase()),
-                        font(&fonts.display, 13.0),
-                        TextColor(MAIN),
-                    ));
-                });
-                row.spawn((
-                    Button,
+                    Text::new("POSTURE:"),
+                    font(&fonts.mono, 10.5),
+                    TextColor(Color::srgb(0.62, 0.66, 0.70)),
+                ));
+                crate::widgets::segment(
+                    row,
+                    WarButton::SetPostureTo(enemy.clone(), Posture::Hold),
+                    "HOLD",
+                    posture == Posture::Hold,
+                    &fonts,
+                    11.0,
+                    "Hold: your divisions defend the line and never enter enemy territory. Sets the default directive for your auto-theater; player-made theaters override it.",
+                );
+                crate::widgets::segment(
+                    row,
+                    WarButton::SetPostureTo(enemy.clone(), Posture::Advance),
+                    "ADVANCE",
+                    posture == Posture::Advance,
+                    &fonts,
+                    11.0,
+                    "Advance: your divisions push into enemy territory toward the enemy capital. Sets the default directive for your auto-theater; player-made theaters override it.",
+                );
+                crate::widgets::toggle(
+                    row,
                     WarButton::ToggleArmistice(enemy.clone()),
-                    Node {
-                        padding: UiRect::axes(Val::Px(12.0), Val::Px(5.0)),
-                        ..default()
-                    },
-                    BackgroundColor(if offered {
-                        Color::srgb(0.25, 0.4, 0.3)
-                    } else {
-                        Color::srgba(0.14, 0.17, 0.21, 0.95)
-                    }),
-                ))
-                .with_children(|b| {
-                    b.spawn((
-                        Text::new(if offered {
-                            "ARMISTICE OFFERED"
-                        } else {
-                            "OFFER ARMISTICE"
-                        }),
-                        font(&fonts.display, 13.0),
-                        TextColor(MAIN),
-                    ));
-                });
+                    if offered { "ARMISTICE OFFERED" } else { "OFFER ARMISTICE" },
+                    offered,
+                    false,
+                    &fonts,
+                    11.0,
+                    "Offer to end the war at the current line of control. The war ends when BOTH sides are willing; the AI grows willing after long wars with a static front, or when its army is broken. Click again to retract.",
+                );
             });
         }
         // --- The wire: latest war ticker lines, newest last. -------------
@@ -1622,15 +1617,18 @@ fn forces_tab(
             c
         })
         .sum();
-    p.spawn((
-        Text::new(format!(
+    crate::widgets::tipped_text(
+        p,
+        format!(
             "STOCKPILE {stock}   UPKEEP ~{}.{}/MO",
             burn_centi / 100,
             burn_centi % 100 / 10
-        )),
-        font(&fonts.mono, 11.5),
-        TextColor(MAIN),
-    ));
+        ),
+        fonts,
+        11.5,
+        MAIN,
+        "Military stockpile: produced monthly by your economy's military allocation. Raising divisions spends it; every division costs monthly upkeep (3x when based overseas; reserves 20%). An unpaid army decays and melts.",
+    );
     if military.upkeep_arrears.contains_key(me) {
         p.spawn((
             Text::new("ARMY UNPAID -- QUALITY DECAYING, STRENGTH MELTING"),
@@ -1650,14 +1648,17 @@ fn forces_tab(
     let home_name = home
         .and_then(|id| world.0.provinces.get(&id))
         .map(|pr| pr.name.to_uppercase());
-    p.spawn((
-        Text::new(match &home_name {
+    crate::widgets::tipped_text(
+        p,
+        match &home_name {
             Some(n) => format!("RAISE AT {n} (OVERSEAS BASING = TRAINING IN PLACE)"),
             None => "RAISE: SELECT A HOME PROVINCE ON THE MAP".to_string(),
-        }),
-        font(&fonts.mono, 10.5),
-        TextColor(if home_name.is_some() { MAIN } else { dim }),
-    ));
+        },
+        fonts,
+        10.5,
+        if home_name.is_some() { MAIN } else { dim },
+        "New divisions are raised from a home province you select on the map — your own soil or a co-belligerent's. They spawn green (10% strength, untrained), fill from the manpower pool, and train over 3-5 months. Casualties come off the home province's real population.",
+    );
     p.spawn(Node {
         column_gap: Val::Px(6.0),
         ..default()
@@ -1669,9 +1670,15 @@ fn forces_tab(
             (Archetype::Armor, "ARMOR"),
         ] {
             let affordable = stock >= arch.raise_cost() && home_name.is_some();
+            let tip = match arch {
+                Archetype::Infantry => "Raise one infantry division (10,000 men): cheap, tough on defense, slow. Trains in 90 days; fights green at half weight before that.",
+                Archetype::Motorized => "Raise one motorized division: balanced and fast-moving. Trains in 120 days.",
+                Archetype::Armor => "Raise one armor division: the offensive punch, fragile on defense, highest upkeep. Trains in 150 days.",
+            };
             row.spawn((
                 Button,
                 WarButton::Raise(arch),
+                crate::widgets::Tooltip::of(tip),
                 Node {
                     padding: UiRect::axes(Val::Px(9.0), Val::Px(4.0)),
                     ..default()
@@ -1732,10 +1739,22 @@ fn forces_tab(
                 font(&fonts.mono_bold, 11.0),
                 TextColor(gcolor),
             ));
-            for (label, active) in [("ALL ACT", true), ("ALL RES", false)] {
+            for (label, active, tip) in [
+                (
+                    "ALL ACT",
+                    true,
+                    "Mobilize every reserve division in this group. Reserve to Active takes 21 days and is a public signal (tension at peace).",
+                ),
+                (
+                    "ALL RES",
+                    false,
+                    "Stand the whole group down to Reserve: 20% upkeep, but immobile, defending at reduced weight, and 21 days from being fieldable again.",
+                ),
+            ] {
                 row.spawn((
                     Button,
                     WarButton::GroupReadiness(gid, active),
+                    crate::widgets::Tooltip::of(tip),
                     Node {
                         padding: UiRect::axes(Val::Px(6.0), Val::Px(2.0)),
                         ..default()
@@ -1753,9 +1772,8 @@ fn forces_tab(
             }
             rows_left -= 1;
             let readiness = match f.readiness {
-                Readiness::Active => "ACT".to_string(),
-                Readiness::Reserve => "RES".to_string(),
-                Readiness::Mobilizing { days_left } => format!("MOB {days_left}D"),
+                Readiness::Mobilizing { days_left } => format!("  {days_left}D LEFT"),
+                _ => String::new(),
             };
             let training = if f.training < 1000 {
                 format!("  TRN {}%", f.training / 10)
@@ -1768,39 +1786,40 @@ fn forces_tab(
                 ..default()
             })
             .with_children(|row| {
-                row.spawn((
-                    Text::new(format!(
-                        "{}  S{}% C{}%{training}  {readiness}",
+                crate::widgets::tipped_text(
+                    row,
+                    format!(
+                        "{}  S{}% C{}%{training}{readiness}",
                         f.name,
                         f.strength / 10,
                         f.cohesion / 10,
-                    )),
-                    font(&fonts.mono, 10.0),
-                    TextColor(MAIN),
-                ));
-                row.spawn((
-                    Button,
+                    ),
+                    fonts,
+                    10.0,
+                    MAIN,
+                    "S = strength (men and equipment; dies slowly, refilled from the manpower pool). C = cohesion (fighting spirit; breaks battles, recovers fast). TRN = training - green divisions fight at half weight until trained.",
+                );
+                let state_label = match f.readiness {
+                    Readiness::Active => "ACTIVE",
+                    Readiness::Reserve => "RESERVE",
+                    Readiness::Mobilizing { .. } => "MOBILIZING",
+                };
+                crate::widgets::toggle(
+                    row,
                     WarButton::ToggleReadiness(*id),
-                    Node {
-                        padding: UiRect::axes(Val::Px(5.0), Val::Px(2.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgba(0.14, 0.17, 0.21, 0.95)),
-                ))
-                .with_children(|b| {
-                    b.spawn((
-                        Text::new(if f.readiness.stood_down() {
-                            "ACTIVATE"
-                        } else {
-                            "STAND DOWN"
-                        }),
-                        font(&fonts.mono, 9.0),
-                        TextColor(MAIN),
-                    ));
-                });
+                    state_label,
+                    !f.readiness.stood_down(),
+                    false,
+                    fonts,
+                    9.0,
+                    "Readiness. Lit = Active (full upkeep, holds a front slot). Click to stand down to Reserve (20% upkeep, immobile, weak on defense) or to mobilize back — mobilization takes 21 days and is a public signal.",
+                );
                 row.spawn((
                     Button,
                     WarButton::CycleFormationTheater(*id),
+                    crate::widgets::Tooltip::of(
+                        "Reassign this division to your next theater (cycles through your theaters, then Unassigned). Unassigned divisions walk home and sit.",
+                    ),
                     Node {
                         padding: UiRect::axes(Val::Px(5.0), Val::Px(2.0)),
                         ..default()
@@ -1827,11 +1846,14 @@ fn forces_tab(
         }
     }
     let pool = military.manpower.get(me).copied().unwrap_or(0);
-    p.spawn((
-        Text::new(format!("MANPOWER POOL {}", fmt_men(pool))),
-        font(&fonts.mono, 10.5),
-        TextColor(dim),
-    ));
+    crate::widgets::tipped_text(
+        p,
+        format!("MANPOWER POOL {}", fmt_men(pool)),
+        fonts,
+        10.5,
+        dim,
+        "Trained men available to fill divisions, drawn from your real population (1.5% at peace, +0.2%/month at war). Reinforcement stalls when it runs dry.",
+    );
 }
 
 /// THEATERS tab: create, paint, direct. Each theater is 3-6 decisions:
@@ -1853,6 +1875,9 @@ fn theaters_tab(
         row.spawn((
             Button,
             WarButton::NewTheater,
+            crate::widgets::Tooltip::of(
+                "Create an empty theater, then PAINT provinces into it on the map and assign divisions from the FORCES tab. You direct theaters; divisions position themselves.",
+            ),
             Node {
                 padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
                 ..default()
@@ -1938,42 +1963,91 @@ fn theaters_tab(
             ..default()
         })
         .with_children(|row| {
-            let small =
-                |row: &mut ChildSpawnerCommands, button: WarButton, label: String, lit: bool| {
-                    row.spawn((
-                        Button,
-                        button,
-                        Node {
-                            padding: UiRect::axes(Val::Px(7.0), Val::Px(3.0)),
-                            ..default()
-                        },
-                        BackgroundColor(if lit {
-                            Color::srgb(0.55, 0.44, 0.18)
-                        } else {
-                            Color::srgba(0.14, 0.17, 0.21, 0.95)
-                        }),
-                    ))
-                    .with_children(|b| {
-                        b.spawn((Text::new(label), font(&fonts.mono, 9.5), TextColor(MAIN)));
-                    });
-                };
-            small(
-                row,
-                WarButton::CycleTheaterPosture(id),
-                format!("{:?}", t.posture).to_uppercase(),
-                t.posture == TheaterPosture::Offensive,
-            );
-            small(
-                row,
-                WarButton::CycleTheaterEchelon(id),
-                format!("ECH {}%", t.echelon_permille / 10),
-                false,
-            );
+            // Posture: a three-way radio, the lit segment is the order
+            // in force.
+            for (posture, label, tip) in [
+                (
+                    TheaterPosture::Defend,
+                    "DEFEND",
+                    "Defend: hold the theater's front provinces; never enter enemy territory.",
+                ),
+                (
+                    TheaterPosture::Probe,
+                    "PROBE",
+                    "Probe: push one province deep into adjacent enemy territory where the front allows — limited bites, no deep advance.",
+                ),
+                (
+                    TheaterPosture::Offensive,
+                    "OFFENSIVE",
+                    "Offensive: roll the front forward into enemy territory, aiming at this theater's objectives.",
+                ),
+            ] {
+                crate::widgets::segment(
+                    row,
+                    WarButton::SetTheaterPostureTo(id, posture),
+                    label,
+                    t.posture == posture,
+                    fonts,
+                    9.5,
+                    tip,
+                );
+            }
+        });
+        p.spawn(Node {
+            column_gap: Val::Px(5.0),
+            align_items: AlignItems::Center,
+            ..default()
+        })
+        .with_children(|row| {
+            row.spawn((Text::new("ECHELON:"), font(&fonts.mono, 9.5), TextColor(dim)));
+            for permille in [0u16, 250, 500] {
+                crate::widgets::segment(
+                    row,
+                    WarButton::SetEchelonTo(id, permille),
+                    &format!("{}%", permille / 10),
+                    t.echelon_permille == permille,
+                    fonts,
+                    9.5,
+                    "Echelon: the share of this theater's divisions held back from the front as a rear reserve (the newest, greenest divisions are held back first).",
+                );
+            }
             let painting = edit.mode == EditMode::Paint && edit.theater == Some(id);
-            small(row, WarButton::PaintMode(id), "PAINT".into(), painting);
+            crate::widgets::toggle(
+                row,
+                WarButton::PaintMode(id),
+                "PAINT",
+                painting,
+                false,
+                fonts,
+                9.5,
+                "Paint this theater's provinces: while lit, clicking provinces on the map adds or removes them (works while paused; the map switches to the WAR view). Click again to finish.",
+            );
             let obj = edit.mode == EditMode::Objectives && edit.theater == Some(id);
-            small(row, WarButton::ObjectiveMode(id), "OBJECTIVES".into(), obj);
-            small(row, WarButton::DeleteTheater(id), "DEL".into(), false);
+            crate::widgets::toggle(
+                row,
+                WarButton::ObjectiveMode(id),
+                "OBJECTIVES",
+                obj,
+                false,
+                fonts,
+                9.5,
+                "Pick up to 3 objective provinces on the map: offensives aim their advance along the axes toward them. Click a set objective to clear it; click again to finish.",
+            );
+            row.spawn((
+                Button,
+                WarButton::DeleteTheater(id),
+                crate::widgets::Tooltip::of(
+                    "Disband this theater. Its divisions go unassigned and walk to their home provinces until re-assigned.",
+                ),
+                Node {
+                    padding: UiRect::axes(Val::Px(7.0), Val::Px(3.0)),
+                    ..default()
+                },
+                BackgroundColor(Color::srgba(0.30, 0.14, 0.12, 0.95)),
+            ))
+            .with_children(|b| {
+                b.spawn((Text::new("DEL"), font(&fonts.mono, 9.5), TextColor(MAIN)));
+            });
         });
         // ROE: one line per enemy — "may not cross the Yalu" lives here.
         let enemies: Vec<ugs_data::CountryTag> = military
@@ -1998,30 +2072,16 @@ fn theaters_tab(
                 row.spawn((Text::new("ROE:"), font(&fonts.mono, 9.5), TextColor(dim)));
                 for enemy in enemies {
                     let banned = t.forbidden.contains(&enemy);
-                    row.spawn((
-                        Button,
+                    crate::widgets::toggle(
+                        row,
                         WarButton::ToggleTheaterRoe(id, enemy.clone()),
-                        Node {
-                            padding: UiRect::axes(Val::Px(6.0), Val::Px(2.0)),
-                            ..default()
-                        },
-                        BackgroundColor(if banned {
-                            Color::srgb(0.5, 0.22, 0.18)
-                        } else {
-                            Color::srgba(0.14, 0.17, 0.21, 0.95)
-                        }),
-                    ))
-                    .with_children(|b| {
-                        b.spawn((
-                            Text::new(format!(
-                                "{} {}",
-                                if banned { "NO ENTRY" } else { "MAY ENTER" },
-                                enemy.0
-                            )),
-                            font(&fonts.mono, 9.0),
-                            TextColor(MAIN),
-                        ));
-                    });
+                        &format!("NO ENTRY {}", enemy.0),
+                        banned,
+                        true,
+                        fonts,
+                        9.0,
+                        "Rule of engagement: while lit, this theater's divisions may NEVER enter that country's soil — the sanctuary line ('may not cross the Yalu'). A hard constraint on movement, not a suggestion.",
+                    );
                 }
             });
         }
@@ -2089,55 +2149,6 @@ fn theater_map_edit(
     selected.0 = None; // the click was an edit, not a selection
 }
 
-/// Gizmo tint: while the Theaters tab (or an edit mode) is up, each of
-/// the player's theaters rings its provinces in its color; objectives
-/// get a double ring.
-#[allow(clippy::too_many_arguments)]
-fn draw_theater_overlay(
-    tab: Res<WarTab>,
-    edit: Res<TheaterEdit>,
-    military: Res<Military>,
-    world: Res<World1950>,
-    player: Option<Res<PlayerNation>>,
-    panel: Query<(), With<WarPanel>>,
-    mut gizmos: Gizmos,
-) {
-    let showing = (!panel.is_empty() && *tab == WarTab::Theaters) || edit.mode != EditMode::None;
-    if !showing {
-        return;
-    }
-    let Some(player) = player else { return };
-    for (id, t) in military
-        .theaters
-        .iter()
-        .filter(|(_, t)| t.owner == player.0)
-    {
-        let color = theater_color(*id);
-        let editing = edit.theater == Some(*id) && edit.mode != EditMode::None;
-        let radius = if editing { 9.0 } else { 6.0 };
-        for province in &t.provinces {
-            let Some(pr) = world.0.provinces.get(province) else {
-                continue;
-            };
-            let pos = project(pr.center.0, pr.center.1);
-            for offset in [-WORLD_WRAP, 0.0, WORLD_WRAP] {
-                gizmos.circle_2d(pos + Vec2::new(offset, 0.0), radius, color);
-            }
-        }
-        for objective in &t.objectives {
-            let Some(pr) = world.0.provinces.get(objective) else {
-                continue;
-            };
-            let pos = project(pr.center.0, pr.center.1);
-            for offset in [-WORLD_WRAP, 0.0, WORLD_WRAP] {
-                let off = Vec2::new(offset, 0.0);
-                gizmos.circle_2d(pos + off, 12.0, color);
-                gizmos.circle_2d(pos + off, 15.0, color);
-            }
-        }
-    }
-}
-
 #[allow(clippy::too_many_arguments)]
 fn war_buttons(
     buttons: Query<(&Interaction, &WarButton), Changed<Interaction>>,
@@ -2146,6 +2157,7 @@ fn war_buttons(
     player: Option<Res<PlayerNation>>,
     mut tab: ResMut<WarTab>,
     mut edit: ResMut<TheaterEdit>,
+    mut map_mode: ResMut<crate::map::MapMode>,
     mut pending: ResMut<PendingCommands>,
 ) {
     let Some(player) = player else { return };
@@ -2155,15 +2167,11 @@ fn war_buttons(
             continue;
         }
         match button {
-            WarButton::TogglePosture(enemy) => {
-                let next = match military.posture(me, enemy) {
-                    Posture::Advance => Posture::Hold,
-                    Posture::Hold => Posture::Advance,
-                };
+            WarButton::SetPostureTo(enemy, posture) => {
                 pending.push(SimCommand::SetPosture {
                     country: me.clone(),
                     enemy: enemy.clone(),
-                    posture: next,
+                    posture: *posture,
                 });
             }
             WarButton::ToggleArmistice(enemy) => {
@@ -2253,33 +2261,19 @@ fn war_buttons(
                     name: format!("THEATER {}", n + 1),
                 });
             }
-            WarButton::CycleTheaterPosture(id) => {
-                if let Some(t) = military.theaters.get(id) {
-                    let next = match t.posture {
-                        TheaterPosture::Defend => TheaterPosture::Probe,
-                        TheaterPosture::Probe => TheaterPosture::Offensive,
-                        TheaterPosture::Offensive => TheaterPosture::Defend,
-                    };
-                    pending.push(SimCommand::SetTheaterPosture {
-                        country: me.clone(),
-                        id: *id,
-                        posture: next,
-                    });
-                }
+            WarButton::SetTheaterPostureTo(id, posture) => {
+                pending.push(SimCommand::SetTheaterPosture {
+                    country: me.clone(),
+                    id: *id,
+                    posture: *posture,
+                });
             }
-            WarButton::CycleTheaterEchelon(id) => {
-                if let Some(t) = military.theaters.get(id) {
-                    let next = match t.echelon_permille {
-                        0..=124 => 250,
-                        125..=374 => 500,
-                        _ => 0,
-                    };
-                    pending.push(SimCommand::SetTheaterEchelon {
-                        country: me.clone(),
-                        id: *id,
-                        permille: next,
-                    });
-                }
+            WarButton::SetEchelonTo(id, permille) => {
+                pending.push(SimCommand::SetTheaterEchelon {
+                    country: me.clone(),
+                    id: *id,
+                    permille: *permille,
+                });
             }
             WarButton::ToggleTheaterRoe(id, target) => {
                 if let Some(t) = military.theaters.get(id) {
@@ -2307,6 +2301,7 @@ fn war_buttons(
                 } else {
                     edit.mode = EditMode::Paint;
                     edit.theater = Some(*id);
+                    *map_mode = crate::map::MapMode::War;
                 }
             }
             WarButton::ObjectiveMode(id) => {
@@ -2315,6 +2310,7 @@ fn war_buttons(
                 } else {
                     edit.mode = EditMode::Objectives;
                     edit.theater = Some(*id);
+                    *map_mode = crate::map::MapMode::War;
                 }
             }
         }

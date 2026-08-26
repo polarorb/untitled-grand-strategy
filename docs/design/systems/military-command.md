@@ -318,10 +318,13 @@ auto-theater assigned, training 1000.
   accrual, so the settlement day bills into the new month.
 - The wartime raise-tension threshold counts all formations, not only
   Active ones.
-- UI: the echelon share is a 0/25/50% cycle button rather than a
-  slider; the Forces list renders at most 16 division rows (with a
-  truncation line); theater tint is a gizmo ring overlay, shown on
-  the Theaters tab and while painting.
+- UI: the echelon share is a 0/25/50% radio rather than a slider; the
+  Forces list renders at most 16 division rows (with a truncation
+  line). Theater tint is a full **WAR map mode** (province fills in
+  theater colors, objectives bright, enemy ground dark red) — painting
+  switches to it automatically; the earlier gizmo-ring overlay is gone.
+  Every stateful control is a lit toggle/radio with a hover tooltip,
+  and commands flush between ticks, so painting works while paused.
 
 ## Open questions (post-slice leanings)
 

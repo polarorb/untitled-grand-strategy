@@ -15,7 +15,7 @@ use crate::calendar::GameDate;
 use crate::command::{PendingCommands, SimCommand};
 use crate::rng::SimRng;
 use crate::tension::GlobalTension;
-use crate::{SimClock, SimTick};
+use crate::SimClock;
 
 /// The campaign seed, kept for saving.
 #[derive(Resource, Debug, Clone, Copy, Serialize, Deserialize)]
@@ -81,23 +81,27 @@ pub fn reset_sim(world: &mut World, start_date: GameDate, seed: u64) {
 }
 
 /// Rebuild the world from a save: reset, then replay every tick with the
-/// logged commands re-applied on their original ticks.
+/// logged commands re-flushed at their original tick boundaries. A log
+/// entry `(T, cmd)` means "applied after tick T completed" (commands may
+/// be issued while paused), so each boundary flushes its commands before
+/// the next tick runs — including the final boundary, for commands
+/// issued while paused right before the save.
 pub fn load_save(world: &mut World, save: &SaveGame) {
     reset_sim(world, save.start_date, save.seed);
     let mut next_cmd = 0usize;
     loop {
         let tick = world.resource::<SimClock>().tick;
-        if tick >= save.current_tick {
-            break;
-        }
-        let upcoming = tick + 1;
-        while next_cmd < save.log.len() && save.log[next_cmd].0 == upcoming {
+        while next_cmd < save.log.len() && save.log[next_cmd].0 == tick {
             world
                 .resource_mut::<PendingCommands>()
                 .push(save.log[next_cmd].1.clone());
             next_cmd += 1;
         }
-        world.run_schedule(SimTick);
+        crate::flush_commands(world);
+        if tick >= save.current_tick {
+            break;
+        }
+        world.run_schedule(crate::SimTick);
     }
 }
 
@@ -175,6 +179,46 @@ mod tests {
         fn expected_after(app: &App) -> String {
             digest(app)
         }
+    }
+
+    #[test]
+    fn paused_commands_apply_immediately_and_replay() {
+        let mut app = app_with_scenario();
+        run_ticks(&mut app, 24 * 10);
+        // "Paused": no tick runs — the boundary flush alone must apply
+        // the command (this is what makes theater painting instant).
+        let before = app.world().resource::<GlobalTension>().value();
+        let tick_before = app.world().resource::<SimClock>().tick;
+        app.world_mut()
+            .resource_mut::<PendingCommands>()
+            .push(SimCommand::DebugAdjustTension(100));
+        crate::flush_commands(app.world_mut());
+        assert_eq!(
+            app.world().resource::<SimClock>().tick,
+            tick_before,
+            "no time passed"
+        );
+        assert_eq!(
+            app.world().resource::<GlobalTension>().value(),
+            before + 100,
+            "command applied without a tick"
+        );
+        // And the flush boundary replays exactly, including a command
+        // issued while paused right before the save.
+        run_ticks(&mut app, 24 * 5);
+        app.world_mut()
+            .resource_mut::<PendingCommands>()
+            .push(SimCommand::DebugAdjustTension(-40));
+        crate::flush_commands(app.world_mut());
+        let save = SaveGame::capture(app.world(), None);
+        let expected = digest(&app);
+        let mut restored = app_with_scenario();
+        load_save(restored.world_mut(), &save);
+        assert_eq!(digest(&restored), expected, "paused-flush replay diverged");
+        assert_eq!(
+            restored.world().resource::<GlobalTension>().value(),
+            app.world().resource::<GlobalTension>().value(),
+        );
     }
 
     #[test]

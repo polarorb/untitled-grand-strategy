@@ -32,13 +32,16 @@ pub struct WorldGeometry {
 pub struct Selected(pub Option<ProvinceId>);
 
 #[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq)]
-enum MapMode {
+pub(crate) enum MapMode {
     #[default]
     Political,
     Terrain,
     Power,
     /// The big board: dark phosphor restyle, strike-reach washes.
     Strategic,
+    /// Theater command view: the player's theaters fill their provinces
+    /// in theater colors; painting a theater switches here automatically.
+    War,
 }
 
 /// Marker for spawned map layer entities (fill + borders).
@@ -101,6 +104,7 @@ impl Plugin for MapPlugin {
             Ok("terrain") => MapMode::Terrain,
             Ok("power") => MapMode::Power,
             Ok("strategic") => MapMode::Strategic,
+            Ok("war") => MapMode::War,
             _ => MapMode::Political,
         });
         // The map underlies both the nation-select screen and the game.
@@ -503,15 +507,42 @@ fn spawn_hud(
             BackgroundColor(HUD_BG),
         ))
         .with_children(|bar| {
-            for (mode, icon, label) in [
-                (MapMode::Political, "ui/icon_political.jpg", "POLITICAL"),
-                (MapMode::Terrain, "ui/icon_terrain.jpg", "TERRAIN"),
-                (MapMode::Power, "ui/icon_power.jpg", "POWER"),
-                (MapMode::Strategic, "ui/icon_strategic.jpg", "STRATEGIC"),
+            for (mode, icon, label, tip) in [
+                (
+                    MapMode::Political,
+                    "ui/icon_political.jpg",
+                    "POLITICAL",
+                    "Who rules where: national colors, with wartime occupation shown as it changes hands.",
+                ),
+                (
+                    MapMode::Terrain,
+                    "ui/icon_terrain.jpg",
+                    "TERRAIN",
+                    "The ground itself. Terrain multiplies defense: mountains +60%, cities +50%, hills +30%.",
+                ),
+                (
+                    MapMode::Power,
+                    "ui/icon_power.jpg",
+                    "POWER",
+                    "Regional electric power balance: brownouts throttle the industry that pays for everything.",
+                ),
+                (
+                    MapMode::Strategic,
+                    "ui/icon_strategic.jpg",
+                    "STRATEGIC",
+                    "The big board: where your bombers can reach, and which of your cities sit inside enemy strike radius.",
+                ),
+                (
+                    MapMode::War,
+                    "ui/icon_war.jpg",
+                    "WAR",
+                    "Theater command view: your theaters fill their provinces in their colors, objectives glow bright, enemy ground burns red. Painting a theater switches here automatically.",
+                ),
             ] {
                 bar.spawn((
                     Button,
                     MapModeButton(mode),
+                    crate::widgets::Tooltip::of(tip),
                     Node {
                         flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
@@ -745,7 +776,8 @@ fn handle_input(
             MapMode::Political => MapMode::Terrain,
             MapMode::Terrain => MapMode::Power,
             MapMode::Power => MapMode::Strategic,
-            MapMode::Strategic => MapMode::Political,
+            MapMode::Strategic => MapMode::War,
+            MapMode::War => MapMode::Political,
         };
     }
     for (key, level) in [
@@ -855,6 +887,7 @@ fn apply_map_mode(
     player: Option<Res<PlayerNation>>,
     fill: Option<Res<MapFill>>,
     mut occupation_hash: Local<u64>,
+    mut war_hash: Local<u64>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     // Occupation changes (conquest) repaint the political map.
@@ -871,12 +904,43 @@ fn apply_map_mode(
     if occupation_changed {
         *occupation_hash = occ_hash;
     }
+    // War mode repaints when the player's theater picture moves (painting
+    // a province, objectives, wars joining/ending) — not every tick.
+    let w_hash = {
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        let me = player.as_ref().map(|p| &p.0);
+        for (id, t) in &military.theaters {
+            if Some(&t.owner) != me {
+                continue;
+            }
+            h = (h ^ id.0 as u64).wrapping_mul(0x0000_0100_0000_01b3);
+            for p in &t.provinces {
+                h = (h ^ (p.0 as u64 + 1)).wrapping_mul(0x0000_0100_0000_01b3);
+            }
+            for o in &t.objectives {
+                h = (h ^ (o.0 as u64 + 0x8000_0000)).wrapping_mul(0x0000_0100_0000_01b3);
+            }
+        }
+        for (a, b) in &military.wars {
+            for tag in [a, b] {
+                for byte in tag.0.bytes() {
+                    h = (h ^ byte as u64).wrapping_mul(0x0000_0100_0000_01b3);
+                }
+            }
+        }
+        h
+    };
+    let war_changed = w_hash != *war_hash;
+    if war_changed {
+        *war_hash = w_hash;
+    }
     // Repaint on mode change; Power mode monthly; occupation on conquest;
-    // Strategic when the deterrence picture shifts.
+    // Strategic when the deterrence picture shifts; War on theater edits.
     if !mode.is_changed()
         && !(*mode == MapMode::Power && power.is_changed())
         && !(*mode == MapMode::Political && occupation_changed)
         && !(*mode == MapMode::Strategic && deterrence.is_changed())
+        && !(*mode == MapMode::War && (war_changed || occupation_changed))
     {
         return;
     }
@@ -938,6 +1002,43 @@ fn apply_map_mode(
                     (14, 17, 21) // beyond everyone's reach: dark board
                 };
                 wobbled(rgb, *id)
+            }
+            MapMode::War => {
+                // Theater command view: same fill styling as the other
+                // modes — the player's theaters paint their provinces in
+                // theater colors, objectives glow brighter, enemies burn
+                // dark red, everything else recedes.
+                let me = player.as_ref().map(|pl| &pl.0);
+                let pid = ProvinceId(*id);
+                let mine = me.and_then(|m| {
+                    military
+                        .theaters
+                        .iter()
+                        .find(|(_, t)| &t.owner == m && t.provinces.contains(&pid))
+                });
+                let objective = me.is_some_and(|m| {
+                    military
+                        .theaters
+                        .values()
+                        .any(|t| &t.owner == m && t.objectives.contains(&pid))
+                });
+                if let Some((tid, _)) = mine {
+                    let c = crate::war_ui::theater_color(*tid).to_srgba();
+                    let rgb = (
+                        (c.red * 255.0) as u8,
+                        (c.green * 255.0) as u8,
+                        (c.blue * 255.0) as u8,
+                    );
+                    wobbled(rgb, *id)
+                } else if objective {
+                    wobbled((235, 225, 200), *id) // axis target: bright brass
+                } else if me.is_some_and(|m| military.at_war(m, &effective_owner)) {
+                    wobbled((118, 40, 34), *id) // enemy-held: dark red
+                } else if me == Some(&effective_owner) {
+                    wobbled((58, 66, 78), *id) // own soil, uncommanded
+                } else {
+                    wobbled((24, 28, 34), *id) // the rest of the world recedes
+                }
             }
         }
         .to_linear()
@@ -1041,6 +1142,11 @@ fn drive_sim(world: &mut World) {
             whole as u64
         }
     };
+    // Commands flush at the tick boundary even when zero ticks run, so
+    // orders issued while paused (theater painting, raising) take
+    // effect immediately — and deterministically: the replay flushes
+    // at the same boundaries.
+    ugs_sim::flush_commands(world);
     for _ in 0..ticks {
         world.run_schedule(ugs_sim::SimTick);
     }

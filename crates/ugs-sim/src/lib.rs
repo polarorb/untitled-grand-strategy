@@ -125,7 +125,9 @@ impl Plugin for SimPlugin {
                 .chain(),
         );
         app.add_systems(SimTick, advance_clock.in_set(TickSet::Time));
-        app.add_systems(SimTick, command::apply_commands.in_set(TickSet::Commands));
+        // NOTE: command application is NOT in the tick schedule — it is
+        // a between-ticks flush (`flush_commands`), so paused commands
+        // apply immediately and replay flushes at the same boundaries.
         app.add_systems(
             SimTick,
             (
@@ -169,10 +171,24 @@ fn advance_clock(mut clock: ResMut<SimClock>) {
     clock.new_month = clock.date.month != prev.month;
 }
 
+/// Apply every queued command NOW, between ticks. Commands are logged
+/// with the CURRENT tick, meaning "applied after tick T completed" —
+/// the replay machinery flushes at the same boundaries, so a command
+/// issued while paused takes effect immediately AND deterministically.
+/// This is the only application path: `run_ticks` and the presentation
+/// layer both call it; nothing applies commands inside a tick.
+pub fn flush_commands(world: &mut bevy_ecs::world::World) {
+    world
+        .run_system_cached(command::apply_commands)
+        .expect("apply_commands system params always present");
+}
+
 /// Advance the simulation by `n` hours. The only entry point for moving
 /// game time forward, shared by the app, tests, and future AI harnesses.
+/// Queued commands flush at each tick boundary.
 pub fn run_ticks(app: &mut App, n: u64) {
     for _ in 0..n {
+        flush_commands(app.world_mut());
         app.world_mut().run_schedule(SimTick);
     }
 }

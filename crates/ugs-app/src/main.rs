@@ -10,6 +10,7 @@ mod endgame;
 mod map;
 mod menu;
 mod war_ui;
+mod widgets;
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -158,6 +159,7 @@ fn main() {
         econ_ui::EconUiPlugin,
         audio::GameAudioPlugin,
         war_ui::WarUiPlugin,
+        widgets::WidgetsPlugin,
         atomic_ui::AtomicUiPlugin,
         endgame::EndgamePlugin,
     ));

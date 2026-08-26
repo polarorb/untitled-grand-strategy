@@ -188,15 +188,28 @@ fn refresh_panel(
                     ..default()
                 })
                 .with_children(|row| {
-                    for (label, posture) in [
-                        ("COVERT", ProgramPosture::Covert),
-                        ("STANDARD", ProgramPosture::Standard),
-                        ("CRASH", ProgramPosture::Crash),
+                    for (label, posture, tip) in [
+                        (
+                            "COVERT",
+                            ProgramPosture::Covert,
+                            "Covert: slowest progress, hardest for rival intelligence to see. What they don't believe can't deter them - or provoke them.",
+                        ),
+                        (
+                            "STANDARD",
+                            ProgramPosture::Standard,
+                            "Standard: normal program pace and visibility.",
+                        ),
+                        (
+                            "CRASH",
+                            ProgramPosture::Crash,
+                            "Crash: maximum speed, loud - rivals see it, and it raises tension. The Manhattan pace.",
+                        ),
                     ] {
                         let active = prog.posture == posture;
                         row.spawn((
                             Button,
                             AtomicButton::Posture(posture),
+                            crate::widgets::Tooltip::of(tip),
                             Node {
                                 padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
                                 ..default()
@@ -260,16 +273,33 @@ fn refresh_panel(
                     ..default()
                 })
                 .with_children(|row| {
-                    for (label, level) in [
-                        ("PEACETIME", 0u8),
-                        ("INCREASED", 1),
-                        ("AIRBORNE", 2),
-                        ("MAXIMUM", 3),
+                    for (label, level, tip) in [
+                        (
+                            "PEACETIME",
+                            0u8,
+                            "Bombers on airfields, crews at rest. No cost, no signal.",
+                        ),
+                        (
+                            "INCREASED",
+                            1,
+                            "Increased readiness: dispersed bombers, shorter reaction time. Rivals notice; tension rises when you go up.",
+                        ),
+                        (
+                            "AIRBORNE",
+                            2,
+                            "Airborne alert: a share of the force always aloft. Fast, expensive, and unmistakably a signal.",
+                        ),
+                        (
+                            "MAXIMUM",
+                            3,
+                            "Maximum alert: everything ready to fly. The loudest signal short of launching - hold it long and accidents beckon.",
+                        ),
                     ] {
                         let active = prog.alert == level;
                         row.spawn((
                             Button,
                             AtomicButton::Alert(level),
+                            crate::widgets::Tooltip::of(tip),
                             Node {
                                 padding: UiRect::axes(Val::Px(8.0), Val::Px(4.0)),
                                 ..default()
@@ -294,29 +324,20 @@ fn refresh_panel(
                     }
                 });
                 // Parade deception toggle.
-                p.spawn((
-                    Button,
-                    AtomicButton::Deception(!prog.deception),
-                    Node {
-                        padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
-                        ..default()
-                    },
-                    BackgroundColor(if prog.deception {
-                        Color::srgb(0.4, 0.28, 0.45)
-                    } else {
-                        Color::srgba(0.14, 0.17, 0.21, 0.95)
-                    }),
-                ))
-                .with_children(|b| {
-                    b.spawn((
-                        Text::new(if prog.deception {
-                            "PARADE DECEPTION: ON"
-                        } else {
-                            "PARADE DECEPTION: OFF"
-                        }),
-                        font(&fonts.display, 12.0),
-                        TextColor(MAIN),
-                    ));
+                p.spawn(Node {
+                    ..default()
+                })
+                .with_children(|row| {
+                    crate::widgets::toggle(
+                        row,
+                        AtomicButton::Deception(!prog.deception),
+                        "PARADE DECEPTION",
+                        prog.deception,
+                        false,
+                        &fonts,
+                        12.0,
+                        "Fly the same bombers past the reviewing stand twice: rivals overestimate your arsenal. Deterrence runs on what they BELIEVE - but being caught inflating it provokes, and turning it on raises tension.",
+                    );
                 });
                 p.spawn(Node {
                     column_gap: Val::Px(6.0),

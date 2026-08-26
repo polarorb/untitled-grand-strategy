@@ -7,6 +7,39 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-26 — Legibility pass: real toggles, tooltips, and the WAR map view
+
+Player feedback from the first sessions with the command layer, all of
+it fair: toggles looked like plain buttons (am I enabling or disabling
+this?), nothing explained itself, painting a theater silently did
+nothing until you unpaused, and the theater overlay was gizmo circles
+where every other view is painted provinces. Four fixes:
+
+- **Stateful controls now show their state.** A shared widget set:
+  on/off toggles with an indicator square (lit gold when on, red for
+  restrictive things like ROE bans), and radio segments where exactly
+  one option is lit — posture is now DEFEND | PROBE | OFFENSIVE, not a
+  mystery-cycle button.
+- **Hover tooltips everywhere** — every control and the key info lines
+  in the war room, economy, atomic, and intel panels explain what the
+  thing does and what it costs, in-fiction where possible.
+- **Commands apply while paused.** The interesting one: command
+  application moved out of the tick entirely and became a
+  *between-ticks flush*, logged as "applied after tick T." The replay
+  machinery flushes at the same boundaries, so a theater painted while
+  paused appears instantly AND replays bit-identically — verified by a
+  new test that issues commands with zero ticks running and diffs
+  digests. Pausing to give orders is how this genre is played; it had
+  to be first-class in the determinism model, not an exception to it.
+- **WAR is a real map mode now** (fifth button, new icon, in the M
+  cycle): your theaters fill their provinces in theater colors with
+  the same vertex-color styling as every other mode, objectives glow
+  bright, enemy ground burns dark red, the rest of the world recedes.
+  Painting a theater switches to it automatically. The gizmo-circle
+  overlay is gone and unmourned.
+
+![The WAR map mode with theater directives](media/war-room-theaters.png)
+
 ## 2026-08-26 — The map gets a pulse: tension-band music
 
 A light music pass on the campaign map, following the

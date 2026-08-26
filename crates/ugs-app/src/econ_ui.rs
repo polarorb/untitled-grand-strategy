@@ -281,7 +281,8 @@ fn refresh_panel(
                      label: &str,
                      value: String,
                      down: EconButton,
-                     up: EconButton| {
+                     up: EconButton,
+                     tip: &str| {
             p.spawn(Node {
                 justify_content: JustifyContent::SpaceBetween,
                 align_items: AlignItems::Center,
@@ -292,6 +293,8 @@ fn refresh_panel(
                     Text::new(label.to_string()),
                     font(&fonts.body_medium, 13.0),
                     TextColor(ACCENT),
+                    Interaction::default(),
+                    crate::widgets::Tooltip::of(tip),
                 ));
                 row.spawn(Node {
                     column_gap: Val::Px(6.0),
@@ -341,6 +344,7 @@ fn refresh_panel(
                     format!("{}%", investment / 10),
                     EconButton::InvestDown,
                     EconButton::InvestUp,
+                    "Share of output plowed back into industry: compounds into growth, at the cost of consumer goods (stability) and the military share.",
                 );
                 lever(
                     p,
@@ -349,6 +353,7 @@ fn refresh_panel(
                     format!("{}%", military / 10),
                     EconButton::MilDown,
                     EconButton::MilUp,
+                    "Share of output into the military stockpile - the currency that raises divisions and pays their upkeep (see the war room's FORCES tab). Guns, at the price of butter.",
                 );
                 p.spawn((
                     Text::new(format!("CONSUMER GOODS  {}%  (remainder)", consumer / 10)),
@@ -368,6 +373,7 @@ fn refresh_panel(
                     format!("{:.2}%", interest_bp as f64 / 100.0),
                     EconButton::RateDown,
                     EconButton::RateUp,
+                    "The central bank rate: low runs the economy hot (growth, inflation risk), high cools it. Markets steer with prices, not quotas.",
                 );
                 lever(
                     p,
@@ -376,6 +382,7 @@ fn refresh_panel(
                     format!("{:.1}%", tax_permille as f64 / 10.0),
                     EconButton::TaxDown,
                     EconButton::TaxUp,
+                    "Tax take: funds procurement without inflation, but squeezes consumption and growth.",
                 );
                 p.spawn(Node {
                     justify_content: JustifyContent::SpaceBetween,
@@ -452,6 +459,9 @@ fn refresh_panel(
                     row.spawn((
                         Button,
                         EconButton::QuotaCycle,
+                        crate::widgets::Tooltip::of(
+                            "Grain procurement quota (click to cycle Low/Medium/High): high quotas feed the cities and exports now, and starve the countryside's incentive to plant next year.",
+                        ),
                         Node {
                             padding: UiRect::axes(Val::Px(10.0), Val::Px(2.0)),
                             ..default()
@@ -488,6 +498,9 @@ fn refresh_panel(
                         row.spawn((
                             Button,
                             EconButton::Collectivize,
+                            crate::widgets::Tooltip::of(
+                                "Collectivize agriculture: one-way, with a multi-month shock to output while the countryside is reorganized (and worse). Trades rural welfare for state control of the harvest.",
+                            ),
                             Node {
                                 padding: UiRect::axes(Val::Px(10.0), Val::Px(2.0)),
                                 ..default()

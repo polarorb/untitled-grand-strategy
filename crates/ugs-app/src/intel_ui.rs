@@ -149,6 +149,9 @@ fn refresh_panel(
                 row.spawn((
                     Button,
                     IntelButton::Counterintel(level),
+                    crate::widgets::Tooltip::of(
+                        "Counterintelligence funding 0-3: degrades and helps roll up foreign networks inside your borders, and slows what rivals learn about you. The lit level is current.",
+                    ),
                     Node {
                         padding: UiRect::axes(Val::Px(9.0), Val::Px(4.0)),
                         ..default()
@@ -239,6 +242,9 @@ fn refresh_panel(
                     row.spawn((
                         Button,
                         IntelButton::Fund(rival.clone(), level),
+                        crate::widgets::Tooltip::of(
+                            "Collection network funding 0-3 against this country: builds penetration over months, sharpening every estimate you see about them (arsenal, army, intentions). The lit level is current; higher levels risk more on exposure.",
+                        ),
                         Node {
                             padding: UiRect::axes(Val::Px(8.0), Val::Px(3.0)),
                             ..default()
@@ -265,13 +271,22 @@ fn refresh_panel(
                     ..default()
                 })
                 .with_children(|row| {
-                    for (label, kind) in [
-                        ("STEAL DESIGNS", OpKind::StealDesigns),
-                        ("SABOTAGE", OpKind::Sabotage),
+                    for (label, kind, tip) in [
+                        (
+                            "STEAL DESIGNS",
+                            OpKind::StealDesigns,
+                            "Covert operation: exfiltrate nuclear design data, accelerating your own program. Needs a strong network; failure burns assets and can blow back diplomatically.",
+                        ),
+                        (
+                            "SABOTAGE",
+                            OpKind::Sabotage,
+                            "Covert operation: sabotage their fissile production. Needs a strong network; failure burns assets and raises tension if traced.",
+                        ),
                     ] {
                         row.spawn((
                             Button,
                             IntelButton::Op(rival.clone(), kind),
+                            crate::widgets::Tooltip::of(tip),
                             Node {
                                 padding: UiRect::axes(Val::Px(9.0), Val::Px(4.0)),
                                 ..default()
