@@ -16,6 +16,7 @@ use ugs_sim::military::{
     tuning, Archetype, FormationId, Posture, Readiness, TheaterId, TheaterPosture,
 };
 use ugs_sim::planning::Economies;
+use ugs_sim::settlement::{self, Settlements, WarAim, ZonePolicy};
 use ugs_sim::SimClock;
 
 const PANEL_BG: Color = Color::srgba(0.07, 0.09, 0.12, 0.97);
@@ -65,6 +66,17 @@ enum WarButton {
     PaintMode(TheaterId),
     /// Toggle map objective-picking mode for this theater.
     ObjectiveMode(TheaterId),
+    /// Declare/upgrade the war aim toward an enemy.
+    SetAim(ugs_data::CountryTag, WarAim),
+    /// Occupation-zone policy (original owner of the zone).
+    SetZonePolicyTo(ugs_data::CountryTag, ZonePolicy),
+    /// Inspect a settlement template's ledger.
+    SelectTemplate(ugs_data::CountryTag, usize),
+    /// Put the selected template on the table.
+    Propose(ugs_data::CountryTag, usize),
+    WithdrawProposal,
+    /// Unilateral peace: keep what you hold, recognized by no one.
+    Impose(ugs_data::CountryTag),
 }
 
 #[derive(Resource, Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -73,6 +85,7 @@ enum WarTab {
     Overview,
     Forces,
     Theaters,
+    Settle,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -82,6 +95,10 @@ enum EditMode {
     Paint,
     Objectives,
 }
+
+/// Which settlement template the player is inspecting, per enemy.
+#[derive(Resource, Debug, Default, Clone)]
+struct SelectedTemplate(Option<(ugs_data::CountryTag, usize)>);
 
 /// Which theater map clicks are editing, and how.
 #[derive(Resource, Debug, Default, Clone, Copy)]
@@ -180,6 +197,7 @@ impl Plugin for WarUiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<WarTab>();
         app.init_resource::<TheaterEdit>();
+        app.init_resource::<SelectedTemplate>();
         app.add_systems(
             Update,
             (
@@ -1161,6 +1179,7 @@ fn toggle_war_panel(
         match env.as_str() {
             "war-forces" => *tab = WarTab::Forces,
             "war-theaters" => *tab = WarTab::Theaters,
+            "war-settle" => *tab = WarTab::Settle,
             _ => {}
         }
     }
@@ -1205,21 +1224,24 @@ fn refresh_war_panel(
     tab: Res<WarTab>,
     edit: Res<TheaterEdit>,
     selected: Res<Selected>,
+    settlements: Res<Settlements>,
+    chosen_template: Res<SelectedTemplate>,
     player: Option<Res<PlayerNation>>,
-    panel: Query<Entity, Added<WarPanel>>,
-    panel_any: Query<Entity, With<WarPanel>>,
+    panel_q: Query<(Entity, Ref<WarPanel>)>,
 ) {
     // Rebuild when panel opens, a tab/edit change happens, the selected
     // province changes (raise-home hint), or the military picture moves.
-    let rebuild = !panel.is_empty()
+    let rebuild = panel_q.iter().any(|(_, r)| r.is_added())
         || military.is_changed()
         || tab.is_changed()
         || edit.is_changed()
-        || selected.is_changed();
+        || selected.is_changed()
+        || settlements.is_changed()
+        || chosen_template.is_changed();
     if !rebuild {
         return;
     }
-    let Ok(panel) = panel_any.single() else {
+    let Ok((panel, _)) = panel_q.single() else {
         return;
     };
     commands.entity(panel).despawn_related::<Children>();
@@ -1256,6 +1278,11 @@ fn refresh_war_panel(
                     "THEATERS",
                     "Command areas: paint provinces, set posture, objectives, echelon share, and rules of engagement. Divisions execute; you direct.",
                 ),
+                (
+                    WarTab::Settle,
+                    "SETTLE",
+                    "How the war ends: declare war aims, govern occupied territory, and put settlement packages on the table -- every stakeholder's answer shown with its reasons. Or impose your own peace, and bleed for it.",
+                ),
             ] {
                 crate::widgets::segment(row, WarButton::Tab(t), label, *tab == t, &fonts, 12.0, tip);
             }
@@ -1267,6 +1294,13 @@ fn refresh_war_panel(
             }
             WarTab::Theaters => {
                 theaters_tab(p, me, &military, &world, &edit, &fonts);
+                return;
+            }
+            WarTab::Settle => {
+                settle_tab(
+                    p, me, &military, &world, &econ, &settlements, &demo, &clock,
+                    &chosen_template, &fonts,
+                );
                 return;
             }
             WarTab::Overview => {}
@@ -2102,6 +2136,358 @@ fn theaters_tab(
     ));
 }
 
+/// SETTLE tab: war aims, occupation government, and the settlement
+/// table with its fully-readable acceptance ledger.
+#[allow(clippy::too_many_arguments)]
+fn settle_tab(
+    p: &mut ChildSpawnerCommands,
+    me: &ugs_data::CountryTag,
+    military: &Military,
+    world: &World1950,
+    econ: &Economies,
+    settlements: &Settlements,
+    demo: &Demographics,
+    clock: &SimClock,
+    chosen: &SelectedTemplate,
+    fonts: &Fonts,
+) {
+    let dim = Color::srgb(0.62, 0.66, 0.70);
+    crate::widgets::tipped_text(
+        p,
+        format!("LEGITIMACY {}", settlements.legitimacy_of(me)),
+        fonts,
+        11.0,
+        MAIN,
+        "International standing, earned from UN mandates and spent on high-sovereignty settlement clauses. Big demands need the world's blessing.",
+    );
+    let enemies: Vec<ugs_data::CountryTag> = military
+        .wars
+        .iter()
+        .filter_map(|(a, b)| {
+            if a == me {
+                Some(b.clone())
+            } else if b == me {
+                Some(a.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // --- Occupation zones I hold -----------------------------------------
+    for ((holder, original), zone) in &settlements.zones {
+        if holder != me {
+            continue;
+        }
+        let name = world
+            .0
+            .nations_meta
+            .get(original)
+            .map(|m| m.display_name.to_uppercase())
+            .unwrap_or_else(|| original.0.clone());
+        p.spawn((
+            Text::new(format!("OCCUPIED {name}")),
+            font(&fonts.body_medium, 13.0),
+            TextColor(ACCENT),
+        ));
+        crate::widgets::tipped_text(
+            p,
+            format!(
+                "CONTROL {}%  ALIGNMENT {:+}%  INSURGENCY {}%",
+                zone.control / 10,
+                zone.alignment / 10,
+                zone.insurgency / 10
+            ),
+            fonts,
+            10.5,
+            MAIN,
+            "Control = military grip (garrisons vs insurgents). Alignment = whether the population accepts you -- it gates the good endings. Insurgency feeds on low control, hostility, and a sanctuary border.",
+        );
+        p.spawn(Node {
+            column_gap: Val::Px(5.0),
+            ..default()
+        })
+        .with_children(|row| {
+            for (policy, label, tip) in [
+                (
+                    ZonePolicy::MilitaryGovernment,
+                    "MIL GOV",
+                    "Military government: maximum control, souring the population. The default.",
+                ),
+                (
+                    ZonePolicy::ClientAdministration,
+                    "CIVIL ADMIN",
+                    "Civil administration under local officials: alignment slowly improves, at looser control.",
+                ),
+                (
+                    ZonePolicy::Exploitation,
+                    "EXPLOITATION",
+                    "Strip the zone for stockpile: +1 stock/month, hemorrhaging alignment and legitimacy.",
+                ),
+            ] {
+                crate::widgets::segment(
+                    row,
+                    WarButton::SetZonePolicyTo(original.clone(), policy),
+                    label,
+                    zone.policy == policy,
+                    fonts,
+                    9.5,
+                    tip,
+                );
+            }
+        });
+    }
+
+    // --- Per-enemy: aims + the table --------------------------------------
+    for enemy in &enemies {
+        let enemy_name = world
+            .0
+            .nations_meta
+            .get(enemy)
+            .map(|m| m.display_name.to_uppercase())
+            .unwrap_or_else(|| enemy.0.clone());
+        p.spawn((
+            Text::new(format!("VS {enemy_name}")),
+            font(&fonts.body_medium, 14.0),
+            TextColor(ACCENT),
+        ));
+        let my_aim = settlements.aim(me, enemy);
+        let their_aim = settlements.aim(enemy, me);
+        p.spawn(Node {
+            column_gap: Val::Px(5.0),
+            align_items: AlignItems::Center,
+            ..default()
+        })
+        .with_children(|row| {
+            row.spawn((Text::new("AIM:"), font(&fonts.mono, 9.5), TextColor(dim)));
+            for (aim, label, tip) in [
+                (
+                    WarAim::StatusQuoAnte,
+                    "STATUS QUO",
+                    "Restore the prewar borders. Free to declare, cheap to sign, and the world thanks you for it.",
+                ),
+                (
+                    WarAim::Punish,
+                    "PUNISH",
+                    "Break the enemy army and exact reparations. Upgrade cost: 1.0 tension.",
+                ),
+                (
+                    WarAim::NewLine,
+                    "NEW LINE",
+                    "Redraw the border where the armies stand. Upgrade cost: 2.5 tension, -10 legitimacy.",
+                ),
+                (
+                    WarAim::Unify,
+                    "UNIFY",
+                    "End the enemy state. Crossing the 38th is THIS click: 6.0 tension, -25 legitimacy, and every patron's red line hardens.",
+                ),
+            ] {
+                crate::widgets::segment(
+                    row,
+                    WarButton::SetAim(enemy.clone(), aim),
+                    label,
+                    my_aim == aim,
+                    fonts,
+                    9.0,
+                    tip,
+                );
+            }
+        });
+        crate::widgets::tipped_text(
+            p,
+            format!("THEIR DECLARED AIM: {their_aim:?}"),
+            fonts,
+            9.5,
+            dim,
+            "What the enemy says it is fighting for. Their demands are capped by it -- and so is what they will settle for.",
+        );
+
+        // Standing proposals.
+        for prop in &settlements.proposals {
+            let mine = &prop.proposer == me;
+            p.spawn(Node {
+                column_gap: Val::Px(6.0),
+                align_items: AlignItems::Center,
+                ..default()
+            })
+            .with_children(|row| {
+                row.spawn((
+                    Text::new(format!(
+                        "ON THE TABLE ({}): {} CLAUSES",
+                        prop.proposer.0,
+                        prop.clauses.len()
+                    )),
+                    font(&fonts.mono, 9.5),
+                    TextColor(if mine { ACCENT } else { MAIN }),
+                ));
+                if mine {
+                    row.spawn((
+                        Button,
+                        WarButton::WithdrawProposal,
+                        crate::widgets::Tooltip::of(
+                            "Withdraw your standing proposal from the table.",
+                        ),
+                        Node {
+                            padding: UiRect::axes(Val::Px(6.0), Val::Px(2.0)),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgba(0.14, 0.17, 0.21, 0.95)),
+                    ))
+                    .with_children(|b| {
+                        b.spawn((
+                            Text::new("WITHDRAW"),
+                            font(&fonts.mono, 9.0),
+                            TextColor(MAIN),
+                        ));
+                    });
+                }
+            });
+        }
+
+        // Templates + the ledger for the selected one.
+        let templates = settlement::templates(&world.0, military, me, enemy);
+        p.spawn((
+            Text::new("PACKAGES (SELECT TO SEE WHO SIGNS AND WHY NOT):"),
+            font(&fonts.mono_bold, 10.0),
+            TextColor(dim),
+        ));
+        for (i, (name, clauses)) in templates.iter().enumerate() {
+            let w: i32 = clauses.iter().map(|c| c.weight().max(0)).sum();
+            let selected_here = chosen.0.as_ref() == Some(&(enemy.clone(), i));
+            p.spawn(Node {
+                column_gap: Val::Px(5.0),
+                align_items: AlignItems::Center,
+                ..default()
+            })
+            .with_children(|row| {
+                crate::widgets::segment(
+                    row,
+                    WarButton::SelectTemplate(enemy.clone(), i),
+                    &format!("{name} (W{w})"),
+                    selected_here,
+                    fonts,
+                    9.5,
+                    "Select to preview this package's acceptance ledger: every stakeholder, every blocker, by name. Evaluation happens monthly once proposed.",
+                );
+                if selected_here {
+                    row.spawn((
+                        Button,
+                        WarButton::Propose(enemy.clone(), i),
+                        crate::widgets::Tooltip::of(
+                            "Put this package on the table. Stakeholders answer at the next monthly evaluation; it signs the month every required signature clears.",
+                        ),
+                        Node {
+                            padding: UiRect::axes(Val::Px(8.0), Val::Px(3.0)),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgb(0.30, 0.42, 0.28)),
+                    ))
+                    .with_children(|b| {
+                        b.spawn((Text::new("PROPOSE"), font(&fonts.display, 11.0), TextColor(MAIN)));
+                    });
+                }
+            });
+            if selected_here {
+                let prop = settlement::Proposal {
+                    proposer: me.clone(),
+                    clauses: clauses.clone(),
+                    since_tick: clock.tick,
+                };
+                let verdicts =
+                    settlement::evaluate(&world.0, military, settlements, econ, demo, clock, &prop);
+                for v in verdicts.iter().take(6) {
+                    let line = if v.accepts {
+                        format!("  {} SIGNS (U{:+})", v.stakeholder.0, v.utility)
+                    } else {
+                        let why = v.blockers.first().cloned().unwrap_or_default();
+                        let why = if why.len() > 64 {
+                            format!("{}...", &why[..64])
+                        } else {
+                            why
+                        };
+                        format!("  {} REFUSES: {}", v.stakeholder.0, why)
+                    };
+                    p.spawn((
+                        Text::new(line),
+                        font(&fonts.mono, 9.0),
+                        TextColor(if v.accepts {
+                            Color::srgb(0.55, 0.8, 0.55)
+                        } else {
+                            Color::srgb(0.9, 0.5, 0.42)
+                        }),
+                    ));
+                }
+            }
+        }
+        // The unilateral exit.
+        p.spawn(Node {
+            column_gap: Val::Px(6.0),
+            ..default()
+        })
+        .with_children(|row| {
+            row.spawn((
+                Button,
+                WarButton::Impose(enemy.clone()),
+                crate::widgets::Tooltip::of(
+                    "End the shooting unilaterally and keep everything you hold. NO truce -- they may resume at will. NO recognition, ever, until discharged by later treaty: raised tension floor, zero production from the holdings, and your rivals arm the resistance. Possible. Never free.",
+                ),
+                Node {
+                    padding: UiRect::axes(Val::Px(8.0), Val::Px(3.0)),
+                    ..default()
+                },
+                BackgroundColor(Color::srgb(0.5, 0.22, 0.18)),
+            ))
+            .with_children(|b| {
+                b.spawn((
+                    Text::new("IMPOSE PEACE (UNRECOGNIZED)"),
+                    font(&fonts.display, 11.0),
+                    TextColor(MAIN),
+                ));
+            });
+        });
+    }
+    if enemies.is_empty() {
+        p.spawn((
+            Text::new("NO ACTIVE WARS. TREATIES AND FROZEN LINES PERSIST BELOW."),
+            font(&fonts.mono, 10.5),
+            TextColor(dim),
+        ));
+    }
+    for f in &settlements.frozen {
+        crate::widgets::tipped_text(
+            p,
+            format!(
+                "FROZEN CONFLICT: {} / {} -- DMZ {} PROVINCES",
+                f.a.0,
+                f.b.0,
+                f.dmz.len()
+            ),
+            fonts,
+            9.5,
+            dim,
+            "An armistice without a treaty: the line is fixed, the claims are not. It holds a tension floor and can be reopened by history.",
+        );
+    }
+    for t in settlements.treaties.iter().rev().take(3) {
+        crate::widgets::tipped_text(
+            p,
+            format!(
+                "TREATY ({}) -- {} CLAUSES",
+                t.signatories
+                    .iter()
+                    .map(|s| s.0.as_str())
+                    .collect::<Vec<_>>()
+                    .join("/"),
+                t.clauses.len()
+            ),
+            fonts,
+            9.5,
+            dim,
+            "A signed settlement: recognized transfers, a real truce, and the tension release that comes from resolution.",
+        );
+    }
+}
+
 /// While a theater edit mode is armed, map clicks paint provinces or
 /// place objectives instead of opening the battle inspector.
 fn theater_map_edit(
@@ -2154,9 +2540,11 @@ fn war_buttons(
     buttons: Query<(&Interaction, &WarButton), Changed<Interaction>>,
     military: Res<Military>,
     selected: Res<Selected>,
+    world: Res<World1950>,
     player: Option<Res<PlayerNation>>,
     mut tab: ResMut<WarTab>,
     mut edit: ResMut<TheaterEdit>,
+    mut chosen: ResMut<SelectedTemplate>,
     mut map_mode: ResMut<crate::map::MapMode>,
     mut pending: ResMut<PendingCommands>,
 ) {
@@ -2312,6 +2700,47 @@ fn war_buttons(
                     edit.theater = Some(*id);
                     *map_mode = crate::map::MapMode::War;
                 }
+            }
+            WarButton::SetAim(enemy, aim) => {
+                pending.push(SimCommand::SetWarAim {
+                    country: me.clone(),
+                    enemy: enemy.clone(),
+                    aim: *aim,
+                });
+            }
+            WarButton::SetZonePolicyTo(original, policy) => {
+                pending.push(SimCommand::SetZonePolicy {
+                    holder: me.clone(),
+                    original: original.clone(),
+                    policy: *policy,
+                });
+            }
+            WarButton::SelectTemplate(enemy, i) => {
+                chosen.0 = if chosen.0.as_ref() == Some(&(enemy.clone(), *i)) {
+                    None
+                } else {
+                    Some((enemy.clone(), *i))
+                };
+            }
+            WarButton::Propose(enemy, i) => {
+                let templates = settlement::templates(&world.0, &military, me, enemy);
+                if let Some((_, clauses)) = templates.get(*i) {
+                    pending.push(SimCommand::ProposeSettlement {
+                        proposer: me.clone(),
+                        clauses: clauses.clone(),
+                    });
+                }
+            }
+            WarButton::WithdrawProposal => {
+                pending.push(SimCommand::WithdrawProposal {
+                    proposer: me.clone(),
+                });
+            }
+            WarButton::Impose(enemy) => {
+                pending.push(SimCommand::ImposeSettlement {
+                    country: me.clone(),
+                    enemy: enemy.clone(),
+                });
             }
         }
     }
