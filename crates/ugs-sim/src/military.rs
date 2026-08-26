@@ -589,6 +589,16 @@ impl Military {
     }
 
     pub fn digest(&self) -> u64 {
+        // FNV-style sequence fold: every byte/id folds in order, so
+        // anagram tags and re-partitioned province sets don't collide.
+        fn fold(h: &mut u64, v: u64) {
+            *h = (*h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
+        }
+        fn fold_tag(h: &mut u64, tag: &CountryTag) {
+            for b in tag.0.bytes() {
+                fold(h, b as u64);
+            }
+        }
         let mut h: u64 = 0xcbf2_9ce4_8422_2325;
         for (id, f) in &self.formations {
             let readiness = match f.readiness {
@@ -601,14 +611,17 @@ impl Military {
                 f.location.0 as u64,
                 f.cohesion,
                 f.strength,
-                f.owner.0.bytes().map(u64::from).sum::<u64>(),
+                f.quality,
                 readiness,
                 f.training as u64,
+                f.move_cooldown as u64,
+                f.retarget_cooldown as u64,
                 f.theater.map(|t| t.0 as u64 + 1).unwrap_or(0),
                 f.slot.map(|p| p.0 as u64 + 1).unwrap_or(0),
             ] {
-                h = (h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
+                fold(&mut h, v);
             }
+            fold_tag(&mut h, &f.owner);
         }
         for (id, t) in &self.theaters {
             let posture = match t.posture {
@@ -616,31 +629,34 @@ impl Military {
                 TheaterPosture::Probe => 1,
                 TheaterPosture::Offensive => 2,
             };
-            for v in [
-                id.0 as u64,
-                posture,
-                t.provinces.iter().map(|p| p.0 as u64).sum::<u64>(),
-                t.objectives.iter().map(|p| p.0 as u64).sum::<u64>(),
-                t.echelon_permille as u64,
-            ] {
-                h = (h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
+            for v in [id.0 as u64, posture, t.echelon_permille as u64] {
+                fold(&mut h, v);
+            }
+            for p in &t.provinces {
+                fold(&mut h, p.0 as u64 + 1);
+            }
+            for o in &t.objectives {
+                fold(&mut h, o.0 as u64 + 1);
+            }
+            for tag in &t.forbidden {
+                fold_tag(&mut h, tag);
             }
         }
         for (tag, v) in &self.upkeep_accrued_centi {
-            h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>() ^ v)
-                .wrapping_mul(0x0000_0100_0000_01b3);
+            fold_tag(&mut h, tag);
+            fold(&mut h, *v);
         }
         for (tag, v) in &self.upkeep_arrears {
-            h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>() ^ *v as u64)
-                .wrapping_mul(0x0000_0100_0000_01b3);
+            fold_tag(&mut h, tag);
+            fold(&mut h, *v as u64);
         }
         for (p, tag) in &self.occupation {
-            h = (h ^ p.0 as u64).wrapping_mul(0x0000_0100_0000_01b3);
-            h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>()).wrapping_mul(0x0000_0100_0000_01b3);
+            fold(&mut h, p.0 as u64);
+            fold_tag(&mut h, tag);
         }
         for (tag, men) in &self.manpower {
-            h = (h ^ tag.0.bytes().map(u64::from).sum::<u64>() ^ men)
-                .wrapping_mul(0x0000_0100_0000_01b3);
+            fold_tag(&mut h, tag);
+            fold(&mut h, *men);
         }
         h
     }
@@ -848,9 +864,10 @@ pub fn update_military(
                     let stat = if defending { defense } else { attack };
                     // Green troops fight at half weight (500 + training/2);
                     // stood-down divisions defend at reduced weight.
-                    let mut v = stat * f.strength / 1000 * f.quality / 1000
-                        * (500 + f.training as u64 / 2)
-                        / 1000;
+                    // One divide at the end: stepwise truncation zeroed
+                    // out green low-strength divisions entirely.
+                    let mut v = stat * f.strength * f.quality * (500 + f.training as u64 / 2)
+                        / 1_000_000_000;
                     if f.readiness.stood_down() {
                         v = v * RESERVE_DEFENSE_PERMILLE / 1000;
                     }
@@ -1649,6 +1666,12 @@ pub fn update_command(
             let per_day = 1000u64.div_ceil(f.archetype.train_days()) as u16;
             f.training = (f.training + per_day).min(1000);
         }
+        // Peacetime cohesion recovery: update_military early-returns
+        // before its hourly regen when no wars exist, which would pin a
+        // peacetime-mobilized division at stand-down cohesion forever.
+        if !at_war_tags.contains(&f.owner) {
+            f.cohesion = (f.cohesion + 24 * COHESION_REGEN).min(1000);
+        }
         f.move_cooldown = f.move_cooldown.saturating_sub(1);
         f.retarget_cooldown = f.retarget_cooldown.saturating_sub(1);
     }
@@ -1658,12 +1681,19 @@ pub fn update_command(
     // Settle BEFORE accruing so the settlement day's accrual counts
     // toward the new month instead of being silently discarded.
     if clock.new_month {
+        // A month is billed as 30 accrual days, a deliberate flat
+        // approximation (February underbills ~7%; tuning, not a bug).
         let bills: Vec<(CountryTag, u64)> = military
             .upkeep_accrued_centi
             .iter()
             .map(|(t, acc)| (t.clone(), acc.div_ceil(30 * 100)))
             .collect();
         military.upkeep_accrued_centi.clear();
+        // No bill (army melted or disbanded to nothing) => arrears clear;
+        // a stale entry would block reinforcement after a later re-raise.
+        let billed: std::collections::BTreeSet<CountryTag> =
+            bills.iter().map(|(t, _)| t.clone()).collect();
+        military.upkeep_arrears.retain(|t, _| billed.contains(t));
         for (tag, due) in bills {
             if due == 0 {
                 continue;
@@ -1737,8 +1767,28 @@ pub fn update_command(
 
     // --- Reinforcement ---------------------------------------------------
     // Actives first at full rate, stood-down at half; halted in arrears.
-    let battle_provinces: std::collections::BTreeSet<ProvinceId> =
-        military.active_battles.iter().map(|b| b.province).collect();
+    // Engaged provinces are derived from live positions (a province
+    // holding formations of two warring owners), NOT from
+    // `active_battles` — that is documented digest-excluded UI state
+    // and must never gate sim decisions.
+    let battle_provinces: std::collections::BTreeSet<ProvinceId> = {
+        let mut owners_at: BTreeMap<ProvinceId, Vec<&CountryTag>> = BTreeMap::new();
+        for f in military.formations.values() {
+            let e = owners_at.entry(f.location).or_default();
+            if !e.contains(&&f.owner) {
+                e.push(&f.owner);
+            }
+        }
+        owners_at
+            .iter()
+            .filter(|(_, owners)| {
+                owners
+                    .iter()
+                    .any(|a| owners.iter().any(|b| military.at_war(a, b)))
+            })
+            .map(|(p, _)| *p)
+            .collect()
+    };
     let mut reinforce: Vec<(FormationId, bool)> = military
         .formations
         .iter()

@@ -65,7 +65,7 @@ bombing depth, sanctuary borders — "may not cross the Yalu" is a
 setting, and violating it is an escalation incident). No per-unit micro
 layer exists. Battle results fully auditable.
 
-**v1 spec: [military-command](military-command.md) (designed)** —
+**v1 spec: [military-command](military-command.md) (implemented)** —
 theaters, frontline distribution, active/reserve readiness, and force
 generation from `military_stock`, with an interim commitment-tension
 brake until the priced escalation ceiling lands.
@@ -122,8 +122,8 @@ assessment line.
    v1, the June 25 invasion. *Done, including armistice at the line of
    control, manpower pools, and the war-legibility layer.*
 1b. **Command layer + force generation**: theaters, readiness,
-   raising divisions from `military_stock` — spec designed, see
-   [military-command](military-command.md).
+   raising divisions from `military_stock` — see
+   [military-command](military-command.md). *Done.*
 2. Equipment designer + production-line integration.
 3. Manpower policy (conscription laws), readiness states. *(Home
    provinces with local casualty debits: done.)*

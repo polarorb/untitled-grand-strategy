@@ -54,6 +54,18 @@ Kahn's firebreaks and Schelling's incident hazard, the MacArthur
 temptation, and a failure state that prints real city names and how
 long the peace held.
 
+The army is now yours to command — at the right altitude. Raise
+divisions from the military stockpile your economy actually accrues
+(each one a public escalation signal), split the force between active
+and reserve with a three-week mobilization ramp the enemy's wire
+reports, and paint **theaters** on the map with a posture, objectives,
+an echelon share, and rules of engagement — "may not cross the Yalu"
+is a checkbox. The theater controller spreads divisions along the
+front; there is no unit micro, and unpaid armies melt.
+
+![The war room's theater directives, mid-war](media/war-room-theaters.png)
+![The forces ledger: stockpile, upkeep, named divisions](media/war-room-forces.png)
+
 **[Development log →](devlog.md)** — how it's being built, newest first.
 
 ## Design documents

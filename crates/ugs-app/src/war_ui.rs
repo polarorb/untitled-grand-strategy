@@ -12,7 +12,10 @@ use crate::{font, AppState, Fonts, GameSpeed, PlayerNation, World1950};
 use bevy::audio::{PlaybackSettings, Volume};
 use ugs_sim::demography::Demographics;
 use ugs_sim::intel::{Domain, Intel};
-use ugs_sim::military::{tuning, Posture};
+use ugs_sim::military::{
+    tuning, Archetype, FormationId, Posture, Readiness, TheaterId, TheaterPosture,
+};
+use ugs_sim::planning::Economies;
 use ugs_sim::SimClock;
 
 const PANEL_BG: Color = Color::srgba(0.07, 0.09, 0.12, 0.97);
@@ -42,6 +45,60 @@ struct WarPanel;
 enum WarButton {
     TogglePosture(ugs_data::CountryTag),
     ToggleArmistice(ugs_data::CountryTag),
+    Tab(WarTab),
+    /// Raise one division of this archetype, home = selected province.
+    Raise(Archetype),
+    ToggleReadiness(FormationId),
+    /// Cycle a formation through my theaters (then unassigned).
+    CycleFormationTheater(FormationId),
+    /// Batch readiness for a whole theater group (None = unassigned).
+    GroupReadiness(Option<TheaterId>, bool),
+    NewTheater,
+    CycleTheaterPosture(TheaterId),
+    CycleTheaterEchelon(TheaterId),
+    ToggleTheaterRoe(TheaterId, ugs_data::CountryTag),
+    DeleteTheater(TheaterId),
+    /// Toggle map paint mode for this theater's provinces.
+    PaintMode(TheaterId),
+    /// Toggle map objective-picking mode for this theater.
+    ObjectiveMode(TheaterId),
+}
+
+#[derive(Resource, Debug, Default, Clone, Copy, PartialEq, Eq)]
+enum WarTab {
+    #[default]
+    Overview,
+    Forces,
+    Theaters,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+enum EditMode {
+    #[default]
+    None,
+    Paint,
+    Objectives,
+}
+
+/// Which theater map clicks are editing, and how.
+#[derive(Resource, Debug, Default, Clone, Copy)]
+struct TheaterEdit {
+    theater: Option<TheaterId>,
+    mode: EditMode,
+}
+
+/// Fixed palette for theater tints on the map and in lists.
+const THEATER_COLORS: [Color; 6] = [
+    Color::srgb(0.83, 0.69, 0.36),
+    Color::srgb(0.45, 0.70, 0.85),
+    Color::srgb(0.55, 0.80, 0.50),
+    Color::srgb(0.85, 0.50, 0.65),
+    Color::srgb(0.70, 0.55, 0.90),
+    Color::srgb(0.90, 0.60, 0.35),
+];
+
+fn theater_color(id: TheaterId) -> Color {
+    THEATER_COLORS[id.0 as usize % THEATER_COLORS.len()]
 }
 
 #[derive(Component)]
@@ -118,10 +175,14 @@ pub struct WarUiPlugin;
 
 impl Plugin for WarUiPlugin {
     fn build(&self, app: &mut App) {
+        app.init_resource::<WarTab>();
+        app.init_resource::<TheaterEdit>();
         app.add_systems(
             Update,
             (
                 announce_player_country,
+                theater_map_edit,
+                draw_theater_overlay,
                 // Chained so each spawner's deferred `spawn` is flushed before
                 // the next one checks the `With<EventModal>` guard — unordered,
                 // all three can spawn a modal in the same frame and the popups
@@ -1083,14 +1144,24 @@ fn show_notices(
 }
 
 /// R toggles the war room panel (W pans the camera).
-/// Dev shortcut: UGS_PANEL=war boots with the panel open.
+/// Dev shortcut: UGS_PANEL=war boots with the panel open;
+/// war-forces / war-theaters open straight into that tab.
 fn toggle_war_panel(
     mut commands: Commands,
     keys: Res<ButtonInput<KeyCode>>,
     panel: Query<Entity, With<WarPanel>>,
+    mut tab: ResMut<WarTab>,
     mut booted: Local<bool>,
 ) {
-    let auto_open = !*booted && std::env::var("UGS_PANEL").as_deref() == Ok("war");
+    let env = std::env::var("UGS_PANEL").unwrap_or_default();
+    let auto_open = !*booted && env.starts_with("war");
+    if auto_open {
+        match env.as_str() {
+            "war-forces" => *tab = WarTab::Forces,
+            "war-theaters" => *tab = WarTab::Theaters,
+            _ => {}
+        }
+    }
     *booted = true;
     if !keys.just_pressed(KeyCode::KeyR) && !auto_open {
         return;
@@ -1126,14 +1197,23 @@ fn refresh_war_panel(
     demo: Res<Demographics>,
     crises: Res<ugs_sim::crisis::Crises>,
     intel: Res<Intel>,
+    econ: Res<Economies>,
     clock: Res<SimClock>,
     fonts: Res<Fonts>,
+    tab: Res<WarTab>,
+    edit: Res<TheaterEdit>,
+    selected: Res<Selected>,
     player: Option<Res<PlayerNation>>,
     panel: Query<Entity, Added<WarPanel>>,
     panel_any: Query<Entity, With<WarPanel>>,
 ) {
-    // Rebuild when panel opens or the military picture changes.
-    let rebuild = !panel.is_empty() || military.is_changed();
+    // Rebuild when panel opens, a tab/edit change happens, the selected
+    // province changes (raise-home hint), or the military picture moves.
+    let rebuild = !panel.is_empty()
+        || military.is_changed()
+        || tab.is_changed()
+        || edit.is_changed()
+        || selected.is_changed();
     if !rebuild {
         return;
     }
@@ -1152,6 +1232,46 @@ fn refresh_war_panel(
             return;
         };
         let me = &player.0;
+        // Tab row: the command layer lives behind FORCES and THEATERS.
+        p.spawn(Node {
+            column_gap: Val::Px(6.0),
+            ..default()
+        })
+        .with_children(|row| {
+            for (t, label) in [
+                (WarTab::Overview, "OVERVIEW"),
+                (WarTab::Forces, "FORCES"),
+                (WarTab::Theaters, "THEATERS"),
+            ] {
+                row.spawn((
+                    Button,
+                    WarButton::Tab(t),
+                    Node {
+                        padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
+                        ..default()
+                    },
+                    BackgroundColor(if *tab == t {
+                        Color::srgb(0.55, 0.44, 0.18)
+                    } else {
+                        Color::srgba(0.14, 0.17, 0.21, 0.95)
+                    }),
+                ))
+                .with_children(|b| {
+                    b.spawn((Text::new(label), font(&fonts.display, 12.0), TextColor(MAIN)));
+                });
+            }
+        });
+        match *tab {
+            WarTab::Forces => {
+                forces_tab(p, me, &military, &world, &econ, &selected, &fonts);
+                return;
+            }
+            WarTab::Theaters => {
+                theaters_tab(p, me, &military, &world, &edit, &fonts);
+                return;
+            }
+            WarTab::Overview => {}
+        }
         let my_wars: Vec<ugs_data::CountryTag> = military
             .wars
             .iter()
@@ -1467,10 +1587,565 @@ fn refresh_war_panel(
     });
 }
 
+/// FORCES tab: the stockpile ledger, raising, and the division list
+/// grouped by theater with readiness and assignment controls. Decisions
+/// only — no per-unit movement exists anywhere in this UI.
+#[allow(clippy::too_many_arguments)]
+fn forces_tab(
+    p: &mut ChildSpawnerCommands,
+    me: &ugs_data::CountryTag,
+    military: &Military,
+    world: &World1950,
+    econ: &Economies,
+    selected: &Selected,
+    fonts: &Fonts,
+) {
+    let dim = Color::srgb(0.62, 0.66, 0.70);
+    let stock = econ.industry.get(me).map(|s| s.military_stock).unwrap_or(0);
+    let burn_centi: u64 = military
+        .formations
+        .values()
+        .filter(|f| &f.owner == me)
+        .map(|f| {
+            let mut c = f.archetype.upkeep_centi();
+            if f.readiness.stood_down() {
+                c = c * tuning::RESERVE_UPKEEP_PERMILLE / 1000;
+            }
+            let overseas = world
+                .0
+                .provinces
+                .get(&f.location)
+                .is_some_and(|pr| &pr.owner != me);
+            if overseas {
+                c *= tuning::OVERSEAS_UPKEEP_MULT;
+            }
+            c
+        })
+        .sum();
+    p.spawn((
+        Text::new(format!(
+            "STOCKPILE {stock}   UPKEEP ~{}.{}/MO",
+            burn_centi / 100,
+            burn_centi % 100 / 10
+        )),
+        font(&fonts.mono, 11.5),
+        TextColor(MAIN),
+    ));
+    if military.upkeep_arrears.contains_key(me) {
+        p.spawn((
+            Text::new("ARMY UNPAID -- QUALITY DECAYING, STRENGTH MELTING"),
+            font(&fonts.mono_bold, 11.0),
+            TextColor(Color::srgb(0.92, 0.4, 0.3)),
+        ));
+    }
+
+    // Raising: home = the selected province (own or co-belligerent soil).
+    let home = selected.0.filter(|id| {
+        world
+            .0
+            .provinces
+            .get(id)
+            .is_some_and(|_| military.may_operate(&world.0, me, *id))
+    });
+    let home_name = home
+        .and_then(|id| world.0.provinces.get(&id))
+        .map(|pr| pr.name.to_uppercase());
+    p.spawn((
+        Text::new(match &home_name {
+            Some(n) => format!("RAISE AT {n} (OVERSEAS BASING = TRAINING IN PLACE)"),
+            None => "RAISE: SELECT A HOME PROVINCE ON THE MAP".to_string(),
+        }),
+        font(&fonts.mono, 10.5),
+        TextColor(if home_name.is_some() { MAIN } else { dim }),
+    ));
+    p.spawn(Node {
+        column_gap: Val::Px(6.0),
+        ..default()
+    })
+    .with_children(|row| {
+        for (arch, label) in [
+            (Archetype::Infantry, "INFANTRY"),
+            (Archetype::Motorized, "MOTORIZED"),
+            (Archetype::Armor, "ARMOR"),
+        ] {
+            let affordable = stock >= arch.raise_cost() && home_name.is_some();
+            row.spawn((
+                Button,
+                WarButton::Raise(arch),
+                Node {
+                    padding: UiRect::axes(Val::Px(9.0), Val::Px(4.0)),
+                    ..default()
+                },
+                BackgroundColor(if affordable {
+                    Color::srgb(0.30, 0.42, 0.28)
+                } else {
+                    Color::srgba(0.14, 0.17, 0.21, 0.95)
+                }),
+            ))
+            .with_children(|b| {
+                b.spawn((
+                    Text::new(format!("{label} ({})", arch.raise_cost())),
+                    font(&fonts.display, 12.0),
+                    TextColor(MAIN),
+                ));
+            });
+        }
+    });
+
+    // Division list, grouped by theater. Batch rows keep 30+ divisions
+    // from becoming bookkeeping.
+    let mut groups: Vec<(Option<TheaterId>, String, Color)> = military
+        .theaters
+        .iter()
+        .filter(|(_, t)| &t.owner == me)
+        .map(|(id, t)| (Some(*id), t.name.clone(), theater_color(*id)))
+        .collect();
+    groups.push((None, "UNASSIGNED".into(), dim));
+    let mut rows_left: i32 = 16;
+    for (gid, gname, gcolor) in groups {
+        let mut members: Vec<(FormationId, &ugs_sim::military::Formation)> = military
+            .formations
+            .iter()
+            .filter(|(_, f)| &f.owner == me && f.theater == gid)
+            .map(|(id, f)| (*id, f))
+            .collect();
+        members.sort_by_key(|(id, _)| *id);
+        if members.is_empty() {
+            continue;
+        }
+        p.spawn(Node {
+            column_gap: Val::Px(6.0),
+            align_items: AlignItems::Center,
+            ..default()
+        })
+        .with_children(|row| {
+            row.spawn((
+                Node {
+                    width: Val::Px(8.0),
+                    height: Val::Px(8.0),
+                    ..default()
+                },
+                BackgroundColor(gcolor),
+            ));
+            row.spawn((
+                Text::new(format!("{gname} ({})", members.len())),
+                font(&fonts.mono_bold, 11.0),
+                TextColor(gcolor),
+            ));
+            for (label, active) in [("ALL ACT", true), ("ALL RES", false)] {
+                row.spawn((
+                    Button,
+                    WarButton::GroupReadiness(gid, active),
+                    Node {
+                        padding: UiRect::axes(Val::Px(6.0), Val::Px(2.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgba(0.14, 0.17, 0.21, 0.95)),
+                ))
+                .with_children(|b| {
+                    b.spawn((Text::new(label), font(&fonts.mono, 9.5), TextColor(MAIN)));
+                });
+            }
+        });
+        for (id, f) in &members {
+            if rows_left <= 0 {
+                break;
+            }
+            rows_left -= 1;
+            let readiness = match f.readiness {
+                Readiness::Active => "ACT".to_string(),
+                Readiness::Reserve => "RES".to_string(),
+                Readiness::Mobilizing { days_left } => format!("MOB {days_left}D"),
+            };
+            let training = if f.training < 1000 {
+                format!("  TRN {}%", f.training / 10)
+            } else {
+                String::new()
+            };
+            p.spawn(Node {
+                column_gap: Val::Px(6.0),
+                align_items: AlignItems::Center,
+                ..default()
+            })
+            .with_children(|row| {
+                row.spawn((
+                    Text::new(format!(
+                        "{}  S{}% C{}%{training}  {readiness}",
+                        f.name,
+                        f.strength / 10,
+                        f.cohesion / 10,
+                    )),
+                    font(&fonts.mono, 10.0),
+                    TextColor(MAIN),
+                ));
+                row.spawn((
+                    Button,
+                    WarButton::ToggleReadiness(*id),
+                    Node {
+                        padding: UiRect::axes(Val::Px(5.0), Val::Px(2.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgba(0.14, 0.17, 0.21, 0.95)),
+                ))
+                .with_children(|b| {
+                    b.spawn((
+                        Text::new(if f.readiness.stood_down() {
+                            "ACTIVATE"
+                        } else {
+                            "STAND DOWN"
+                        }),
+                        font(&fonts.mono, 9.0),
+                        TextColor(MAIN),
+                    ));
+                });
+                row.spawn((
+                    Button,
+                    WarButton::CycleFormationTheater(*id),
+                    Node {
+                        padding: UiRect::axes(Val::Px(5.0), Val::Px(2.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgba(0.14, 0.17, 0.21, 0.95)),
+                ))
+                .with_children(|b| {
+                    b.spawn((Text::new("THTR>"), font(&fonts.mono, 9.0), TextColor(MAIN)));
+                });
+            });
+        }
+        if rows_left <= 0 {
+            let total: usize = military
+                .formations
+                .values()
+                .filter(|f| &f.owner == me)
+                .count();
+            p.spawn((
+                Text::new(format!("... {total} DIVISIONS TOTAL (LIST TRUNCATED)")),
+                font(&fonts.mono, 10.0),
+                TextColor(dim),
+            ));
+            break;
+        }
+    }
+    let pool = military.manpower.get(me).copied().unwrap_or(0);
+    p.spawn((
+        Text::new(format!("MANPOWER POOL {}", fmt_men(pool))),
+        font(&fonts.mono, 10.5),
+        TextColor(dim),
+    ));
+}
+
+/// THEATERS tab: create, paint, direct. Each theater is 3-6 decisions:
+/// boundary, posture, objectives, echelon, and ROE lines.
+fn theaters_tab(
+    p: &mut ChildSpawnerCommands,
+    me: &ugs_data::CountryTag,
+    military: &Military,
+    world: &World1950,
+    edit: &TheaterEdit,
+    fonts: &Fonts,
+) {
+    let dim = Color::srgb(0.62, 0.66, 0.70);
+    p.spawn(Node {
+        column_gap: Val::Px(6.0),
+        ..default()
+    })
+    .with_children(|row| {
+        row.spawn((
+            Button,
+            WarButton::NewTheater,
+            Node {
+                padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.30, 0.42, 0.28)),
+        ))
+        .with_children(|b| {
+            b.spawn((
+                Text::new("NEW THEATER"),
+                font(&fonts.display, 12.0),
+                TextColor(MAIN),
+            ));
+        });
+    });
+    match edit.mode {
+        EditMode::Paint => {
+            p.spawn((
+                Text::new("PAINTING: CLICK PROVINCES ON THE MAP TO ADD/REMOVE"),
+                font(&fonts.mono_bold, 10.5),
+                TextColor(ACCENT),
+            ));
+        }
+        EditMode::Objectives => {
+            p.spawn((
+                Text::new("OBJECTIVES: CLICK UP TO 3 PROVINCES ON THE MAP"),
+                font(&fonts.mono_bold, 10.5),
+                TextColor(ACCENT),
+            ));
+        }
+        EditMode::None => {}
+    }
+    let mine: Vec<(TheaterId, &ugs_sim::military::Theater)> = military
+        .theaters
+        .iter()
+        .filter(|(_, t)| &t.owner == me)
+        .map(|(id, t)| (*id, t))
+        .collect();
+    if mine.is_empty() {
+        p.spawn((
+            Text::new("NO THEATERS -- YOUR DIVISIONS SIT AT HOME UNTIL COMMANDED"),
+            font(&fonts.mono, 10.5),
+            TextColor(dim),
+        ));
+    }
+    for (id, t) in mine {
+        let assigned = military
+            .formations
+            .values()
+            .filter(|f| f.theater == Some(id))
+            .count();
+        p.spawn(Node {
+            column_gap: Val::Px(6.0),
+            align_items: AlignItems::Center,
+            ..default()
+        })
+        .with_children(|row| {
+            row.spawn((
+                Node {
+                    width: Val::Px(10.0),
+                    height: Val::Px(10.0),
+                    ..default()
+                },
+                BackgroundColor(theater_color(id)),
+            ));
+            row.spawn((
+                Text::new(format!("{}{}", t.name, if t.auto { " [AUTO]" } else { "" })),
+                font(&fonts.body_medium, 13.0),
+                TextColor(theater_color(id)),
+            ));
+        });
+        p.spawn((
+            Text::new(format!(
+                "{} PROVINCES  {assigned} DIV  {} OBJ  ECHELON {}%",
+                t.provinces.len(),
+                t.objectives.len(),
+                t.echelon_permille / 10,
+            )),
+            font(&fonts.mono, 10.0),
+            TextColor(dim),
+        ));
+        p.spawn(Node {
+            column_gap: Val::Px(5.0),
+            ..default()
+        })
+        .with_children(|row| {
+            let small =
+                |row: &mut ChildSpawnerCommands, button: WarButton, label: String, lit: bool| {
+                    row.spawn((
+                        Button,
+                        button,
+                        Node {
+                            padding: UiRect::axes(Val::Px(7.0), Val::Px(3.0)),
+                            ..default()
+                        },
+                        BackgroundColor(if lit {
+                            Color::srgb(0.55, 0.44, 0.18)
+                        } else {
+                            Color::srgba(0.14, 0.17, 0.21, 0.95)
+                        }),
+                    ))
+                    .with_children(|b| {
+                        b.spawn((Text::new(label), font(&fonts.mono, 9.5), TextColor(MAIN)));
+                    });
+                };
+            small(
+                row,
+                WarButton::CycleTheaterPosture(id),
+                format!("{:?}", t.posture).to_uppercase(),
+                t.posture == TheaterPosture::Offensive,
+            );
+            small(
+                row,
+                WarButton::CycleTheaterEchelon(id),
+                format!("ECH {}%", t.echelon_permille / 10),
+                false,
+            );
+            let painting = edit.mode == EditMode::Paint && edit.theater == Some(id);
+            small(row, WarButton::PaintMode(id), "PAINT".into(), painting);
+            let obj = edit.mode == EditMode::Objectives && edit.theater == Some(id);
+            small(row, WarButton::ObjectiveMode(id), "OBJECTIVES".into(), obj);
+            small(row, WarButton::DeleteTheater(id), "DEL".into(), false);
+        });
+        // ROE: one line per enemy — "may not cross the Yalu" lives here.
+        let enemies: Vec<ugs_data::CountryTag> = military
+            .wars
+            .iter()
+            .filter_map(|(a, b)| {
+                if a == me {
+                    Some(b.clone())
+                } else if b == me {
+                    Some(a.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        if !enemies.is_empty() {
+            p.spawn(Node {
+                column_gap: Val::Px(5.0),
+                ..default()
+            })
+            .with_children(|row| {
+                row.spawn((Text::new("ROE:"), font(&fonts.mono, 9.5), TextColor(dim)));
+                for enemy in enemies {
+                    let banned = t.forbidden.contains(&enemy);
+                    row.spawn((
+                        Button,
+                        WarButton::ToggleTheaterRoe(id, enemy.clone()),
+                        Node {
+                            padding: UiRect::axes(Val::Px(6.0), Val::Px(2.0)),
+                            ..default()
+                        },
+                        BackgroundColor(if banned {
+                            Color::srgb(0.5, 0.22, 0.18)
+                        } else {
+                            Color::srgba(0.14, 0.17, 0.21, 0.95)
+                        }),
+                    ))
+                    .with_children(|b| {
+                        b.spawn((
+                            Text::new(format!(
+                                "{} {}",
+                                if banned { "NO ENTRY" } else { "MAY ENTER" },
+                                enemy.0
+                            )),
+                            font(&fonts.mono, 9.0),
+                            TextColor(MAIN),
+                        ));
+                    });
+                }
+            });
+        }
+    }
+    let world_name = world
+        .0
+        .nations_meta
+        .get(me)
+        .map(|m| m.display_name.clone())
+        .unwrap_or_else(|| me.0.clone());
+    p.spawn((
+        Text::new(format!(
+            "{} DIVISIONS FOLLOW THEATER DIRECTIVES -- NO UNIT MICRO EXISTS",
+            world_name.to_uppercase()
+        )),
+        font(&fonts.mono, 9.5),
+        TextColor(dim),
+    ));
+}
+
+/// While a theater edit mode is armed, map clicks paint provinces or
+/// place objectives instead of opening the battle inspector.
+fn theater_map_edit(
+    mut selected: ResMut<Selected>,
+    edit: Res<TheaterEdit>,
+    military: Res<Military>,
+    player: Option<Res<PlayerNation>>,
+    mut pending: ResMut<PendingCommands>,
+) {
+    if edit.mode == EditMode::None || !selected.is_changed() {
+        return;
+    }
+    let Some(pid) = selected.0 else { return };
+    let (Some(tid), Some(player)) = (edit.theater, player) else {
+        return;
+    };
+    let Some(t) = military.theaters.get(&tid) else {
+        return;
+    };
+    match edit.mode {
+        EditMode::Paint => {
+            let add = !t.provinces.contains(&pid);
+            pending.push(SimCommand::PaintTheater {
+                country: player.0.clone(),
+                id: tid,
+                province: pid,
+                add,
+            });
+        }
+        EditMode::Objectives => {
+            let mut objectives = t.objectives.clone();
+            if let Some(pos) = objectives.iter().position(|o| *o == pid) {
+                objectives.remove(pos);
+            } else {
+                objectives.push(pid);
+            }
+            pending.push(SimCommand::SetTheaterObjectives {
+                country: player.0.clone(),
+                id: tid,
+                objectives,
+            });
+        }
+        EditMode::None => {}
+    }
+    selected.0 = None; // the click was an edit, not a selection
+}
+
+/// Gizmo tint: while the Theaters tab (or an edit mode) is up, each of
+/// the player's theaters rings its provinces in its color; objectives
+/// get a double ring.
+#[allow(clippy::too_many_arguments)]
+fn draw_theater_overlay(
+    tab: Res<WarTab>,
+    edit: Res<TheaterEdit>,
+    military: Res<Military>,
+    world: Res<World1950>,
+    player: Option<Res<PlayerNation>>,
+    panel: Query<(), With<WarPanel>>,
+    mut gizmos: Gizmos,
+) {
+    let showing = (!panel.is_empty() && *tab == WarTab::Theaters) || edit.mode != EditMode::None;
+    if !showing {
+        return;
+    }
+    let Some(player) = player else { return };
+    for (id, t) in military
+        .theaters
+        .iter()
+        .filter(|(_, t)| t.owner == player.0)
+    {
+        let color = theater_color(*id);
+        let editing = edit.theater == Some(*id) && edit.mode != EditMode::None;
+        let radius = if editing { 9.0 } else { 6.0 };
+        for province in &t.provinces {
+            let Some(pr) = world.0.provinces.get(province) else {
+                continue;
+            };
+            let pos = project(pr.center.0, pr.center.1);
+            for offset in [-WORLD_WRAP, 0.0, WORLD_WRAP] {
+                gizmos.circle_2d(pos + Vec2::new(offset, 0.0), radius, color);
+            }
+        }
+        for objective in &t.objectives {
+            let Some(pr) = world.0.provinces.get(objective) else {
+                continue;
+            };
+            let pos = project(pr.center.0, pr.center.1);
+            for offset in [-WORLD_WRAP, 0.0, WORLD_WRAP] {
+                let off = Vec2::new(offset, 0.0);
+                gizmos.circle_2d(pos + off, 12.0, color);
+                gizmos.circle_2d(pos + off, 15.0, color);
+            }
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn war_buttons(
     buttons: Query<(&Interaction, &WarButton), Changed<Interaction>>,
     military: Res<Military>,
+    selected: Res<Selected>,
     player: Option<Res<PlayerNation>>,
+    mut tab: ResMut<WarTab>,
+    mut edit: ResMut<TheaterEdit>,
     mut pending: ResMut<PendingCommands>,
 ) {
     let Some(player) = player else { return };
@@ -1498,6 +2173,149 @@ fn war_buttons(
                     enemy: enemy.clone(),
                     offer,
                 });
+            }
+            WarButton::Tab(t) => {
+                *tab = *t;
+                if *t != WarTab::Theaters {
+                    edit.mode = EditMode::None;
+                }
+            }
+            WarButton::Raise(archetype) => {
+                if let Some(home) = selected.0 {
+                    pending.push(SimCommand::RaiseFormation {
+                        country: me.clone(),
+                        archetype: *archetype,
+                        home,
+                        count: 1,
+                    });
+                }
+            }
+            WarButton::ToggleReadiness(id) => {
+                if let Some(f) = military.formations.get(id) {
+                    pending.push(SimCommand::SetReadiness {
+                        country: me.clone(),
+                        id: *id,
+                        active: f.readiness.stood_down(),
+                    });
+                }
+            }
+            WarButton::CycleFormationTheater(id) => {
+                let Some(f) = military.formations.get(id) else {
+                    continue;
+                };
+                let mine: Vec<TheaterId> = military
+                    .theaters
+                    .iter()
+                    .filter(|(_, t)| &t.owner == me)
+                    .map(|(tid, _)| *tid)
+                    .collect();
+                let next = match f.theater {
+                    None => mine.first().copied(),
+                    Some(current) => {
+                        let pos = mine.iter().position(|t| *t == current);
+                        match pos {
+                            Some(i) if i + 1 < mine.len() => Some(mine[i + 1]),
+                            _ => None,
+                        }
+                    }
+                };
+                pending.push(SimCommand::AssignTheater {
+                    country: me.clone(),
+                    formation: *id,
+                    theater: next,
+                });
+            }
+            WarButton::GroupReadiness(gid, active) => {
+                for (fid, f) in military
+                    .formations
+                    .iter()
+                    .filter(|(_, f)| &f.owner == me && f.theater == *gid)
+                {
+                    // Only formations not already in the requested state.
+                    if f.readiness.stood_down() != *active {
+                        continue;
+                    }
+                    pending.push(SimCommand::SetReadiness {
+                        country: me.clone(),
+                        id: *fid,
+                        active: *active,
+                    });
+                }
+            }
+            WarButton::NewTheater => {
+                let n = military
+                    .theaters
+                    .values()
+                    .filter(|t| &t.owner == me)
+                    .count();
+                pending.push(SimCommand::CreateTheater {
+                    country: me.clone(),
+                    name: format!("THEATER {}", n + 1),
+                });
+            }
+            WarButton::CycleTheaterPosture(id) => {
+                if let Some(t) = military.theaters.get(id) {
+                    let next = match t.posture {
+                        TheaterPosture::Defend => TheaterPosture::Probe,
+                        TheaterPosture::Probe => TheaterPosture::Offensive,
+                        TheaterPosture::Offensive => TheaterPosture::Defend,
+                    };
+                    pending.push(SimCommand::SetTheaterPosture {
+                        country: me.clone(),
+                        id: *id,
+                        posture: next,
+                    });
+                }
+            }
+            WarButton::CycleTheaterEchelon(id) => {
+                if let Some(t) = military.theaters.get(id) {
+                    let next = match t.echelon_permille {
+                        0..=124 => 250,
+                        125..=374 => 500,
+                        _ => 0,
+                    };
+                    pending.push(SimCommand::SetTheaterEchelon {
+                        country: me.clone(),
+                        id: *id,
+                        permille: next,
+                    });
+                }
+            }
+            WarButton::ToggleTheaterRoe(id, target) => {
+                if let Some(t) = military.theaters.get(id) {
+                    pending.push(SimCommand::SetTheaterRoe {
+                        country: me.clone(),
+                        id: *id,
+                        tag: target.clone(),
+                        forbidden: !t.forbidden.contains(target),
+                    });
+                }
+            }
+            WarButton::DeleteTheater(id) => {
+                pending.push(SimCommand::DeleteTheater {
+                    country: me.clone(),
+                    id: *id,
+                });
+                if edit.theater == Some(*id) {
+                    edit.mode = EditMode::None;
+                    edit.theater = None;
+                }
+            }
+            WarButton::PaintMode(id) => {
+                if edit.mode == EditMode::Paint && edit.theater == Some(*id) {
+                    edit.mode = EditMode::None;
+                } else {
+                    edit.mode = EditMode::Paint;
+                    edit.theater = Some(*id);
+                }
+            }
+            WarButton::ObjectiveMode(id) => {
+                if edit.mode == EditMode::Objectives && edit.theater == Some(*id) {
+                    edit.mode = EditMode::None;
+                } else {
+                    edit.mode = EditMode::Objectives;
+                    edit.theater = Some(*id);
+                }
             }
         }
     }

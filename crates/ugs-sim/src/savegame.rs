@@ -128,11 +128,12 @@ mod tests {
     fn digest(app: &App) -> String {
         let world = app.world();
         format!(
-            "{:?}|{:x}|{:x}|{:x}",
+            "{:?}|{:x}|{:x}|{:x}|{:x}",
             world.resource::<SimClock>(),
             world.resource::<Demographics>().digest(),
             world.resource::<Economies>().digest(),
             world.resource::<crate::agriculture::Agriculture>().digest(),
+            world.resource::<crate::military::Military>().digest(),
         )
     }
 

@@ -1,6 +1,6 @@
 # Military command & force generation
 
-Status: designed
+Status: implemented
 Pillar: 1 (escalation — mobilization, commitment, and ROE are
 brinkmanship signals) and 4 (the economy finally pays for the army).
 Research: [military-mechanics](../../research/military-mechanics.md) §3
@@ -296,6 +296,32 @@ auto-theater assigned, training 1000.
   with real intervention levels.
 - No multi-national combined theaters (US and ROK fight in parallel
   theaters; coalition command is post-slice).
+
+## Implementation deviations (v1, deliberate)
+
+- **The AI never demotes its standing army at peace.** The scripted
+  1950 OOBs (a fully mobilized KPA in June) ARE the historical
+  peacetime postures; demoting them to Reserve at the first monthly
+  pass would gut the scripted invasion. `PEACE_FLOOR_DIVS` survives
+  only as the wartime raise-tension threshold.
+- **Probe and Offensive both extend the front one province into enemy
+  soil** (the front rolls forward as occupation flips); Offensive
+  additionally adds objective paths. A pure objective-path Offensive
+  stalls forever once its objectives are captured or unreachable.
+- Peacetime garrison dispersal is round-robin over the theater's
+  sorted provinces, not nearest-first (cheaper, same effect at v1
+  formation counts).
+- Quality recovery caps at the flat 1000 rather than a stored
+  per-formation archetype baseline, and only runs on fully-paid
+  months.
+- Upkeep settles on the first day of the month *before* that day's
+  accrual, so the settlement day bills into the new month.
+- The wartime raise-tension threshold counts all formations, not only
+  Active ones.
+- UI: the echelon share is a 0/25/50% cycle button rather than a
+  slider; the Forces list renders at most 16 division rows (with a
+  truncation line); theater tint is a gizmo ring overlay, shown on
+  the Theaters tab and while painting.
 
 ## Open questions (post-slice leanings)
 

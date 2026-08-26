@@ -7,6 +7,45 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-26 — The army becomes yours: theaters, readiness, force generation
+
+Playtesting verdict was blunt: outside of answering popups the player had
+almost nothing to *do*, least of all at war — four hardcoded US divisions
+marching as one blob, no way to raise more, no reserves, no fronts. This
+session shipped the fix: the
+[military command layer](design/systems/military-command.md), the
+operational altitude the
+[military architecture](design/systems/military.md) always intended.
+
+- **Force generation is real now.** `military_stock` — accruing since the
+  economy landed, spent by nothing — buys divisions (infantry 3 / motorized
+  5 / armor 8), which spawn green at 10% strength and train for 90–150 days
+  (committing them early is a legal, bad, very Korea decision). Upkeep
+  triples overseas, and an unpaid army *melts* — the KPA is carried by
+  Soviet aid via a new `GrantStock` event effect, which is historically
+  honest.
+- **Readiness is a brinkmanship signal**: Reserve→Active takes 21 days and
+  prints on both wires; raising at peace costs tension. Pillar 1, not
+  bookkeeping.
+- **Theaters replace the blob-march.** Paint provinces, set
+  Defend/Probe/Offensive, click up to 3 objectives, hold back an echelon,
+  and check "no entry" per enemy — the Yalu ROE is one checkbox. An
+  assignment-preserving quota controller (largest remainder + retarget
+  cooldowns) spreads divisions along the front instead of re-dealing them
+  daily — the front-shuffle disease the research warned about.
+- The design doc went sketch→designed→implemented in one arc, with a
+  game-designer stress test that caught 12 real issues before code —
+  including "the US can't legally operate in Korea" and "nothing stops a
+  30-division US snowball." Both fixed in the spec, then built.
+- Also fixed: two notification popups stacking into one unreadable modal
+  (three unordered Bevy systems each spawning before seeing the others'
+  deferred spawns — `.chain()` and the guard actually guards).
+
+55 sim tests pass, including the full historical arc (invasion → US
+intervention → Chinese entry → armistice) running under the new movement.
+
+![Theater directives in the war room](media/war-room-theaters.png)
+
 ## 2026-08-25 — The fog gets a price: espionage v1
 
 The intelligence pillar is playing. Its whole thesis — that the game
