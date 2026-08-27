@@ -130,7 +130,7 @@ struct BattlePanel;
 /// Deterministic display-side fuzz for enemy figures (never touches the
 /// sim RNG). Same inputs, same estimate — re-sampled monthly so numbers
 /// don't jitter every frame.
-fn mix(mut x: u64) -> u64 {
+pub(crate) fn mix(mut x: u64) -> u64 {
     x ^= x >> 33;
     x = x.wrapping_mul(0xff51_afd7_ed55_8ccd);
     x ^= x >> 33;
@@ -139,7 +139,7 @@ fn mix(mut x: u64) -> u64 {
 
 /// Round to two significant figures — intel reports never carry false
 /// precision.
-fn round_sig2(n: u64) -> u64 {
+pub(crate) fn round_sig2(n: u64) -> u64 {
     if n < 100 {
         return n;
     }
@@ -148,7 +148,7 @@ fn round_sig2(n: u64) -> u64 {
     n / step * step
 }
 
-fn fmt_men(n: u64) -> String {
+pub(crate) fn fmt_men(n: u64) -> String {
     if n >= 1_000_000 {
         format!("{:.1}M", n as f64 / 1e6)
     } else if n >= 1000 {
@@ -160,7 +160,7 @@ fn fmt_men(n: u64) -> String {
 
 /// Estimate band width in permille from the player's military
 /// penetration of `subject`: ±35% blind, ±5% floor at deep intel.
-fn intel_width(
+pub(crate) fn intel_width(
     intel: &Intel,
     viewer: Option<&ugs_data::CountryTag>,
     subject: &ugs_data::CountryTag,
@@ -172,7 +172,7 @@ fn intel_width(
 }
 
 /// Estimated enemy men as a low-high band; `width` permille half-band.
-fn est_men_range(true_men: u64, seed: u64, width: u64) -> (u64, u64) {
+pub(crate) fn est_men_range(true_men: u64, seed: u64, width: u64) -> (u64, u64) {
     // Center jitter scales with width too: poor intel is biased, not
     // just wide.
     let jitter = 1000 - width / 2 + mix(seed) % (width + 1);
@@ -184,7 +184,7 @@ fn est_men_range(true_men: u64, seed: u64, width: u64) -> (u64, u64) {
 }
 
 /// Estimated enemy division count band; width in permille.
-fn est_div_range(count: u32, seed: u64, width: u64) -> (u32, u32) {
+pub(crate) fn est_div_range(count: u32, seed: u64, width: u64) -> (u32, u32) {
     let span = (count as u64 * width / 1000).max(1) as u32;
     let center =
         (count as i64 + (mix(seed) % (span as u64 * 2 + 1)) as i64 - span as i64).max(1) as u32;

@@ -206,6 +206,7 @@ distribution.
 - `assets/fonts/Oswald-500.ttf` — Oswald, Vernon Adams et al.
 - `assets/fonts/Jost-400.ttf`, `Jost-500.ttf` — Jost, Owen Earl (indestructible type*)
 - `assets/fonts/CourierPrime-400.ttf`, `CourierPrime-700.ttf` — Courier Prime, Alan Dague-Greene / Quote-Unquote Apps
+- `assets/fonts/UnifrakturMaguntia-400.ttf` — UnifrakturMaguntia, j. 'mach' wust / Peter Wiegel (masthead face for the monthly paper)
 
 ## Audio
 

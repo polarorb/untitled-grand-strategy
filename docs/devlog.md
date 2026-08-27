@@ -7,6 +7,26 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-26 — Read all about it: the Monthly Paper
+
+Press **N**: the map dims under a full-screen period newspaper
+summarizing the closed month — and the paper is printed *as you
+believe it* ([design](design/systems/newspaper.md)). The masthead is
+bloc-flavored: the market West reads THE INTERNATIONAL HERALD in
+OFL blackletter (UnifrakturMaguntia, our sixth typeface), the planned
+East reads THE PEOPLE'S OBSERVER in party red — and its industry
+figures are the *reported* ones, because your own paper lies to you
+exactly as much as your ministries do. Lead stories come from the
+month's fired events; THE WAR REPORT prints your casualties exact and
+the enemy's as intelligence bands; COMMERCE & INDUSTRY carries the
+regional wire; THE WORLD IN NUMBERS is the seed of the ledger system
+— tension with its monthly delta, wars, treaties, nations born, and
+what we *estimate* the rival's army to be. Zero new sim state: the
+whole page renders from existing resources with a month window, which
+is the payoff of every date-stamped design decision this session.
+Built as a section registry so the arsenal page, influence standings,
+and obituaries slot in later.
+
 ## 2026-08-26 — The world turns: 189 events, 37 new states, twenty years
 
 The biggest content pass yet, and the engine change that made it

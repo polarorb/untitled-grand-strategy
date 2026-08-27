@@ -9,6 +9,7 @@ mod econ_ui;
 mod endgame;
 mod map;
 mod menu;
+mod paper_ui;
 mod war_ui;
 mod widgets;
 
@@ -43,6 +44,8 @@ pub struct Fonts {
     pub body_medium: Handle<Font>,
     pub mono: Handle<Font>,
     pub mono_bold: Handle<Font>,
+    /// Blackletter for the broadsheet masthead (UnifrakturMaguntia).
+    pub masthead: Handle<Font>,
 }
 
 impl FromWorld for Fonts {
@@ -50,6 +53,7 @@ impl FromWorld for Fonts {
         let assets = world.resource::<AssetServer>();
         Self {
             display: assets.load("fonts/Oswald-500.ttf"),
+            masthead: assets.load("fonts/UnifrakturMaguntia-400.ttf"),
             body: assets.load("fonts/Jost-400.ttf"),
             body_medium: assets.load("fonts/Jost-500.ttf"),
             mono: assets.load("fonts/CourierPrime-400.ttf"),
@@ -160,6 +164,7 @@ fn main() {
         audio::GameAudioPlugin,
         war_ui::WarUiPlugin,
         widgets::WidgetsPlugin,
+        paper_ui::PaperUiPlugin,
         atomic_ui::AtomicUiPlugin,
         endgame::EndgamePlugin,
     ));

@@ -63,6 +63,13 @@ an echelon share, and rules of engagement — "may not cross the Yalu"
 is a checkbox. The theater controller spreads divisions along the
 front; there is no unit micro, and unpaid armies melt.
 
+Each month a **period newspaper** lands (press N) — masthead flavored
+by your bloc, the party organ printing the figures your ministries
+report, the broadsheet honest but a survey behind — with the month's
+events as lead stories, a war report that prints your losses exactly
+and the enemy's as intelligence estimates, and a world-in-numbers rail
+that seeds the coming ledger system.
+
 And the world *turns*: 189 sourced events across twenty years — the
 Stalin succession, Hungary, Suez, the Sino-Soviet split, Vietnam, the
 Six-Day War — with real decision branches (tolerate Nagy, refuse the

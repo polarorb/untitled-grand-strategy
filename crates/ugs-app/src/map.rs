@@ -583,7 +583,7 @@ fn spawn_hud(
     commands.spawn((
         HudRoot,
         Text::new(
-            "Space: pause - 1-5: speed - E: economy - R: war room - M: map mode - F5/F9: save/load - WASD/drag: pan - scroll: zoom",
+            "Space: pause - 1-5: speed - E: economy - R: war room - N: the monthly - M: map mode - F5/F9: save/load - WASD/drag: pan - scroll: zoom",
         ),
         crate::font(&fonts.body, 12.0),
         TextColor(HUD_DIM),
