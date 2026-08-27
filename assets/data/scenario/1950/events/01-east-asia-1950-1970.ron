@@ -1,0 +1,246 @@
+// East Asia 1950-1970 — timeline content, sourced per event.
+// Sources: Treaty of San Francisco; Security Treaty Between the United States and Japan; 1955 System; Anpo protests; Income Doubling Plan; 1964 Summer Olympics; First Taiwan Strait Crisis; Sino-American Mutual Defense Treaty; Formosa Resolution of 1955; China and weapons of mass destruction; Project 596; Sino-Soviet split; Great Leap Forward; Great Chinese Famine; Second Taiwan Strait Crisis; The Polemic on the General Line of the International Communist Movement; Mongolian People's Republic; Cultural Revolution; Sino-Soviet border conflict; Zhenbao Island incident
+[
+    // SOURCE: Wikipedia "Treaty of San Francisco". Signed 8 September 1951 together with the US-Japan Security Treaty; Japan chose the Western camp over "overall peace" neutrality urged by the left.
+    EventDef(
+        id: "san-francisco-treaty",
+        trigger: Date((1951, 9, 8, 0)),
+        title: "PEACE TREATY SIGNED AT SAN FRANCISCO",
+        body: "48 NATIONS SIGN PEACE WITH JAPAN AT SAN FRANCISCO OPERA HOUSE -- SOVIET DELEGATION REFUSES. HOURS LATER YOSHIDA IS DRIVEN TO THE PRESIDIO TO INITIAL A SECURITY PACT GRANTING US BASES INDEFINITELY. OPPOSITION SOCIALISTS DEMAND AN 'OVERALL PEACE' WITH MOSCOW AND PEKING INCLUDED -- OR NONE AT ALL.",
+        country: Some(("JAP")),
+        deadline_days: 7,
+        options: [
+            EventOption(label: "SIGN BOTH -- BASES FOR PROSPERITY", effects: [SetAlignment(country: ("JAP"), alignment: "WesternBloc"), GrantLegitimacy(country: ("JAP"), amount: 10), GrantIndustry(country: ("JAP"), centi: 500), AdjustTension(10)]),
+            EventOption(label: "OVERALL PEACE OR NOTHING", effects: [SetAlignment(country: ("JAP"), alignment: "NonAligned"), AdjustTension(-10), AdjustStability(country: ("JAP"), delta: -15), GrantLegitimacy(country: ("JAP"), amount: -5)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "1955 System". Liberal Democratic Party founded 15 November 1955, beginning four decades of conservative one-party dominance.
+    EventDef(
+        id: "japan-1955-system",
+        trigger: Date((1955, 11, 15, 0)),
+        title: "CONSERVATIVES MERGE -- LDP FOUNDED IN TOKYO",
+        body: "LIBERAL AND DEMOCRATIC PARTIES MERGE INTO A SINGLE CONSERVATIVE BLOC COMMANDING TWO-THIRDS OF THE DIET. BUSINESS FEDERATIONS BANKROLLED THE MERGER TO WALL OUT THE REUNIFIED SOCIALISTS. TOKYO POLITICS SETTLES INTO A ONE-AND-A-HALF PARTY SYSTEM BUILT FOR GROWTH.",
+        effects: [AdjustStability(country: ("JAP"), delta: 10), GrantLegitimacy(country: ("JAP"), amount: 5)],
+    ),
+    // SOURCE: Wikipedia "Anpo protests". Hundreds of thousands besieged the Diet in June 1960; student Michiko Kanba died 15 June; Kishi forced ratification through and resigned in July.
+    EventDef(
+        id: "anpo-protests",
+        trigger: Date((1960, 6, 15, 0)),
+        title: "MILLIONS IN THE STREETS OVER SECURITY TREATY",
+        body: "TOKYO -- STUDENT DEMONSTRATORS STORM THE DIET COMPOUND AGAINST THE REVISED US SECURITY TREATY. ONE STUDENT DEAD IN THE CRUSH, HUNDREDS INJURED, EISENHOWER VISIT IN DOUBT. KISHI MUST DECIDE -- RAM RATIFICATION THROUGH AN EMPTY CHAMBER OR LET THE TREATY DIE.",
+        country: Some(("JAP")),
+        deadline_days: 5,
+        options: [
+            EventOption(label: "FORCE RATIFICATION THROUGH", effects: [AdjustStability(country: ("JAP"), delta: -15), AdjustTension(10), GrantLegitimacy(country: ("JAP"), amount: -5)]),
+            EventOption(label: "SHELVE THE REVISED TREATY", effects: [AdjustTension(-10), AdjustStability(country: ("JAP"), delta: 5), GrantLegitimacy(country: ("JAP"), amount: -10)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Income Doubling Plan". Ikeda cabinet adopted the plan 27 December 1960; GNP doubled ahead of schedule.
+    EventDef(
+        id: "income-doubling-plan",
+        trigger: Date((1960, 12, 27, 0)),
+        title: "IKEDA PLEDGES TO DOUBLE JAPANESE INCOMES",
+        body: "IKEDA CABINET ADOPTS THE NATIONAL INCOME DOUBLING PLAN -- WAGES AND OUTPUT TO DOUBLE WITHIN TEN YEARS. POLITICS OF THE BARRICADE GIVE WAY TO POLITICS OF THE PAYCHECK. STEEL, SHIPBUILDING AND ELECTRONICS INVESTMENT SURGES ON STATE-GUIDED CREDIT.",
+        effects: [GrantIndustry(country: ("JAP"), centi: 2000), GrantLegitimacy(country: ("JAP"), amount: 5), AdjustStability(country: ("JAP"), delta: 10)],
+    ),
+    // SOURCE: Wikipedia "1964 Summer Olympics". Opened in Tokyo 10 October 1964 -- Japan's re-entry into the world's good graces, first Games in Asia.
+    EventDef(
+        id: "tokyo-olympics-1964",
+        trigger: Date((1964, 10, 10, 0)),
+        title: "OLYMPIC FLAME BURNS OVER TOKYO",
+        body: "EMPEROR HIROHITO OPENS THE XVIII OLYMPIAD BEFORE THE WORLD'S CAMERAS -- FIRST GAMES EVER HELD IN ASIA. THE TORCH IS CARRIED BY A RUNNER BORN IN HIROSHIMA ON 6 AUGUST 1945. NEW SHINKANSEN BULLET TRAINS AND ELEVATED EXPRESSWAYS ANNOUNCE A NATION REMADE.",
+        effects: [GrantLegitimacy(country: ("JAP"), amount: 15), AdjustTension(-5)],
+    ),
+    // SOURCE: Wikipedia "First Taiwan Strait Crisis". PLA batteries opened fire on Quemoy (Jinmen) 3 September 1954.
+    EventDef(
+        id: "quemoy-shelling-1954",
+        trigger: Date((1954, 9, 3, 0)),
+        title: "PEKING WEIGHS BOMBARDMENT OF QUEMOY",
+        body: "PLA ARTILLERY MASSED ON THE FUKIEN COAST OPPOSITE CHIANG'S OFFSHORE GARRISONS ON QUEMOY AND MATSU. WASHINGTON DEBATES A MUTUAL DEFENSE TREATY WITH TAIPEI -- PEKING SEES A CLOSING WINDOW TO 'LIBERATE' THE ISLANDS AND TEST AMERICAN RESOLVE.",
+        country: Some(("PRC")),
+        deadline_days: 4,
+        options: [
+            EventOption(label: "OPEN FIRE ON JINMEN", effects: [AdjustTension(40), AdjustStability(country: ("PRC"), delta: 5), GrantLegitimacy(country: ("ROC"), amount: -5)]),
+            EventOption(label: "HOLD FIRE -- PRESS DIPLOMACY", effects: [AdjustTension(-5), GrantLegitimacy(country: ("PRC"), amount: -10)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Sino-American Mutual Defense Treaty" and "Formosa Resolution of 1955". Treaty signed 2 December 1954; Congress authorized force to defend Formosa January 1955.
+    EventDef(
+        id: "formosa-resolution",
+        trigger: OptionChosen(id: "quemoy-shelling-1954", option: 0, days_after: 90),
+        title: "WASHINGTON DECIDES ON FORMOSA COMMITMENT",
+        body: "COMMUNIST SHELLS STILL FALLING ON QUEMOY -- YIKIANGSHAN UNDER ASSAULT. DULLES URGES A MUTUAL DEFENSE TREATY WITH TAIPEI AND A CONGRESSIONAL RESOLUTION AUTHORIZING FORCE. CRITICS WARN THE OFFSHORE ISLANDS ARE INDEFENSIBLE ROCKS NOT WORTH A WORLD WAR.",
+        country: Some(("USA")),
+        deadline_days: 7,
+        options: [
+            EventOption(label: "TREATY AND FORMOSA RESOLUTION", effects: [AdjustTension(25), GrantStock(country: ("ROC"), amount: 15), GrantLegitimacy(country: ("ROC"), amount: 10)]),
+            EventOption(label: "PRESS CHIANG OFF THE OFFSHORE ISLANDS", effects: [AdjustTension(-15), GrantLegitimacy(country: ("ROC"), amount: -15), AdjustStability(country: ("ROC"), delta: -10)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "China and weapons of mass destruction". Mao's Central Secretariat decided to pursue the atomic bomb 15 January 1955, during the first strait crisis, with promised Soviet assistance.
+    EventDef(
+        id: "prc-bomb-decision",
+        trigger: Date((1955, 1, 15, 0)),
+        title: "MAO PUTS THE ATOM ON THE AGENDA",
+        body: "CENTRAL SECRETARIAT MEETS IN ZHONGNANHAI WITH URANIUM ORE FROM GUANGXI ON THE TABLE. AMERICAN NUCLEAR THREATS OVER KOREA AND THE STRAIT STILL FRESH. MOSCOW OFFERS REACTORS AND ADVISORS -- BUT A BOMB PROGRAM WILL DEVOUR SCARCE STEEL AND ENGINEERS FOR A DECADE.",
+        country: Some(("PRC")),
+        deadline_days: 10,
+        options: [
+            EventOption(label: "BUILD THE BOMB", effects: [FoundNuclearProgram(country: ("PRC"), route: "Both"), AdjustTension(10)]),
+            EventOption(label: "SHELTER UNDER THE SOVIET UMBRELLA", effects: [GrantIndustry(country: ("PRC"), centi: 400), GrantLegitimacy(country: ("PRC"), amount: -5)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Sino-Soviet split" (New Defense Technical Accord, 15 October 1957) -- Moscow pledged nuclear weapons design assistance including a prototype bomb.
+    EventDef(
+        id: "defense-technical-accord",
+        trigger: OptionChosen(id: "prc-bomb-decision", option: 0, days_after: 1004),
+        title: "SECRET SOVIET ACCORD ARMS CHINESE PROGRAM",
+        body: "MOSCOW SIGNS THE NEW DEFENSE TECHNICAL ACCORD -- BLUEPRINTS, GASEOUS DIFFUSION EQUIPMENT AND A PROMISED PROTOTYPE BOMB FOR PEKING. THOUSANDS OF SOVIET SPECIALISTS ROTATE THROUGH LANZHOU AND BAOTOU. KHRUSHCHEV BUYS CHINESE BACKING AFTER THE ANTI-PARTY CRISIS.",
+        effects: [AdjustProgramSpeed(country: ("PRC"), permille: 1400), AdjustTension(5)],
+    ),
+    // SOURCE: Wikipedia "Sino-Soviet split". People's Daily published "On the Historical Experience of the Dictatorship of the Proletariat" 5 April 1956 -- Peking's guarded rebuke of Khrushchev's secret speech.
+    EventDef(
+        id: "historical-experience-editorial",
+        trigger: Date((1956, 4, 5, 0)),
+        title: "PEKING ANSWERS KHRUSHCHEV ON STALIN",
+        body: "PEOPLE'S DAILY EDITORIAL DEFENDS STALIN AS '70 PERCENT CORRECT' -- A SHOT ACROSS MOSCOW'S BOW AFTER THE SECRET SPEECH. MAO PRIVATELY FUMES THAT KHRUSHCHEV DENOUNCED THE OLD MAN WITHOUT CONSULTING FRATERNAL PARTIES. THE FIRST HAIRLINE CRACK IN THE MONOLITH SHOWS.",
+        effects: [AdjustTension(5), GrantLegitimacy(country: ("PRC"), amount: 5)],
+    ),
+    // SOURCE: Wikipedia "Great Leap Forward". Launched at the second session of the Eighth Party Congress, opened 5 May 1958.
+    EventDef(
+        id: "great-leap-forward",
+        trigger: Date((1958, 5, 5, 0)),
+        title: "MAO DEMANDS A GREAT LEAP",
+        body: "EIGHTH CONGRESS SECOND SESSION CONVENES UNDER THE SLOGAN -- SURPASS BRITAIN IN FIFTEEN YEARS. MAO WANTS BACKYARD FURNACES, PEOPLE'S COMMUNES AND IMPOSSIBLE GRAIN QUOTAS. PLANNERS WHO COUNSEL 'OPPOSING RASH ADVANCE' ARE ALREADY BRANDED RIGHT DEVIATIONISTS.",
+        country: Some(("PRC")),
+        deadline_days: 10,
+        options: [
+            EventOption(label: "LAUNCH THE GREAT LEAP", effects: [GrantIndustry(country: ("PRC"), centi: 1500), AdjustStability(country: ("PRC"), delta: -25), GrantLegitimacy(country: ("PRC"), amount: 5)]),
+            EventOption(label: "STEADY GROWTH -- OPPOSE RASH ADVANCE", effects: [GrantIndustry(country: ("PRC"), centi: 400), AdjustStability(country: ("PRC"), delta: 5), GrantLegitimacy(country: ("PRC"), amount: -10)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Great Chinese Famine". Harvest collapse from late 1959 through 1961 -- the "three bitter years" -- following Leap requisitions and the Lushan purge of Peng Dehuai.
+    EventDef(
+        id: "three-bitter-years",
+        trigger: OptionChosen(id: "great-leap-forward", option: 0, days_after: 560),
+        title: "GRAIN REPORTS FROM THE PROVINCES TURN GRIM",
+        body: "REQUISITIONS TAKEN ON FALSIFIED HARVEST FIGURES STRIP THE VILLAGES BARE -- BACKYARD STEEL IS SLAG AND THE COMMUNES ARE STARVING. PENG DEHUAI PURGED AT LUSHAN FOR SAYING SO. RATION CUTS REACH THE CITIES AS THE BITTER YEARS BEGIN.",
+        effects: [AdjustStability(country: ("PRC"), delta: -15), GrantIndustry(country: ("PRC"), centi: -800), GrantLegitimacy(country: ("PRC"), amount: -10)],
+    ),
+    // SOURCE: Wikipedia "Second Taiwan Strait Crisis". PLA bombardment of Quemoy resumed 23 August 1958 -- nearly half a million shells in the opening weeks.
+    EventDef(
+        id: "quemoy-shelling-1958",
+        trigger: Date((1958, 8, 23, 0)),
+        title: "PEKING WEIGHS SECOND STRAIT BOMBARDMENT",
+        body: "MAO PROPOSES TO SHELL JINMEN AGAIN -- TO TEST DULLES, RALLY THE COMMUNES AND REMIND MOSCOW WHO LEADS ASIA'S REVOLUTION. KHRUSHCHEV, JUST DEPARTED PEKING, WAS TOLD NOTHING. THE GARRISON ON THE ISLAND NUMBERS NINETY THOUSAND NATIONALIST TROOPS.",
+        country: Some(("PRC")),
+        deadline_days: 3,
+        options: [
+            EventOption(label: "BOMBARD JINMEN AGAIN", effects: [AdjustTension(35), SpawnForces(owner: ("PRC"), province_owner: ("PRC"), province: "Fujian", archetype: "Infantry", divisions: 3, quality: 1000), AdjustStability(country: ("PRC"), delta: 5)]),
+            EventOption(label: "PATROLS AND PROPAGANDA ONLY", effects: [AdjustTension(5), GrantLegitimacy(country: ("PRC"), amount: -5)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Second Taiwan Strait Crisis". US Seventh Fleet began escorting Nationalist resupply convoys to Quemoy in early September 1958.
+    EventDef(
+        id: "quemoy-convoy-decision",
+        trigger: OptionChosen(id: "quemoy-shelling-1958", option: 0, days_after: 7),
+        title: "SEVENTH FLEET ASKED TO RUN THE QUEMOY BLOCKADE",
+        body: "QUEMOY GARRISON DOWN TO DAYS OF SUPPLY UNDER ROUND-THE-CLOCK SHELLFIRE. TAIPEI BEGS FOR ESCORTED CONVOYS -- JCS DRAFTS OPTIONS UP TO TACTICAL NUCLEAR STRIKES ON FUKIEN AIRFIELDS. ALLIES WARN EISENHOWER THE WORLD WILL NOT FIGHT FOR TWO ISLANDS IT CANNOT FIND ON A MAP.",
+        country: Some(("USA")),
+        deadline_days: 5,
+        options: [
+            EventOption(label: "ESCORT THE CONVOYS", effects: [AdjustTension(20), GrantStock(country: ("ROC"), amount: 15)]),
+            EventOption(label: "PRESS TAIPEI TO PULL BACK", effects: [AdjustTension(-15), GrantLegitimacy(country: ("ROC"), amount: -10), AdjustStability(country: ("ROC"), delta: -10)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Sino-Soviet split". Moscow announced withdrawal of all Soviet experts from China 16 July 1960 -- 1,400 advisors out, 257 projects torn up, blueprints carried home.
+    EventDef(
+        id: "soviet-advisors-withdrawn",
+        trigger: Date((1960, 7, 16, 0)),
+        title: "MOSCOW RECALLS EVERY ADVISOR FROM CHINA",
+        body: "KHRUSHCHEV ORDERS ALL 1,400 SOVIET EXPERTS HOME WITHIN WEEKS -- CONTRACTS TORN UP, BLUEPRINTS PACKED, HALF-BUILT PLANTS ABANDONED MID-GIRDER. THE PROMISED PROTOTYPE BOMB WILL NEVER ARRIVE. PEKING CALLS IT PERFIDY AND VOWS TO GO IT ALONE.",
+        effects: [AdjustStability(country: ("PRC"), delta: -10), AdjustTension(15), AdjustProgramSpeed(country: ("PRC"), permille: 600)],
+    ),
+    // SOURCE: Wikipedia "Sino-Soviet split". At the 22nd CPSU Congress (October 1961) Khrushchev attacked Albania as a proxy for China; Zhou Enlai laid a wreath for Stalin and flew home early.
+    EventDef(
+        id: "open-split-1961",
+        trigger: Date((1961, 10, 17, 0)),
+        title: "TWENTY-SECOND CONGRESS FORCES PEKING'S HAND",
+        body: "KHRUSHCHEV FLAYS ALBANIA FROM THE CONGRESS ROSTRUM -- EVERY DELEGATE KNOWS THE TRUE TARGET SITS IN PEKING. ZHOU ENLAI LAYS A WREATH AT STALIN'S BIER MARKED 'TO THE GREAT MARXIST' AND ORDERS HIS PLANE. MAO MUST CHOOSE -- OPEN BREAK OR SWALLOWED PRIDE.",
+        country: Some(("PRC")),
+        deadline_days: 10,
+        options: [
+            EventOption(label: "BREAK WITH MOSCOW -- OUR OWN POLE", effects: [SetAlignment(country: ("PRC"), alignment: "NonAligned"), AdjustTension(20), GrantLegitimacy(country: ("PRC"), amount: 10), AdjustStability(country: ("PRC"), delta: -5)]),
+            EventOption(label: "SWALLOW PRIDE -- KEEP THE ALLIANCE", effects: [GrantIndustry(country: ("PRC"), centi: 500), GrantLegitimacy(country: ("PRC"), amount: -15), AdjustProgramSpeed(country: ("PRC"), permille: 800)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "The Polemic on the General Line of the International Communist Movement". First of the Nine Commentaries published 6 September 1963 -- the split goes fully public.
+    EventDef(
+        id: "nine-commentaries",
+        trigger: OptionChosen(id: "open-split-1961", option: 0, days_after: 689),
+        title: "PEKING OPENS PUBLIC WAR OF WORDS ON MOSCOW",
+        body: "PEOPLE'S DAILY LAUNCHES THE FIRST OF NINE COMMENTARIES DENOUNCING 'KHRUSHCHEV REVISIONISM' BY NAME. FRATERNAL PARTIES FROM HANOI TO HAVANA ARE TOLD TO CHOOSE A CAPITAL. WORLD COMMUNISM NOW HAS TWO POPES AND NO PEACE BETWEEN THEM.",
+        effects: [AdjustTension(10), GrantLegitimacy(country: ("PRC"), amount: 5)],
+    ),
+    // SOURCE: Wikipedia "Mongolia and the United Nations" / "Mongolian People's Republic". Admitted to the UN 27 October 1961 after a decade of Western vetoes.
+    EventDef(
+        id: "mongolia-un-admission",
+        trigger: Date((1961, 10, 27, 0)),
+        title: "MONGOLIA SEATED AT THE UNITED NATIONS",
+        body: "AFTER A DECADE OF VETOES THE MONGOLIAN PEOPLE'S REPUBLIC TAKES ITS SEAT IN THE GENERAL ASSEMBLY. ULAANBAATAR REMAINS MOSCOW'S QUIETEST SATELLITE -- AND, AS THE SPLIT WIDENS, A BUFFER THE KREMLIN VALUES MORE EACH YEAR.",
+        effects: [GrantLegitimacy(country: ("MNG"), amount: 10)],
+    ),
+    // SOURCE: Wikipedia "Cultural Revolution". The May 16 Notification of 1966 launched the purge; the Sixteen Points followed in August.
+    EventDef(
+        id: "cultural-revolution",
+        trigger: Date((1966, 5, 16, 0)),
+        title: "MAO MOVES TO BOMBARD THE HEADQUARTERS",
+        body: "POLITBURO CIRCULATES THE MAY 16 NOTIFICATION -- REPRESENTATIVES OF THE BOURGEOISIE HAVE SNEAKED INTO THE PARTY, THE ARMY, THE STATE. RED GUARD UNITS ALREADY FORMING IN PEKING'S SCHOOLS. LIU SHAOQI AND THE APPARATUS COUNSEL ORDERLY RECTIFICATION INSTEAD.",
+        country: Some(("PRC")),
+        deadline_days: 10,
+        options: [
+            EventOption(label: "UNLEASH THE RED GUARDS", effects: [AdjustStability(country: ("PRC"), delta: -30), GrantIndustry(country: ("PRC"), centi: -600), GrantLegitimacy(country: ("PRC"), amount: 10), AdjustTension(10)]),
+            EventOption(label: "ORDERLY RECTIFICATION UNDER LIU", effects: [AdjustStability(country: ("PRC"), delta: 5), GrantIndustry(country: ("PRC"), centi: 500), GrantLegitimacy(country: ("PRC"), amount: -15)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Sino-Soviet border conflict" / "Zhenbao Island incident". Chinese ambush on Zhenbao (Damansky) Island in the Ussuri, 2 March 1969; larger battle 15 March.
+    EventDef(
+        id: "zhenbao-clash",
+        trigger: Date((1969, 3, 2, 0)),
+        title: "GUNFIRE ON THE USSURI -- ZHENBAO ISLAND",
+        body: "CHINESE TROOPS AMBUSH A SOVIET BORDER PATROL ON FROZEN ZHENBAO ISLAND -- 31 BORDER GUARDS DEAD IN THE SNOW. MOSCOW RUSHES ARMOR AND ROCKET ARTILLERY TO THE RIVERBANK. TWO NUCLEAR POWERS ARE NOW SHOOTING AT EACH OTHER ACROSS THE USSURI.",
+        effects: [AdjustTension(50), AdjustStability(country: ("PRC"), delta: 5), AdjustStability(country: ("SOV"), delta: -5)],
+    ),
+    // SOURCE: Wikipedia "Sino-Soviet border conflict". After the 15 March battle the Politburo weighed responses up to nuclear strikes on Chinese facilities; it chose pressure and talks.
+    EventDef(
+        id: "ussuri-ultimatum",
+        trigger: EventFired(id: "zhenbao-clash", days_after: 13),
+        title: "POLITBURO WEIGHS PUNISHMENT OF CHINA",
+        body: "SECOND BATTLE ON ZHENBAO -- SOVIET T-62 LOST ON THE ICE, CASUALTIES IN THE HUNDREDS. MARSHAL GRECHKO URGES A SHATTERING BLOW BEFORE PEKING'S ARSENAL MATURES -- SOME WHISPER THE WORD NUCLEAR. KOSYGIN ARGUES A WAR WITH 700 MILLION CHINESE HAS NO BOTTOM.",
+        country: Some(("SOV")),
+        deadline_days: 6,
+        options: [
+            EventOption(label: "MASS ON THE BORDER -- DEMAND TALKS", effects: [AdjustTension(20), SpawnForces(owner: ("SOV"), province_owner: ("SOV"), province: "Khabarovsk", archetype: "Motorized", divisions: 4, quality: 1100)]),
+            EventOption(label: "PUNITIVE WAR ON CHINA", effects: [DeclareWar(a: ("SOV"), b: ("PRC")), SetWarAim(country: ("SOV"), enemy: ("PRC"), aim: "Punish"), SetPosture(country: ("SOV"), enemy: ("PRC"), posture: "Advance"), AdjustTension(150), AdjustStability(country: ("SOV"), delta: -15), AdjustStability(country: ("PRC"), delta: 10)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "1969 Kosygin-Zhou meeting" (Sino-Soviet border conflict). Kosygin met Zhou Enlai at Peking airport 11 September 1969; border talks began in October.
+    EventDef(
+        id: "kosygin-zhou-airport",
+        trigger: OptionChosen(id: "ussuri-ultimatum", option: 0, days_after: 180),
+        title: "KOSYGIN AND ZHOU MEET AT PEKING AIRPORT",
+        body: "RETURNING FROM HO CHI MINH'S FUNERAL, PREMIER KOSYGIN DIVERTS TO PEKING -- THREE HOURS WITH ZHOU ENLAI IN THE AIRPORT TERMINAL. BOTH SIDES AGREE THE BORDER SHALL BE SETTLED BY TALKS, NOT TANKS. THE GUNS ON THE USSURI FALL SILENT -- THE HATRED DOES NOT.",
+        effects: [AdjustTension(-40)],
+    ),
+]

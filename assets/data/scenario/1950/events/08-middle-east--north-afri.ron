@@ -1,0 +1,544 @@
+// Middle East + North Africa — timeline content, sourced per event.
+// Sources: Wikipedia: Abadan Crisis; Wikipedia: Mohammad Mosaddegh; Wikipedia: 1953 Iranian coup d'etat; Wikipedia: Kingdom of Libya; Wikipedia: Egyptian revolution of 1952; Wikipedia: Egyptian-Czechoslovak arms deal; Wikipedia: France and weapons of mass destruction; Wikipedia: French protectorate in Morocco; Wikipedia: French protectorate of Tunisia; Wikipedia: Suez Crisis; Wikipedia: Protocol of Sevres; Wikipedia: Battle of Algiers (1956-1957); Wikipedia: United Arab Republic; Wikipedia: 14 July Revolution; Wikipedia: 1958 Lebanon crisis; Wikipedia: Operation Blue Bat; Wikipedia: Operation Vantage; Wikipedia: Evian Accords; Wikipedia: North Yemen Civil War; Wikipedia: Six-Day War; Wikipedia: Khartoum Resolution; Wikipedia: OPEC; Wikipedia: Eisenhower Doctrine
+[
+    // SOURCE: Wikipedia "Abadan Crisis". Majlis voted oil nationalization
+    // 15 Mar 1951; Mossadegh became PM 28 Apr; the law was signed 1 May.
+    // Britain answered with a Royal Navy-enforced embargo that shut Abadan.
+    EventDef(
+        id: "iran-oil-nationalization",
+        trigger: Date((1951, 4, 28, 12)),
+        title: "PERSIA MOVES TO SEIZE THE OIL",
+        body: "TEHRAN -- THE MAJLIS HAS VOTED TO NATIONALIZE THE ANGLO-IRANIAN OIL COMPANY AND CARRIED MOHAMMAD MOSSADEGH TO THE PREMIERSHIP ON THE CREST OF THE OIL WAVE. THE ABADAN REFINERY -- LARGEST ON EARTH -- WOULD PASS TO IRANIAN HANDS. LONDON SPEAKS OF ROYAL NAVY DISPOSITIONS AND A TOTAL EMBARGO OF PERSIAN CRUDE. THE SHAH SIGNS WHAT IS PUT BEFORE HIM.",
+        country: Some(("IRN")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "SIGN THE NATIONALIZATION LAW",
+                effects: [
+                    GrantLegitimacy(country: ("IRN"), amount: 15),
+                    AdjustTension(15),
+                    // The embargo and the Abadan shutdown, priced in:
+                    // Khuzestan crude has no tankers and no buyers.
+                    GrantIndustry(country: ("IRN"), centi: -250),
+                ],
+            ),
+            EventOption(
+                label: "SETTLE WITH THE COMPANY",
+                effects: [
+                    GrantIndustry(country: ("IRN"), centi: 150),
+                    GrantLegitimacy(country: ("IRN"), amount: -15),
+                    AdjustStability(country: ("IRN"), delta: -15),
+                    AdjustTension(-5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Kingdom of Libya". Independent 24 Dec 1951 under
+    // King Idris I per UN General Assembly Resolution 289 (1949) -- the
+    // first state created through the United Nations. British-administered
+    // since 1943. Regions 86+93 transfer via Independence; the western and
+    // southern provinces (whose map regions also contain Malta and Sudan)
+    // move by explicit TransferProvinces so only Libyan soil changes hands.
+    EventDef(
+        id: "libya-independence",
+        trigger: Date((1951, 12, 24, 12)),
+        title: "THE UNITED KINGDOM OF LIBYA",
+        body: "BENGHAZI -- IN ACCORDANCE WITH THE UNITED NATIONS RESOLUTION OF 1949, THE FORMER ITALIAN COLONY ADMINISTERED BY BRITAIN SINCE THE DESERT WAR IS DECLARED INDEPENDENT UNDER KING IDRIS AL-SENUSSI. IT IS THE FIRST STATE CREATED BY THE UNITED NATIONS. THE KING IS EXPECTED TO WELCOME ALLIED BASES -- AND ALLIED RENT.",
+        effects: [
+            Independence(country: ("LBY"), from: ("GBR"), provinces: ["Misratah", "Benghazi", "Al Butnan", "Ghat"]),
+            TransferProvinces(from: ("GBR"), to: ("LBY"), names: ["Ghadamis", "Al Marqab", "Al Jifarah", "An Nuqat al Khams", "Az Zawiyah", "Mizdah", "Tajura' wa an Nawahi al Arba", "Al Jufrah", "Al Kufrah", "Murzuq", "Sabha", "Ajdabiya"]),
+            GrantLegitimacy(country: ("GBR"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Egyptian revolution of 1952". Free Officers coup
+    // 23 Jul 1952; Farouk abdicated and sailed from Alexandria 26 Jul.
+    EventDef(
+        id: "free-officers-coup",
+        trigger: Date((1952, 7, 23, 6)),
+        title: "FREE OFFICERS SEIZE CAIRO",
+        body: "CAIRO -- ARMY UNITS UNDER GENERAL NAGUIB HOLD THE CAPITAL AND THE RADIO. THE FREE OFFICERS MOVEMENT DEMANDS THE ABDICATION OF KING FAROUK, WHO PREPARES TO SAIL FROM ALEXANDRIA ABOARD THE ROYAL YACHT. A COLONEL NAMED NASSER IS SPOKEN OF AS THE MIND BEHIND THE MOVEMENT. THE PALACE ERA IS OVER.",
+        effects: [
+            AdjustStability(country: ("EGY"), delta: -10),
+            AdjustTension(10),
+        ],
+    ),
+    // SOURCE: Wikipedia "1953 Iranian coup d'etat". Operation Ajax (TP-AJAX),
+    // 15-19 Aug 1953: CIA/SIS operation deposed Mossadegh after two years of
+    // oil embargo. Fires ~835 days after the nationalization law is signed.
+    EventDef(
+        id: "operation-ajax",
+        trigger: OptionChosen(id: "iran-oil-nationalization", option: 0, days_after: 835),
+        title: "IRAN: AJAX AWAITS THE PRESIDENT",
+        body: "WASHINGTON -- TWO YEARS OF EMBARGO HAVE EMPTIED THE PERSIAN TREASURY AND THE ABADAN REFINERY STANDS SILENT. LONDON PRESSES A JOINT OPERATION -- CIA AND SIS ASSETS IN TEHRAN ARE READY TO MOVE AGAINST MOSSADEGH, WITH THE SHAH TO SIGN THE DECREES. STATE WARNS THAT THE TUDEH COMMUNISTS PROFIT FROM EVERY MONTH OF CHAOS. KERMIT ROOSEVELT AWAITS THE WORD.",
+        country: Some(("USA")),
+        deadline_days: 4,
+        options: [
+            EventOption(
+                label: "AUTHORIZE TP-AJAX",
+                effects: [
+                    AdjustStability(country: ("IRN"), delta: -10),
+                    SetAlignment(country: ("IRN"), alignment: "WesternBloc"),
+                    // The 1954 consortium agreement restores the oil flow
+                    // under Western management -- and Western terms.
+                    GrantIndustry(country: ("IRN"), centi: 250),
+                    GrantLegitimacy(country: ("USA"), amount: -10),
+                    AdjustTension(10),
+                ],
+            ),
+            EventOption(
+                label: "LET MOSSADEGH STAND",
+                effects: [
+                    SetAlignment(country: ("IRN"), alignment: "NonAligned"),
+                    GrantLegitimacy(country: ("USA"), amount: 5),
+                    AdjustTension(-5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Mohammad Mosaddegh". Alt-history branch: with no
+    // coup, NIOC found independent buyers (as it briefly did historically
+    // through Italian and Japanese independents) and the embargo leaked.
+    EventDef(
+        id: "mossadegh-consolidates",
+        trigger: OptionChosen(id: "operation-ajax", option: 1, days_after: 45),
+        title: "MOSSADEGH RIDES OUT THE STORM",
+        body: "TEHRAN -- WITH NO COUP AND NO COMPROMISE, THE OLD MAN CONSOLIDATES. NATIONAL IRANIAN OIL FINDS INDEPENDENT BUYERS IN ITALY AND JAPAN AT DISCOUNT PRICES AND THE EMBARGO LEAKS AT EVERY SEAM. THE SHAH REMAINS A CEREMONIAL SHADOW. TEHRAN LECTURES BOTH BLOCS ON THE RIGHTS OF SMALL NATIONS.",
+        effects: [
+            GrantIndustry(country: ("IRN"), centi: 150),
+            GrantLegitimacy(country: ("IRN"), amount: 10),
+            AdjustStability(country: ("IRN"), delta: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "France and weapons of mass destruction". On 26 Dec
+    // 1954 Premier Mendes France convened the interministerial meeting that
+    // secretly launched the French nuclear weapons studies program at the CEA.
+    EventDef(
+        id: "france-goes-nuclear",
+        trigger: Date((1954, 12, 26, 12)),
+        title: "FRANCE STUDIES THE BOMB",
+        body: "PARIS -- PREMIER MENDES FRANCE CONVENES AN INTERMINISTERIAL COMMITTEE ON ATOMIC QUESTIONS. THE CEA IS QUIETLY DIRECTED TO PREPARE STUDIES FOR A FRENCH EXPLOSIVE DEVICE AND FOR THE PLUTONIUM TO FILL IT. NO COMMUNIQUE IS ISSUED. MARCOULE WILL PRODUCE MORE THAN POWER.",
+        effects: [
+            FoundNuclearProgram(country: ("FRA"), route: "Plutonium"),
+            AdjustTension(5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Egyptian-Czechoslovak arms deal". Announced 27 Sep
+    // 1955: Soviet arms through Prague -- MiG-15s, Il-28s, tanks, artillery
+    // -- paid in cotton, after the Feb 1955 Gaza raid exposed the army.
+    EventDef(
+        id: "czech-arms-deal",
+        trigger: Date((1955, 9, 20, 12)),
+        title: "ARMS FROM THE EAST: CAIRO DECIDES",
+        body: "CAIRO -- MOSCOW OFFERS, THROUGH PRAGUE, WHAT WASHINGTON WITHHOLDS -- MIGS, ILYUSHINS, ARMOR AND ARTILLERY IN QUANTITY, PAYABLE IN COTTON. THE GAZA RAID EXPOSED THE ARMY AS OBSOLETE AND THE OFFICERS DEMAND MODERN WEAPONS FROM ANY QUARTER. THE WEST OFFERS TERMS, CONDITIONS AND COMMITTEES. NASSER MUST CHOOSE HIS ARSENAL.",
+        country: Some(("EGY")),
+        deadline_days: 7,
+        options: [
+            EventOption(
+                label: "SIGN WITH PRAGUE",
+                effects: [
+                    GrantStock(country: ("EGY"), amount: 20),
+                    GrantLegitimacy(country: ("EGY"), amount: 10),
+                    AdjustTension(25),
+                ],
+            ),
+            EventOption(
+                label: "TAKE WASHINGTONS TERMS",
+                effects: [
+                    GrantStock(country: ("EGY"), amount: 5),
+                    GrantLegitimacy(country: ("EGY"), amount: -15),
+                    AdjustStability(country: ("EGY"), delta: -10),
+                    AdjustTension(-5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "French protectorate in Morocco" and "French
+    // protectorate of Tunisia". France recognized Moroccan independence
+    // 2 Mar 1956 and Tunisian independence 20 Mar 1956, freeing divisions
+    // for Algeria. Explicit province transfers: the map regions containing
+    // the Maghreb also contain metropolitan France, so Independence's
+    // region-granular transfer cannot be used here.
+    EventDef(
+        id: "maghreb-independence",
+        trigger: Date((1956, 3, 20, 12)),
+        title: "PARIS RELEASES THE PROTECTORATES",
+        body: "PARIS -- FRANCE RECOGNIZES THE INDEPENDENCE OF MOROCCO UNDER SULTAN MOHAMMED V AND OF TUNISIA UNDER HABIB BOURGUIBA. THE PROTECTORATE TREATIES OF FEZ AND BARDO ARE DEAD LETTERS. THE QUAI DORSAY CALLS IT CONCENTRATION OF EFFORT -- EVERY AVAILABLE DIVISION IS WANTED IN ALGERIA, WHICH PARIS INSISTS IS FRANCE ITSELF.",
+        effects: [
+            TransferProvinces(from: ("FRA"), to: ("MAR"), names: ["Tanger - Tétouan", "Fès - Boulemane", "Taza - Al Hoceima - Taounate", "Gharb - Chrarda - Béni Hssen", "Chaouia - Ouardigha", "Grand Casablanca", "Rabat - Salé - Zemmour - Zaer", "Meknès - Tafilalet", "Tadla - Azilal", "Oriental", "Souss - Massa - Draâ", "Marrakech - Tensift - Al Haouz", "Doukkala - Abda"]),
+            TransferProvinces(from: ("FRA"), to: ("TUN"), names: ["Tunis", "Manubah", "Ben Arous (Tunis Sud)", "Bizerte", "Béja", "Jendouba", "Nabeul", "Zaghouan", "Le Kef", "Siliana", "Sousse", "Monastir", "Mahdia", "Kairouan", "Kassérine", "Sidi Bou Zid", "Sfax", "Gafsa", "Tozeur", "Gabès", "Kebili", "Médenine", "Tataouine"]),
+            AdjustStability(country: ("FRA"), delta: 5),
+            GrantLegitimacy(country: ("FRA"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Suez Crisis". 26 Jul 1956: Nasser announced the
+    // nationalization of the Suez Canal Company in Alexandria, a week after
+    // Washington withdrew financing for the Aswan High Dam.
+    EventDef(
+        id: "suez-nationalization",
+        trigger: Date((1956, 7, 26, 19)),
+        title: "NASSER SEIZES THE CANAL",
+        body: "ALEXANDRIA -- BEFORE A ROARING CROWD NASSER ANNOUNCES THE NATIONALIZATION OF THE SUEZ CANAL COMPANY. EGYPTIAN STAFF TAKE THE COMPANY OFFICES AT ISMAILIA WHILE HE IS STILL SPEAKING. CANAL DUES WILL BUILD THE HIGH DAM AT ASWAN THAT WASHINGTON DECLINED TO FINANCE. LONDON AND PARIS CALL IT THEFT -- CAIRO CALLS IT SOVEREIGNTY.",
+        effects: [
+            GrantLegitimacy(country: ("EGY"), amount: 15),
+            GrantIndustry(country: ("EGY"), centi: 100),
+            AdjustTension(30),
+        ],
+    ),
+    // SOURCE: Wikipedia "Protocol of Sevres" and "Suez Crisis". Secret
+    // protocol initialed 24 Oct 1956; Israel attacked 29 Oct; Anglo-French
+    // ultimatum 30 Oct; landings at Port Said 5-6 Nov.
+    EventDef(
+        id: "suez-invasion",
+        trigger: Date((1956, 10, 26, 12)),
+        title: "SUEZ: THE SEVRES PROTOCOL",
+        body: "LONDON -- IN A VILLA AT SEVRES, BRITAIN, FRANCE AND ISRAEL HAVE INITIALED A SECRET PROTOCOL. ISRAEL STRIKES ACROSS SINAI -- LONDON AND PARIS ISSUE AN ULTIMATUM TO BOTH SIDES -- THEN SEIZE THE CANAL AS SELF-APPOINTED PEACEKEEPERS. EDEN WANTS NASSER BROKEN BEFORE THE YEAR TURNS. WASHINGTON HAS NOT BEEN TOLD.",
+        country: Some(("GBR")),
+        deadline_days: 3,
+        options: [
+            EventOption(
+                label: "EXECUTE OPERATION MUSKETEER",
+                effects: [
+                    DeclareWar(a: ("ISR"), b: ("EGY")),
+                    DeclareWar(a: ("GBR"), b: ("EGY")),
+                    DeclareWar(a: ("FRA"), b: ("EGY")),
+                    SetWarAim(country: ("ISR"), enemy: ("EGY"), aim: "NewLine"),
+                    SetWarAim(country: ("GBR"), enemy: ("EGY"), aim: "Punish"),
+                    SetWarAim(country: ("FRA"), enemy: ("EGY"), aim: "Punish"),
+                    SetPosture(country: ("ISR"), enemy: ("EGY"), posture: "Advance"),
+                    SetPosture(country: ("GBR"), enemy: ("EGY"), posture: "Advance"),
+                    SetPosture(country: ("FRA"), enemy: ("EGY"), posture: "Advance"),
+                    SpawnForces(owner: ("ISR"), province_owner: ("ISR"), province: "HaDarom", archetype: "Armor", divisions: 2, quality: 1200),
+                    SpawnForces(owner: ("GBR"), province_owner: ("EGY"), province: "Bur Sa`id", archetype: "Infantry", divisions: 2, quality: 1250),
+                    SpawnForces(owner: ("FRA"), province_owner: ("EGY"), province: "Bur Sa`id", archetype: "Infantry", divisions: 1, quality: 1250),
+                    AdjustTension(90),
+                ],
+            ),
+            EventOption(
+                label: "STAND DOWN",
+                effects: [
+                    AdjustTension(-15),
+                    GrantLegitimacy(country: ("GBR"), amount: -10),
+                    GrantLegitimacy(country: ("EGY"), amount: 10),
+                    AdjustStability(country: ("FRA"), delta: -5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Suez Crisis". Early Nov 1956: Eisenhower blocked
+    // IMF support for sterling and forced a ceasefire and withdrawal; Eden
+    // resigned in Jan 1957. The Suez lesson accelerated the French bomb.
+    EventDef(
+        id: "suez-us-ultimatum",
+        trigger: OptionChosen(id: "suez-invasion", option: 0, days_after: 6),
+        title: "EISENHOWER AND THE SUEZ ALLIES",
+        body: "WASHINGTON -- BRITISH PARATROOPS AND FRENCH MARINES HOLD PORT SAID WHILE ISRAELI ARMOR STANDS ALONG THE CANAL. STERLING BLEEDS AT A RATE THE TREASURY CALLS RUINOUS AND ONLY WASHINGTON CAN AUTHORIZE THE IMF LIFELINE. THE WORLD WAITS TO SEE WHETHER AMERICA BACKS ITS ALLIES OR THE CHARTER. BUDAPEST BURNS THE SAME WEEK.",
+        country: Some(("USA")),
+        deadline_days: 2,
+        options: [
+            EventOption(
+                label: "SEVER THE STERLING LIFELINE",
+                effects: [
+                    SetPosture(country: ("GBR"), enemy: ("EGY"), posture: "Hold"),
+                    SetPosture(country: ("FRA"), enemy: ("EGY"), posture: "Hold"),
+                    SetPosture(country: ("ISR"), enemy: ("EGY"), posture: "Hold"),
+                    SetWarAim(country: ("GBR"), enemy: ("EGY"), aim: "StatusQuoAnte"),
+                    SetWarAim(country: ("FRA"), enemy: ("EGY"), aim: "StatusQuoAnte"),
+                    SetWarAim(country: ("ISR"), enemy: ("EGY"), aim: "StatusQuoAnte"),
+                    GrantLegitimacy(country: ("GBR"), amount: -20),
+                    GrantLegitimacy(country: ("FRA"), amount: -15),
+                    GrantLegitimacy(country: ("EGY"), amount: 20),
+                    GrantLegitimacy(country: ("USA"), amount: 10),
+                    GrantIndustry(country: ("GBR"), centi: -300),
+                    AdjustStability(country: ("GBR"), delta: -10),
+                    // "Never again depend on Washington" -- Suez is the
+                    // spur that accelerates the French deterrent.
+                    AdjustProgramSpeed(country: ("FRA"), permille: 1250),
+                    AdjustTension(-40),
+                ],
+            ),
+            EventOption(
+                label: "BACK THE ALLIES",
+                effects: [
+                    AdjustTension(70),
+                    GrantLegitimacy(country: ("USA"), amount: -15),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Suez Crisis" (Soviet response). 5 Nov 1956:
+    // Bulganin's notes to London, Paris and Tel Aviv invoked rocket weapons
+    // and proposed joint US-Soviet action. Alt branch: with Washington
+    // backing the invasion, Moscow's ultimatum lands with full weight.
+    EventDef(
+        id: "soviet-rocket-ultimatum",
+        trigger: OptionChosen(id: "suez-us-ultimatum", option: 1, days_after: 2),
+        title: "MOSCOW SPEAKS OF ROCKETS",
+        body: "MOSCOW -- PREMIER BULGANIN ADDRESSES NOTES TO LONDON, PARIS AND TEL AVIV ASKING IN WHAT SITUATION BRITAIN WOULD FIND HERSELF IF ATTACKED BY ROCKET WEAPONS. WASHINGTON HAVING BLESSED THE EXPEDITION, MOSCOW ARMS THE VICTIM. SOVIET VOLUNTEERS ARE SPOKEN OF FOR EGYPT. THE CANAL IS NOW A SUPERPOWER MATTER.",
+        effects: [
+            AdjustTension(90),
+            SetAlignment(country: ("EGY"), alignment: "EasternBloc"),
+            GrantStock(country: ("EGY"), amount: 15),
+            GrantLegitimacy(country: ("SOV"), amount: 10),
+        ],
+    ),
+    // SOURCE: Wikipedia "Battle of Algiers (1956-1957)". 7 Jan 1957:
+    // Governor-General Lacoste gave General Massu's 10th Parachute Division
+    // full police powers in Algiers. The paras broke the FLN networks --
+    // and the torture scandal broke French standing abroad.
+    EventDef(
+        id: "battle-of-algiers",
+        trigger: Date((1957, 1, 7, 12)),
+        title: "ALGIERS: THE PARAS OR THE PREFECTS",
+        body: "ALGIERS -- FLN BOMBS IN THE MILK BARS AND A GENERAL STRIKE CALLED TO IMPRESS THE UN SESSION. GOVERNOR-GENERAL LACOSTE PROPOSES TO HAND ALL POLICE POWERS IN THE CITY TO GENERAL MASSU AND THE 10TH PARACHUTE DIVISION. THE ARMY PROMISES RESULTS AND ASKS NO QUESTIONS ABOUT METHODS. PARIS MUST CHOOSE.",
+        country: Some(("FRA")),
+        deadline_days: 4,
+        options: [
+            EventOption(
+                label: "GIVE MASSU A FREE HAND",
+                effects: [
+                    AdjustStability(country: ("FRA"), delta: 5),
+                    GrantLegitimacy(country: ("FRA"), amount: -15),
+                    AdjustTension(5),
+                ],
+            ),
+            EventOption(
+                label: "POLICE METHODS ONLY",
+                effects: [
+                    AdjustStability(country: ("FRA"), delta: -15),
+                    GrantLegitimacy(country: ("FRA"), amount: 5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "United Arab Republic". Proclaimed 1 Feb 1958;
+    // Nasser president of both regions. The union flattered Cairo and
+    // chafed Damascus from the first month (Syria seceded in Sep 1961).
+    EventDef(
+        id: "uar-proclaimed",
+        trigger: Date((1958, 2, 1, 12)),
+        title: "CAIRO AND DAMASCUS ARE ONE",
+        body: "DAMASCUS -- EGYPT AND SYRIA PROCLAIM THE UNITED ARAB REPUBLIC WITH NASSER AS PRESIDENT OF BOTH WINGS. CROWDS FROM ALEPPO TO ASWAN HAIL THE FIRST ARAB UNION SINCE THE CALIPHS. THE SYRIAN OFFICERS WHO PROPOSED THE MERGER ALREADY WONDER WHO COMMANDS WHOM. EVERY THRONE FROM AMMAN TO RIYADH TAKES NOTE.",
+        effects: [
+            GrantLegitimacy(country: ("EGY"), amount: 10),
+            AdjustStability(country: ("SYR"), delta: -5),
+            AdjustTension(5),
+        ],
+    ),
+    // SOURCE: Wikipedia "14 July Revolution". 14 Jul 1958: Qassem's Free
+    // Officers overthrew the Hashemite monarchy; Faisal II and Nuri al-Said
+    // killed; Iraq left the Baghdad Pact's orbit within the year.
+    EventDef(
+        id: "iraq-revolution",
+        trigger: Date((1958, 7, 14, 6)),
+        title: "REVOLUTION IN BAGHDAD",
+        body: "BAGHDAD -- BRIGADIER QASSEM AND THE IRAQI FREE OFFICERS STORM THE PALACE AT DAWN. KING FAISAL II AND THE ROYAL FAMILY ARE SHOT IN THE COURTYARD -- NURI AL-SAID IS HUNTED THROUGH THE STREETS. THE HASHEMITE MONARCHY, LONDONS ANCHOR IN THE ARAB EAST, IS GONE IN A MORNING. THE BAGHDAD PACT HAS LOST ITS CAPITAL.",
+        effects: [
+            AdjustStability(country: ("IRQ"), delta: -20),
+            SetAlignment(country: ("IRQ"), alignment: "NonAligned"),
+            GrantLegitimacy(country: ("GBR"), amount: -5),
+            AdjustTension(20),
+        ],
+    ),
+    // SOURCE: Wikipedia "1958 Lebanon crisis" and "Operation Blue Bat".
+    // 15 Jul 1958: US Marines landed at Beirut under the Eisenhower
+    // Doctrine, the day after Baghdad; British paratroops flew to Amman.
+    EventDef(
+        id: "lebanon-intervention",
+        trigger: EventFired(id: "iraq-revolution", days_after: 1),
+        title: "LEBANON CALLS FOR THE MARINES",
+        body: "WASHINGTON -- PRESIDENT CHAMOUN INVOKES THE EISENHOWER DOCTRINE WITHIN HOURS OF THE BAGHDAD MASSACRE. CIVIL STRIFE SINCE MAY, THE ARMY NEUTRAL, THE OPPOSITION FED FROM DAMASCUS. KING HUSSEIN IN AMMAN ASKS LONDON FOR THE SAME INSURANCE. THE SIXTH FLEET IS OFF THE BEACHES OF BEIRUT.",
+        country: Some(("USA")),
+        deadline_days: 2,
+        options: [
+            EventOption(
+                label: "LAND THE MARINES",
+                effects: [
+                    SpawnForces(owner: ("USA"), province_owner: ("LBN"), province: "Beirut", archetype: "Infantry", divisions: 2, quality: 1200),
+                    SpawnForces(owner: ("GBR"), province_owner: ("JOR"), province: "Amman", archetype: "Infantry", divisions: 1, quality: 1150),
+                    AdjustStability(country: ("LBN"), delta: 15),
+                    AdjustStability(country: ("JOR"), delta: 10),
+                    GrantLegitimacy(country: ("USA"), amount: -5),
+                    AdjustTension(25),
+                ],
+            ),
+            EventOption(
+                label: "THE DOCTRINE STAYS ON PAPER",
+                effects: [
+                    AdjustStability(country: ("LBN"), delta: -20),
+                    AdjustStability(country: ("JOR"), delta: -15),
+                    GrantLegitimacy(country: ("USA"), amount: -10),
+                    AdjustTension(-5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Operation Vantage". Kuwait independent 19 Jun 1961
+    // (a founding OPEC member, Sep 1960); Qassem claimed it 25 Jun; British
+    // forces deployed 1 Jul and were later relieved by the Arab League.
+    EventDef(
+        id: "kuwait-independence",
+        trigger: Date((1961, 6, 19, 12)),
+        title: "KUWAIT: INDEPENDENCE AND A CLAIM",
+        body: "KUWAIT -- THE EXCLUSIVE AGREEMENT OF 1899 IS TERMINATED AND THE SHEIKHDOM -- RICHEST OIL PRODUCER PER ACRE ON EARTH AND A FOUNDER OF THE NEW OPEC -- TAKES ITS INDEPENDENCE. GENERAL QASSEM IS EXPECTED TO DECLARE KUWAIT AN INTEGRAL PART OF IRAQ WITHIN THE WEEK. THE EMIR ASKS WHAT THE BRITISH GUARANTEE IS WORTH.",
+        country: Some(("GBR")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "HONOR THE GUARANTEE -- OPERATION VANTAGE",
+                effects: [
+                    TransferProvinces(from: ("GBR"), to: ("KWT"), names: ["Al Asimah", "Al Jahrah", "Al Ahmadi", "Al Farwaniyah", "Hawalli", "Mubarak Al-Kabeer"]),
+                    SpawnForces(owner: ("GBR"), province_owner: ("GBR"), province: "Al Jahrah", archetype: "Motorized", divisions: 1, quality: 1150),
+                    GrantLegitimacy(country: ("GBR"), amount: 5),
+                    AdjustTension(10),
+                ],
+            ),
+            EventOption(
+                label: "INDEPENDENCE WITHOUT ENTANGLEMENT",
+                effects: [
+                    TransferProvinces(from: ("GBR"), to: ("KWT"), names: ["Al Asimah", "Al Jahrah", "Al Ahmadi", "Al Farwaniyah", "Hawalli", "Mubarak Al-Kabeer"]),
+                    AdjustStability(country: ("KWT"), delta: -20),
+                    GrantLegitimacy(country: ("IRQ"), amount: 5),
+                    AdjustTension(5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Evian Accords". Signed 18 Mar 1962 after nearly
+    // eight years of war; ceasefire 19 Mar; independence referendum 1 Jul;
+    // Algeria independent 5 Jul 1962. Explicit province transfer: the map
+    // regions containing Algeria also contain southern France, Tunisia and
+    // French West Africa, so Independence's region transfer cannot be used.
+    EventDef(
+        id: "evian-decision",
+        trigger: Date((1962, 3, 18, 12)),
+        title: "ALGERIA: THE EVIAN ACCORDS",
+        body: "EVIAN-LES-BAINS -- AFTER SEVEN YEARS OF WAR, HALF A MILLION MEN UNDER ARMS AND THE GENERALS PUTSCH BARELY A YEAR BEHIND HIM, DE GAULLE HAS HIS TEXT -- CEASEFIRE, REFERENDUM, INDEPENDENCE IN COOPERATION WITH FRANCE. THE OAS PROMISES TO BURN WHAT IT CANNOT KEEP. THE ARMY WAITS TO SEE IF PARIS SIGNS.",
+        country: Some(("FRA")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "SIGN AT EVIAN",
+                effects: [
+                    TransferProvinces(from: ("FRA"), to: ("DZA"), names: ["Alger", "Boumerdès", "Tizi Ouzou", "Tipaza", "Blida", "Bouira", "Médéa", "Aïn Defla", "Chlef", "Relizane", "Mostaganem", "Mascara", "Oran", "Aïn Témouchent", "Sidi Bel Abbès", "Tlemcen", "Naâma", "El Bayadh", "Saïda", "Tiaret", "Tissemsilt", "Djelfa", "Laghouat", "Ghardaïa", "Ouargla", "El Oued", "Biskra", "Khenchela", "Batna", "M'Sila", "Bordj Bou Arréridj", "Béjaïa", "Sétif", "Mila", "Jijel", "Skikda", "Constantine", "Oum el Bouaghi", "Guelma", "Annaba", "El Tarf", "Souk Ahras", "Tébessa", "Béchar", "Tindouf", "Illizi", "Tamanghasset"]),
+                    AdjustStability(country: ("FRA"), delta: 10),
+                    GrantLegitimacy(country: ("FRA"), amount: 10),
+                    AdjustTension(-10),
+                ],
+            ),
+            EventOption(
+                label: "ALGERIE FRANCAISE -- FIGHT ON",
+                effects: [
+                    AdjustStability(country: ("FRA"), delta: -20),
+                    GrantLegitimacy(country: ("FRA"), amount: -15),
+                    GrantIndustry(country: ("FRA"), centi: -300),
+                    AdjustTension(10),
+                ],
+            ),
+        ],
+    ),
+    // Alt-history continuation: refusing Evian buys ~16 more months of war,
+    // OAS terror and conscript losses before Paris concedes on worse terms.
+    // Same transfer list as the Evian branch -- Algeria exists either way.
+    EventDef(
+        id: "algeria-independence-late",
+        trigger: OptionChosen(id: "evian-decision", option: 1, days_after: 480),
+        title: "ALGERIA GOES AT LAST",
+        body: "PARIS -- THE WAR PROLONGED PAST EVIAN HAS DELIVERED ONLY CONSCRIPT COFFINS, OAS BOMBS IN METROPOLITAN FRANCE AND EMPTY VAULTS AT THE BANK OF FRANCE. PARIS CONCEDES WHAT IT REFUSED AT THE LAKESIDE -- ALGERIA IS INDEPENDENT WITHOUT A TREATY OF COOPERATION AND WITHOUT FRIENDS IN ALGIERS. NOTHING WAS BOUGHT BY THE DELAY.",
+        effects: [
+            TransferProvinces(from: ("FRA"), to: ("DZA"), names: ["Alger", "Boumerdès", "Tizi Ouzou", "Tipaza", "Blida", "Bouira", "Médéa", "Aïn Defla", "Chlef", "Relizane", "Mostaganem", "Mascara", "Oran", "Aïn Témouchent", "Sidi Bel Abbès", "Tlemcen", "Naâma", "El Bayadh", "Saïda", "Tiaret", "Tissemsilt", "Djelfa", "Laghouat", "Ghardaïa", "Ouargla", "El Oued", "Biskra", "Khenchela", "Batna", "M'Sila", "Bordj Bou Arréridj", "Béjaïa", "Sétif", "Mila", "Jijel", "Skikda", "Constantine", "Oum el Bouaghi", "Guelma", "Annaba", "El Tarf", "Souk Ahras", "Tébessa", "Béchar", "Tindouf", "Illizi", "Tamanghasset"]),
+            AdjustStability(country: ("FRA"), delta: -10),
+            GrantLegitimacy(country: ("FRA"), amount: -10),
+            AdjustTension(-5),
+        ],
+    ),
+    // SOURCE: Wikipedia "North Yemen Civil War". 26 Sep 1962: Sallal's coup
+    // proclaimed the Yemen Arab Republic; Egypt intervened in early October
+    // and eventually sank ~70,000 troops into the mountains -- Nasser
+    // later called it "my Vietnam". Saudi gold backed the royalists.
+    EventDef(
+        id: "yemen-intervention",
+        trigger: Date((1962, 10, 1, 12)),
+        title: "YEMEN: CAIRO WEIGHS AN EXPEDITION",
+        body: "CAIRO -- COLONEL SALLAL HOLDS SANAA AND PROCLAIMS A REPUBLIC -- THE IMAM, REPORTED DEAD, IS ALIVE IN THE NORTHERN MOUNTAINS RAISING THE TRIBES ON SAUDI GOLD. THE NEW REGIME ASKS FOR EGYPTIAN TROOPS. THE GENERAL STAFF PROMISES A SHORT CAMPAIGN. THE MOUNTAINS HAVE HEARD SUCH PROMISES BEFORE.",
+        country: Some(("EGY")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "SEND THE EXPEDITIONARY FORCE",
+                effects: [
+                    SpawnForces(owner: ("EGY"), province_owner: ("YEM"), province: "Amanat Al Asimah", archetype: "Infantry", divisions: 3, quality: 1000),
+                    SpawnForces(owner: ("EGY"), province_owner: ("YEM"), province: "Al Hudaydah", archetype: "Motorized", divisions: 1, quality: 1000),
+                    // The expedition's upkeep is the stock drain; the
+                    // treasury drain is priced here directly.
+                    GrantIndustry(country: ("EGY"), centi: -200),
+                    GrantLegitimacy(country: ("EGY"), amount: 10),
+                    AdjustStability(country: ("YEM"), delta: -15),
+                    AdjustTension(15),
+                ],
+            ),
+            EventOption(
+                label: "CAIRO STAYS HOME",
+                effects: [
+                    GrantLegitimacy(country: ("EGY"), amount: -10),
+                    AdjustStability(country: ("YEM"), delta: -20),
+                    GrantLegitimacy(country: ("SAU"), amount: 5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Six-Day War". Tiran closed 22-23 May 1967, UNEF
+    // expelled, Sinai remilitarized, Jordan under Egyptian command 30 May;
+    // cabinet decided 4 Jun; Operation Moked destroyed the Egyptian air
+    // force on the ground at dawn 5 Jun. The settlement system decides
+    // where the new lines fall.
+    EventDef(
+        id: "six-day-war",
+        trigger: Date((1967, 6, 4, 12)),
+        title: "ISRAEL: THE WAITING IS THE WAR",
+        body: "TEL AVIV -- THE STRAITS OF TIRAN CLOSED, UN OBSERVERS EXPELLED FROM SINAI, SEVEN EGYPTIAN DIVISIONS ACROSS THE FRONTIER AND AMMAN SIGNED INTO THE EGYPTIAN COMMAND -- THE CABINET SITS THROUGH THE NIGHT. FULL MOBILIZATION IS STRANGLING THE ECONOMY BY THE WEEK. THE AIR STAFF SAYS THE EGYPTIAN AIR FORCE CAN BE DESTROYED ON ITS FIELDS AT DAWN. WASHINGTON COUNSELS PATIENCE AND OFFERS NOTHING.",
+        country: Some(("ISR")),
+        deadline_days: 1,
+        options: [
+            EventOption(
+                label: "STRIKE AT DAWN",
+                effects: [
+                    DeclareWar(a: ("ISR"), b: ("EGY")),
+                    DeclareWar(a: ("ISR"), b: ("SYR")),
+                    DeclareWar(a: ("ISR"), b: ("JOR")),
+                    SetWarAim(country: ("ISR"), enemy: ("EGY"), aim: "NewLine"),
+                    SetWarAim(country: ("ISR"), enemy: ("SYR"), aim: "NewLine"),
+                    SetWarAim(country: ("ISR"), enemy: ("JOR"), aim: "NewLine"),
+                    SetPosture(country: ("ISR"), enemy: ("EGY"), posture: "Advance"),
+                    SetPosture(country: ("ISR"), enemy: ("SYR"), posture: "Advance"),
+                    SetPosture(country: ("ISR"), enemy: ("JOR"), posture: "Advance"),
+                    GrantStock(country: ("ISR"), amount: 15),
+                    AdjustTension(90),
+                ],
+            ),
+            EventOption(
+                label: "WAIT FOR WASHINGTON",
+                effects: [
+                    AdjustTension(40),
+                    GrantIndustry(country: ("ISR"), centi: -300),
+                    AdjustStability(country: ("ISR"), delta: -10),
+                    GrantLegitimacy(country: ("EGY"), amount: 10),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Khartoum Resolution". 1 Sep 1967: no peace, no
+    // recognition, no negotiation; Saudi, Kuwaiti and Libyan oil money
+    // subsidized the front-line states' treasuries.
+    EventDef(
+        id: "khartoum-resolution",
+        trigger: OptionChosen(id: "six-day-war", option: 0, days_after: 88),
+        title: "KHARTOUM: THE THREE NOES",
+        body: "KHARTOUM -- THE ARAB SUMMIT RESOLVES: NO PEACE WITH ISRAEL, NO RECOGNITION OF ISRAEL, NO NEGOTIATIONS WITH ISRAEL. THE OIL STATES WILL SUBSIDIZE THE FRONT-LINE TREASURIES OF CAIRO AND AMMAN. THE LOST TERRITORIES ARE DECLARED A TEMPORARY FACT. THE CANAL STAYS CLOSED AND THE FRONTS STAY ARMED.",
+        effects: [
+            AdjustTension(10),
+            GrantIndustry(country: ("EGY"), centi: 200),
+            GrantIndustry(country: ("JOR"), centi: 100),
+            GrantLegitimacy(country: ("ISR"), amount: -5),
+        ],
+    ),
+]

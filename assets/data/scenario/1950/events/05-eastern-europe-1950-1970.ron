@@ -1,0 +1,407 @@
+// Eastern Europe 1950-1970 — timeline content, sourced per event.
+// Sources: Wikipedia: East German uprising of 1953; Wikipedia: Walter Ulbricht; Wikipedia: Warsaw Pact; Wikipedia: Belgrade declaration; Wikipedia: On the Cult of Personality and Its Consequences; Wikipedia: Poznań protests of 1956; Wikipedia: Polish October; Wikipedia: Hungarian Revolution of 1956; Wikipedia: János Kádár; Wikipedia: Imre Nagy; Wikipedia: Berlin Crisis of 1958–1959; Wikipedia: Berlin Wall; Wikipedia: Checkpoint Charlie; Wikipedia: Republikflucht; Wikipedia: Soviet–Albanian split (break date Dec 3, 1961 confirmed via https://grokipedia.com/page/Albanian%E2%80%93Soviet_split and marxists.org Soviet-Albanian relations documents); Wikipedia: Gheorghe Gheorghiu-Dej (April Declaration date Apr 22, 1964 confirmed via https://www.rri.ro/en/features-and-reports/the-history-show/50-years-since-the-romanian-communist-partys-declaration-of-independence-id127850.html and https://www.marxists.org/history/international/comintern/sino-soviet-split/other/rwp1964.htm); Wikipedia: Prague Spring; Wikipedia: Warsaw Pact invasion of Czechoslovakia; Wikipedia: Brezhnev Doctrine
+[
+    // SOURCE: Wikipedia "East German uprising of 1953". Strikes over raised work norms began June 16; on June 17, 1953 up to a million East Germans protested and Soviet tanks put the rising down.
+    EventDef(
+        id: "east-german-uprising",
+        trigger: Date((1953, 6, 17, 8)),
+        title: "WORKERS RISE ACROSS EAST GERMANY",
+        body: "BERLIN -- STRIKES OVER RAISED WORK NORMS HAVE BECOME A GENERAL RISING. CROWDS ON STALINALLEE TEAR DOWN PARTY BANNERS AND MARCH ON GOVERNMENT HOUSE. UNREST REPORTED IN LEIPZIG, HALLE, MAGDEBURG. THE SED LEADERSHIP HAS TAKEN REFUGE UNDER SOVIET GUARD AT KARLSHORST.",
+        country: Some(("GDR")),
+        deadline_days: 2,
+        options: [
+            EventOption(
+                label: "REQUEST SOVIET TANKS",
+                effects: [
+                    AdjustTension(30),
+                    AdjustStability(country: ("GDR"), delta: 15),
+                    GrantLegitimacy(country: ("GDR"), amount: -15),
+                ],
+            ),
+            EventOption(
+                label: "RESCIND THE NORMS -- CONCEDE",
+                effects: [
+                    AdjustStability(country: ("GDR"), delta: -20),
+                    GrantLegitimacy(country: ("GDR"), amount: 5),
+                    AdjustTension(-5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Walter Ulbricht". Ulbricht nearly fell in mid-1953 -- Herrnstadt and Zaisser moved against him and only Soviet backing after the crackdown saved him. If Berlin concedes instead, he falls.
+    EventDef(
+        id: "ulbricht-falls",
+        trigger: OptionChosen(id: "east-german-uprising", option: 1, days_after: 30),
+        title: "ULBRICHT OUSTED IN BERLIN SHAKE-UP",
+        body: "BERLIN -- THE SED CENTRAL COMMITTEE HAS REMOVED FIRST SECRETARY WALTER ULBRICHT, BLAMING THE JUNE DISORDERS ON HIS FORCED-PACE CONSTRUCTION OF SOCIALISM. THE HERRNSTADT FACTION PROMISES A NEW COURSE. MOSCOW WATCHES ITS GERMAN CLIENT DRIFT AND SAYS NOTHING IN PUBLIC.",
+        effects: [
+            GrantLegitimacy(country: ("GDR"), amount: 10),
+            AdjustStability(country: ("GDR"), delta: -10),
+            AdjustTension(-5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Warsaw Pact". Signed May 14, 1955 in Warsaw, five days after the FRG joined NATO; USSR plus seven European satellites formalize the opposing alliance.
+    EventDef(
+        id: "warsaw-pact",
+        trigger: Date((1955, 5, 14, 12)),
+        title: "EASTERN BLOC SIGNS WARSAW TREATY",
+        body: "WARSAW -- USSR, POLAND, EAST GERMANY, CZECHOSLOVAKIA, HUNGARY, ROMANIA, BULGARIA AND ALBANIA SIGN A TREATY OF FRIENDSHIP, COOPERATION AND MUTUAL ASSISTANCE. UNIFIED MILITARY COMMAND UNDER MARSHAL KONEV. MOSCOW CALLS IT THE ANSWER TO WEST GERMAN ENTRY INTO NATO. THE DIVISION OF EUROPE NOW HAS ITS PAPERWORK.",
+        effects: [
+            AdjustTension(20),
+            GrantStock(country: ("GDR"), amount: 8),
+            GrantStock(country: ("POL"), amount: 8),
+            GrantStock(country: ("CSK"), amount: 8),
+            GrantStock(country: ("HUN"), amount: 8),
+            GrantStock(country: ("ROU"), amount: 8),
+            GrantStock(country: ("BGR"), amount: 8),
+            GrantStock(country: ("ALB"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Belgrade declaration". Signed June 2, 1955 after Khrushchev's pilgrimage to Tito -- Moscow concedes separate roads to socialism and ends the 1948 breach on Yugoslav terms.
+    EventDef(
+        id: "belgrade-declaration",
+        trigger: Date((1955, 6, 2, 12)),
+        title: "KHRUSHCHEV MAKES PEACE WITH TITO",
+        body: "BELGRADE -- KHRUSHCHEV AND TITO SIGN A JOINT DECLARATION ENDING SEVEN YEARS OF SCHISM. MOSCOW ACCEPTS THAT ROADS TO SOCIALISM ARE A MATTER FOR EACH COUNTRY. TITO GAVE NOTHING AND GOT AN APOLOGY. SATELLITE CAPITALS TAKE CAREFUL NOTE OF WHAT DEFIANCE CAN EARN.",
+        effects: [
+            AdjustTension(-10),
+            GrantLegitimacy(country: ("YUG"), amount: 10),
+            AdjustStability(country: ("YUG"), delta: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Poznań protests of 1956". June 28, 1956 -- 100,000 workers from the Cegielski works demand bread and freedom; the army's crackdown kills dozens.
+    EventDef(
+        id: "poznan-uprising",
+        trigger: Date((1956, 6, 28, 6)),
+        title: "WORKERS SEIZE THE STREETS OF POZNAN",
+        body: "POZNAN -- WORKERS FROM THE STALIN METAL WORKS MARCH UNDER BANNERS DEMANDING BREAD AND FREEDOM. CROWDS STORM THE SECRET POLICE HEADQUARTERS AND FREE PRISONERS. THE INTERNATIONAL TRADE FAIR MEANS FOREIGN PRESS IS WATCHING. WARSAW MUST ANSWER TODAY.",
+        country: Some(("POL")),
+        deadline_days: 2,
+        options: [
+            EventOption(
+                label: "SEND IN THE ARMY",
+                effects: [
+                    AdjustTension(10),
+                    AdjustStability(country: ("POL"), delta: 5),
+                    GrantLegitimacy(country: ("POL"), amount: -10),
+                ],
+            ),
+            EventOption(
+                label: "NEGOTIATE WITH THE STRIKERS",
+                effects: [
+                    AdjustStability(country: ("POL"), delta: -10),
+                    GrantLegitimacy(country: ("POL"), amount: 5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Polish October". October 19, 1956 -- Khrushchev flies uninvited to Warsaw as Gomulka takes the party leadership; Soviet columns move, then halt when Poland stands firm.
+    EventDef(
+        id: "polish-october",
+        trigger: Date((1956, 10, 19, 8)),
+        title: "GOMULKA RETURNS -- KHRUSHCHEV FLIES TO WARSAW",
+        body: "WARSAW -- WLADYSLAW GOMULKA, PURGED IN 1951, STANDS FOR FIRST SECRETARY WITHOUT MOSCOW'S BLESSING. KHRUSHCHEV HAS LANDED UNANNOUNCED WITH HALF THE SOVIET PRESIDIUM WHILE SOVIET ARMOR MOVES ON THE CAPITAL. POLISH INTERNAL SECURITY TROOPS ARE DEPLOYING TO MEET THEM. THE PARTY PLENUM SITS IN PERMANENT SESSION.",
+        country: Some(("POL")),
+        deadline_days: 3,
+        options: [
+            EventOption(
+                label: "STAND FIRM BEHIND GOMULKA",
+                effects: [
+                    AdjustTension(15),
+                    AdjustStability(country: ("POL"), delta: 15),
+                    GrantLegitimacy(country: ("POL"), amount: 10),
+                ],
+            ),
+            EventOption(
+                label: "YIELD TO MOSCOW",
+                effects: [
+                    AdjustTension(-5),
+                    AdjustStability(country: ("POL"), delta: -20),
+                    GrantLegitimacy(country: ("POL"), amount: -10),
+                    GrantStock(country: ("POL"), amount: 10),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Hungarian Revolution of 1956". October 23, 1956 -- a student march of 200,000 becomes a rising; the Stalin monument is toppled and AVH men fire on the radio building crowd.
+    EventDef(
+        id: "hungary-uprising",
+        trigger: Date((1956, 10, 23, 18)),
+        title: "BUDAPEST RISES",
+        body: "BUDAPEST -- FLASH -- A STUDENT MARCH OF TWO HUNDRED THOUSAND HAS BECOME REVOLUTION. THE STALIN MONUMENT IS DOWN, CUT OFF AT THE BOOTS. AVH SECURITY POLICE FIRED ON THE CROWD AT THE RADIO BUILDING AND THE CROWD IS NOW ARMED. IMRE NAGY'S NAME IS ON EVERY BANNER. HUNGARIAN ARMY UNITS ARE HANDING THEIR WEAPONS TO THE INSURGENTS.",
+        effects: [
+            AdjustTension(15),
+            AdjustStability(country: ("HUN"), delta: -30),
+        ],
+    ),
+    // SOURCE: Wikipedia "Hungarian Revolution of 1956". On October 31 the Soviet Presidium reversed itself and chose invasion; Operation Whirlwind struck Budapest November 4, 1956. Nagy had declared withdrawal from the Warsaw Pact and neutrality on November 1.
+    EventDef(
+        id: "hungary-soviet-decision",
+        trigger: EventFired(id: "hungary-uprising", days_after: 8),
+        title: "NAGY DECLARES NEUTRALITY -- MOSCOW MUST CHOOSE",
+        body: "MOSCOW -- NAGY HAS ANNOUNCED HUNGARY'S WITHDRAWAL FROM THE WARSAW PACT AND APPEALED TO THE UNITED NATIONS. MULTIPARTY GOVERNMENT FORMING IN BUDAPEST. FRESH SOVIET DIVISIONS ARE CROSSING THE FRONTIER EVEN AS TALKS CONTINUE. THE PRESIDIUM SITS -- LET HUNGARY GO, OR TAKE IT BACK BY STORM.",
+        country: Some(("SOV")),
+        deadline_days: 4,
+        options: [
+            EventOption(
+                label: "OPERATION WHIRLWIND -- CRUSH IT",
+                effects: [
+                    AdjustTension(50),
+                    AdjustStability(country: ("HUN"), delta: -15),
+                    GrantLegitimacy(country: ("SOV"), amount: -15),
+                    GrantLegitimacy(country: ("HUN"), amount: -15),
+                    SpawnForces(owner: ("SOV"), province_owner: ("HUN"), province: "Budapest", archetype: "Armor", divisions: 4, quality: 1100),
+                    SpawnForces(owner: ("SOV"), province_owner: ("HUN"), province: "Gyor-Moson-Sopron", archetype: "Infantry", divisions: 3, quality: 1000),
+                ],
+            ),
+            EventOption(
+                label: "TOLERATE NAGY -- LET HUNGARY GO",
+                effects: [
+                    AdjustTension(-15),
+                    SetAlignment(country: ("HUN"), alignment: "NonAligned"),
+                    AdjustStability(country: ("HUN"), delta: 10),
+                    GrantLegitimacy(country: ("HUN"), amount: 15),
+                    GrantLegitimacy(country: ("SOV"), amount: -10),
+                    AdjustStability(country: ("GDR"), delta: -10),
+                    AdjustStability(country: ("CSK"), delta: -10),
+                    AdjustStability(country: ("ROU"), delta: -10),
+                    AdjustStability(country: ("BGR"), delta: -10),
+                    AdjustStability(country: ("POL"), delta: -5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "János Kádár". Kadar's counter-government was proclaimed November 4, 1956 and entered Budapest behind Soviet armor days later; some 200,000 Hungarians fled west.
+    EventDef(
+        id: "kadar-installed",
+        trigger: OptionChosen(id: "hungary-soviet-decision", option: 0, days_after: 3),
+        title: "KADAR GOVERNMENT PROCLAIMED IN BUDAPEST",
+        body: "BUDAPEST -- JANOS KADAR, WHO VANISHED FROM NAGY'S CABINET A WEEK AGO, RETURNS BEHIND SOVIET ARMOR AT THE HEAD OF A REVOLUTIONARY WORKER-PEASANT GOVERNMENT. RESISTANCE HOLDS OUT IN CSEPEL AND THE FACTORY DISTRICTS. TWO HUNDRED THOUSAND HUNGARIANS ARE CROSSING THE AUSTRIAN FRONTIER. NAGY HAS TAKEN REFUGE IN THE YUGOSLAV EMBASSY.",
+        effects: [
+            AdjustStability(country: ("HUN"), delta: 10),
+            GrantLegitimacy(country: ("HUN"), amount: -5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Imre Nagy". Lured from the Yugoslav embassy, deported, secretly tried; Nagy was hanged June 16, 1958 -- roughly 590 days after the November 4, 1956 intervention.
+    EventDef(
+        id: "nagy-executed",
+        trigger: OptionChosen(id: "hungary-soviet-decision", option: 0, days_after: 589),
+        title: "IMRE NAGY HANGED IN BUDAPEST",
+        body: "BUDAPEST -- THE JUSTICE MINISTRY ANNOUNCES THAT IMRE NAGY, PREMIER DURING THE 1956 COUNTER-REVOLUTION, HAS BEEN TRIED IN SECRET, SENTENCED AND EXECUTED. HE WAS PROMISED SAFE CONDUCT WHEN HE LEFT THE YUGOSLAV EMBASSY. BURIED FACE DOWN IN AN UNMARKED PLOT. THE LESSON IS ADDRESSED TO EVERY REFORMER IN THE BLOC.",
+        effects: [
+            AdjustTension(10),
+            GrantLegitimacy(country: ("HUN"), amount: -10),
+        ],
+    ),
+    // SOURCE: Wikipedia "Hungarian Revolution of 1956" / "Declaration of Neutrality (Austria)". Alt-history branch: a tolerated Nagy government must pick its road -- the Austrian model of 1955 was the explicit template Nagy invoked.
+    EventDef(
+        id: "nagy-neutral-hungary",
+        trigger: OptionChosen(id: "hungary-soviet-decision", option: 1, days_after: 20),
+        title: "FREE HUNGARY CHARTS ITS COURSE",
+        body: "BUDAPEST -- THE SOVIET DIVISIONS ARE GOING HOME. NAGY'S COALITION GOVERNS A STATE NO LONGER IN ANY BLOC, AND EVERY CHANCELLERY IN EUROPE WANTS TO KNOW WHAT COMES NEXT. VIENNA'S TREATY OF 1955 IS ON THE PREMIER'S DESK. WASHINGTON IS OFFERING CREDITS WITH STRINGS ATTACHED.",
+        country: Some(("HUN")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "ARMED NEUTRALITY -- THE AUSTRIAN ROAD",
+                effects: [
+                    AdjustTension(-10),
+                    AdjustStability(country: ("HUN"), delta: 10),
+                    GrantStock(country: ("HUN"), amount: 10),
+                ],
+            ),
+            EventOption(
+                label: "TURN WEST -- TAKE THE CREDITS",
+                effects: [
+                    SetAlignment(country: ("HUN"), alignment: "WesternBloc"),
+                    AdjustTension(40),
+                    GrantIndustry(country: ("HUN"), centi: 1000),
+                    GrantLegitimacy(country: ("HUN"), amount: 5),
+                    AdjustStability(country: ("HUN"), delta: -10),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Berlin Wall". Some 3.5 million had fled through Berlin by 1961; in the night of August 12-13, 1961 the GDR sealed the sector border with wire that became concrete.
+    EventDef(
+        id: "berlin-wall",
+        trigger: Date((1961, 8, 13, 1)),
+        title: "THE EXODUS MUST END -- SEAL BERLIN?",
+        body: "BERLIN -- THIRTY THOUSAND EAST GERMANS FLED THROUGH THE OPEN SECTOR BORDER IN JULY ALONE, DOCTORS AND ENGINEERS FIRST. ULBRICHT HAS MOSCOW'S SANCTION AND THE POLICE ALERTED. STOCKPILES OF WIRE AND CONCRETE POSTS WAIT AT THE SECTOR BOUNDARY. THE ORDER MUST BE GIVEN TONIGHT OR THE REPUBLIC BLEEDS OUT.",
+        country: Some(("GDR")),
+        deadline_days: 2,
+        options: [
+            EventOption(
+                label: "SEAL THE SECTOR BORDER",
+                effects: [
+                    AdjustTension(35),
+                    AdjustStability(country: ("GDR"), delta: 15),
+                    GrantLegitimacy(country: ("GDR"), amount: -15),
+                ],
+            ),
+            EventOption(
+                label: "LEAVE THE DOOR OPEN",
+                effects: [
+                    AdjustTension(-5),
+                    AdjustStability(country: ("GDR"), delta: -15),
+                    GrantLegitimacy(country: ("GDR"), amount: 5),
+                    GrantIndustry(country: ("GDR"), centi: -600),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Checkpoint Charlie". October 27, 1961 -- ten Soviet and ten American tanks faced off at 100 meters on Friedrichstrasse for sixteen hours before both sides backed away.
+    EventDef(
+        id: "checkpoint-charlie",
+        trigger: OptionChosen(id: "berlin-wall", option: 0, days_after: 75),
+        title: "TANKS FACE TANKS AT CHECKPOINT CHARLIE",
+        body: "BERLIN -- TEN AMERICAN M48S AND TEN SOVIET T-55S STAND GUN TO GUN AT ONE HUNDRED METERS ON FRIEDRICHSTRASSE, ENGINES RUNNING, AMMUNITION LOADED. THE DISPUTE BEGAN OVER A DIPLOMAT'S OPERA TICKETS AND A DEMAND FOR PAPERS. SIXTEEN HOURS AND ONE NERVOUS GUNNER FROM WAR. BOTH CAPITALS ARE ON THE WIRE.",
+        effects: [
+            AdjustTension(15),
+        ],
+    ),
+    // SOURCE: Wikipedia "Republikflucht" / "Berlin Wall". Alt-history branch: with the border left open, the drain of skilled labor accelerates toward collapse -- 1,700 a day were leaving in August 1961.
+    EventDef(
+        id: "gdr-exodus",
+        trigger: OptionChosen(id: "berlin-wall", option: 1, days_after: 45),
+        title: "EAST GERMANY BLEEDS OUT THROUGH BERLIN",
+        body: "BERLIN -- MARIENFELDE RECEPTION CENTER LOGS TWO THOUSAND ARRIVALS A DAY AND RISING. FACTORY SHIFTS IN SACHSEN GO UNMANNED -- IT IS THE YOUNG AND THE TRAINED WHO GO. BONN ABSORBS THE WINDFALL. IN THE POLITBURO THEY ARE ASKING HOW LONG A STATE CAN LEAK CITIZENS AND REMAIN A STATE.",
+        effects: [
+            AdjustStability(country: ("GDR"), delta: -15),
+            GrantIndustry(country: ("GDR"), centi: -900),
+            GrantIndustry(country: ("FRG"), centi: 500),
+        ],
+    ),
+    // SOURCE: Wikipedia "Soviet–Albanian split". After Hoxha sided with Beijing at the 1960-61 party congresses, Moscow cut aid, disputed the Vlore submarine base, and severed diplomatic relations December 3, 1961.
+    EventDef(
+        id: "albania-split",
+        trigger: Date((1961, 12, 3, 12)),
+        title: "MOSCOW BREAKS WITH TIRANA",
+        body: "TIRANA -- THE SOVIET UNION HAS WITHDRAWN ITS ENTIRE EMBASSY STAFF, SEVERING RELATIONS WITH ALBANIA. HOXHA DENOUNCED KHRUSHCHEV'S REVISIONISM AT THE 22ND CONGRESS AND KEPT THE SUBMARINES AT VLORE. SOVIET CREDITS AND TECHNICIANS ARE GONE -- CHINESE ONES ARE ARRIVING. THE SMALLEST MEMBER OF THE BLOC HAS WALKED OUT ALIVE.",
+        effects: [
+            SetAlignment(country: ("ALB"), alignment: "NonAligned"),
+            AdjustTension(5),
+            AdjustStability(country: ("ALB"), delta: -5),
+            GrantLegitimacy(country: ("ALB"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Gheorghe Gheorghiu-Dej". The Romanian Workers' Party April Declaration, adopted at the enlarged CC plenum April 15-22, 1964 -- Romania claims every party's right to its own road, opening the independence streak Ceausescu will ride through 1968.
+    EventDef(
+        id: "romania-april-declaration",
+        trigger: Date((1964, 4, 22, 12)),
+        title: "BUCHAREST DRAFTS A DECLARATION OF INDEPENDENCE",
+        body: "BUCHAREST -- THE CENTRAL COMMITTEE HAS BEFORE IT A STATEMENT ON THE SINO-SOVIET DISPUTE THAT REFUSES TO TAKE SIDES AND ASSERTS NO PARTY MAY DICTATE TO ANOTHER. COMECON WANTS ROMANIA FARMING WHILE ROMANIA WANTS STEEL AT GALATI. MOSCOW WILL READ EVERY LINE AS DEFIANCE. PUBLISH, OR BURY IT.",
+        country: Some(("ROU")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "PUBLISH THE APRIL DECLARATION",
+                effects: [
+                    GrantLegitimacy(country: ("ROU"), amount: 15),
+                    AdjustStability(country: ("ROU"), delta: 10),
+                    AdjustTension(-5),
+                ],
+            ),
+            EventOption(
+                label: "TOE THE MOSCOW LINE",
+                effects: [
+                    GrantStock(country: ("ROU"), amount: 15),
+                    GrantIndustry(country: ("ROU"), centi: 400),
+                    AdjustStability(country: ("ROU"), delta: -10),
+                    GrantLegitimacy(country: ("ROU"), amount: -10),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Prague Spring". January 5, 1968 -- Dubcek replaces Novotny as first secretary; the Action Programme of April promises socialism with a human face.
+    EventDef(
+        id: "prague-spring",
+        trigger: Date((1968, 1, 5, 12)),
+        title: "DUBCEK TAKES THE PARTY -- HOW FAR TO GO?",
+        body: "PRAGUE -- ALEXANDER DUBCEK, THE SLOVAK PARTY CHIEF, REPLACES NOVOTNY AS FIRST SECRETARY. HIS CIRCLE DRAFTS AN ACTION PROGRAMME -- CENSORSHIP LIFTED, VICTIMS OF THE FIFTIES REHABILITATED, SOCIALISM WITH A HUMAN FACE. THE STREETS ARE ALREADY AHEAD OF THE PARTY. MOSCOW'S AMBASSADOR CABLES HOURLY.",
+        country: Some(("CSK")),
+        deadline_days: 7,
+        options: [
+            EventOption(
+                label: "PRESS THE ACTION PROGRAMME",
+                effects: [
+                    GrantLegitimacy(country: ("CSK"), amount: 15),
+                    AdjustStability(country: ("CSK"), delta: 10),
+                    AdjustTension(10),
+                ],
+            ),
+            EventOption(
+                label: "REIN IN THE REFORMERS",
+                effects: [
+                    GrantLegitimacy(country: ("CSK"), amount: -10),
+                    AdjustStability(country: ("CSK"), delta: -10),
+                    AdjustTension(-5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Warsaw Pact invasion of Czechoslovakia". The night of August 20-21, 1968 -- 250,000 Warsaw Pact troops execute Operation Danube; timed here 225 days plus deadline after Dubcek's January 5 accession.
+    EventDef(
+        id: "prague-soviet-decision",
+        trigger: OptionChosen(id: "prague-spring", option: 0, days_after: 225),
+        title: "THE PRAGUE QUESTION REACHES THE POLITBURO",
+        body: "MOSCOW -- CIERNA AND BRATISLAVA TALKS HAVE CHANGED NOTHING -- PRAGUE'S PRESS STAYS FREE AND THE TWO THOUSAND WORDS MANIFESTO CIRCULATES OPENLY. ULBRICHT AND GOMULKA DEMAND ACTION BEFORE THE INFECTION SPREADS. TWENTY-SIX DIVISIONS STAND READY ON EXERCISE ALONG THE FRONTIER. THE POLITBURO MUST DECIDE WHAT SOCIALISM PERMITS.",
+        country: Some(("SOV")),
+        deadline_days: 3,
+        options: [
+            EventOption(
+                label: "OPERATION DANUBE -- INVADE",
+                effects: [
+                    AdjustTension(45),
+                    AdjustStability(country: ("CSK"), delta: -20),
+                    GrantLegitimacy(country: ("SOV"), amount: -15),
+                    GrantLegitimacy(country: ("CSK"), amount: -10),
+                    SpawnForces(owner: ("SOV"), province_owner: ("CSK"), province: "Prague", archetype: "Armor", divisions: 4, quality: 1100),
+                    SpawnForces(owner: ("SOV"), province_owner: ("CSK"), province: "Bratislavský", archetype: "Motorized", divisions: 2, quality: 1000),
+                ],
+            ),
+            EventOption(
+                label: "TOLERATE THE HUMAN FACE",
+                effects: [
+                    AdjustTension(-15),
+                    GrantLegitimacy(country: ("CSK"), amount: 10),
+                    AdjustStability(country: ("CSK"), delta: 10),
+                    GrantLegitimacy(country: ("SOV"), amount: -10),
+                    AdjustStability(country: ("GDR"), delta: -10),
+                    AdjustStability(country: ("POL"), delta: -10),
+                    AdjustStability(country: ("HUN"), delta: -5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Brezhnev Doctrine". Formalized in Brezhnev's November 12, 1968 speech to the Polish party congress -- limited sovereignty: the bloc defends socialism wherever it is threatened.
+    EventDef(
+        id: "brezhnev-doctrine",
+        trigger: OptionChosen(id: "prague-soviet-decision", option: 0, days_after: 83),
+        title: "BREZHNEV PROCLAIMS LIMITED SOVEREIGNTY",
+        body: "WARSAW -- ADDRESSING THE POLISH PARTY CONGRESS, BREZHNEV DECLARES THAT WHEN FORCES HOSTILE TO SOCIALISM THREATEN ANY SOCIALIST COUNTRY, IT BECOMES THE CONCERN OF ALL. THE WEST NAMES IT THE BREZHNEV DOCTRINE. EVERY SATELLITE CAPITAL NOW KNOWS THE PRICE OF EXPERIMENT. THE TANKS IN PRAGUE WERE THE FOOTNOTE.",
+        effects: [
+            AdjustTension(10),
+            GrantLegitimacy(country: ("SOV"), amount: -5),
+            AdjustStability(country: ("GDR"), delta: 5),
+            AdjustStability(country: ("POL"), delta: 5),
+            AdjustStability(country: ("HUN"), delta: 5),
+            AdjustStability(country: ("BGR"), delta: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Prague Spring". Alt-history branch: a tolerated Dubcek proves reform communism can govern -- and the demonstration effect ripples through every orthodox regime in the bloc.
+    EventDef(
+        id: "czechoslovak-model",
+        trigger: OptionChosen(id: "prague-soviet-decision", option: 1, days_after: 60),
+        title: "THE CZECHOSLOVAK MODEL SPREADS",
+        body: "PRAGUE -- CENSORSHIP IS GONE, THE ECONOMY LOOSENED, AND THE PARTY MORE POPULAR THAN AT ANY TIME SINCE 1948. DELEGATIONS FROM BUDAPEST AND WARSAW COME TO STUDY WHAT MOSCOW PERMITTED. IN EAST BERLIN THE QUESTION IS ASKED QUIETLY -- IF PRAGUE MAY, WHY NOT WE. ORTHODOXY IS NOW THE EXPERIMENT.",
+        effects: [
+            AdjustTension(-5),
+            GrantIndustry(country: ("CSK"), centi: 600),
+            GrantLegitimacy(country: ("CSK"), amount: 5),
+            AdjustStability(country: ("GDR"), delta: -10),
+            AdjustStability(country: ("POL"), delta: -10),
+            AdjustStability(country: ("HUN"), delta: -10),
+        ],
+    ),
+]

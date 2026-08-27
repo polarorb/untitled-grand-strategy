@@ -1,0 +1,433 @@
+// Sub-Saharan Africa 1950-1970 (decolonization wave) — timeline content, sourced per event.
+// Sources: Wikipedia: Mau Mau rebellion; Wikipedia: History of Sudan (1956-1969); Wikipedia: Ghana; Wikipedia: All-African Peoples' Conference; Wikipedia: Kwame Nkrumah; Wikipedia: 1958 French constitutional referendum; Wikipedia: Ahmed Sekou Toure; Wikipedia: Guinea-Soviet Union relations; Wikipedia: Sharpeville massacre; Wikipedia: Congo Crisis; Wikipedia: State of Katanga; Wikipedia: United Nations Operation in the Congo; Wikipedia: Patrice Lumumba; Wikipedia: Year of Africa; Wikipedia: Nigeria; Wikipedia: Somali Republic; Wikipedia: Angolan War of Independence; Wikipedia: Tanganyika (1961-1964); Wikipedia: Kenya; Wikipedia: Uganda; Wikipedia: Zambia; Wikipedia: Malawi; Wikipedia: Tanzania; Wikipedia: Mozambican War of Independence; Wikipedia: Rhodesia's Unilateral Declaration of Independence
+[
+    // SOURCE: Wikipedia "Mau Mau rebellion". Governor Baring declared a state of emergency in Kenya Colony on 20 October 1952; Operation Jock Scott arrested Kenyatta and the KAU leadership the same night.
+    EventDef(
+        id: "mau-mau-emergency",
+        trigger: Date((1952, 10, 20, 6)),
+        title: "EMERGENCY DECLARED IN KENYA COLONY",
+        body: "NAIROBI -- GOVERNOR BARING DECLARES A STATE OF EMERGENCY ACROSS KENYA COLONY. KIKUYU FIGHTERS OF THE SO-CALLED MAU MAU HAVE KILLED SETTLERS AND LOYALIST CHIEFS IN THE WHITE HIGHLANDS. OPERATION JOCK SCOTT SWEEPS UP JOMO KENYATTA AND THE KENYA AFRICAN UNION LEADERSHIP TONIGHT. LONDON MUST DECIDE HOW HARD TO PRESS.",
+        country: Some(("GBR")),
+        deadline_days: 7,
+        options: [
+            EventOption(
+                label: "CRUSH THE REVOLT -- SWEEPS AND DETENTION CAMPS",
+                effects: [
+                    GrantLegitimacy(country: ("GBR"), amount: -10),
+                    AdjustStability(country: ("GBR"), delta: -5),
+                    AdjustTension(5),
+                ],
+            ),
+            EventOption(
+                label: "LAND REFORM AND TALKS WITH THE KAU",
+                effects: [
+                    GrantLegitimacy(country: ("GBR"), amount: 5),
+                    AdjustStability(country: ("GBR"), delta: -15),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "History of Sudan (1956-1969)". The Anglo-Egyptian condominium ended and Sudan became independent on 1 January 1956.
+    EventDef(
+        id: "sudan-independence",
+        trigger: Date((1956, 1, 1, 12)),
+        title: "SUDAN INDEPENDENT -- CONDOMINIUM ENDS",
+        body: "KHARTOUM -- THE EGYPTIAN AND BRITISH FLAGS COME DOWN OVER THE PALACE WHERE GORDON DIED. THE REPUBLIC OF THE SUDAN IS PROCLAIMED, FIRST OF BRITAIN'S AFRICAN TERRITORIES TO GO. THE SOUTH IS ALREADY RESTIVE AFTER LAST YEAR'S TOROT MUTINY. CAIRO AND LONDON BOTH CLAIM THE CREDIT.",
+        effects: [
+            Independence(country: ("SDN"), from: ("GBR"), provinces: ["Khartoum", "Gezira", "Kassala", "North Kordufan", "Northern Bahr el Ghazal", "Central Equatoria"]),
+            GrantLegitimacy(country: ("GBR"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Ghana". The Gold Coast became independent Ghana on 6 March 1957 under Kwame Nkrumah -- the first sub-Saharan colony freed, the trailblazer for the continent.
+    EventDef(
+        id: "ghana-independence",
+        trigger: Date((1957, 3, 6, 12)),
+        title: "GHANA FREE -- FIRST OF THE NEW AFRICA",
+        body: "ACCRA -- AT MIDNIGHT THE GOLD COAST BECAME GHANA. NKRUMAH TELLS A DELIRIOUS POLO GROUND CROWD THAT GHANA'S INDEPENDENCE IS MEANINGLESS UNLESS LINKED WITH THE TOTAL LIBERATION OF AFRICA. VICE PRESIDENT NIXON ATTENDS FOR WASHINGTON. EVERY COLONIAL CAPITAL ON THE CONTINENT HEARD THAT SENTENCE.",
+        effects: [
+            Independence(country: ("GHA"), from: ("GBR"), provinces: ["Greater Accra", "Ashanti", "Brong Ahafo", "Volta", "Upper East", "Upper West"]),
+            GrantLegitimacy(country: ("GBR"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "All-African Peoples' Conference" / "Kwame Nkrumah". Accra hosted the first All-African Peoples' Conference 8 December 1958; Nkrumah's "positive neutralism" set the pan-African, non-aligned course. 642 days after 6 March 1957 = 8 December 1958.
+    EventDef(
+        id: "ghana-pan-african-course",
+        trigger: EventFired(id: "ghana-independence", days_after: 642),
+        title: "NKRUMAH SETS GHANA'S COURSE",
+        body: "ACCRA -- DELEGATES FROM EVERY COLONY AND LIBERATION MOVEMENT ON THE CONTINENT GATHER FOR THE ALL-AFRICAN PEOPLES' CONFERENCE. NKRUMAH SPEAKS OF POSITIVE NEUTRALISM AND A UNITED STATES OF AFRICA. BOTH BLOCS HAVE OBSERVERS IN THE HALL AND CHEQUEBOOKS IN THEIR POCKETS. ACCRA MUST CHOOSE WHAT GHANA IS FOR.",
+        country: Some(("GHA")),
+        deadline_days: 10,
+        options: [
+            EventOption(
+                label: "POSITIVE NEUTRALISM -- HOST ALL AFRICA AT ACCRA",
+                effects: [
+                    SetAlignment(country: ("GHA"), alignment: "NonAligned"),
+                    GrantLegitimacy(country: ("GHA"), amount: 10),
+                    AdjustTension(5),
+                ],
+            ),
+            EventOption(
+                label: "COMMONWEALTH FIRST -- LEAN WEST",
+                effects: [
+                    SetAlignment(country: ("GHA"), alignment: "WesternBloc"),
+                    GrantIndustry(country: ("GHA"), centi: 300),
+                    GrantLegitimacy(country: ("GHA"), amount: -10),
+                ],
+            ),
+            EventOption(
+                label: "LOOK EAST -- SOCIALIST DEVELOPMENT",
+                effects: [
+                    SetAlignment(country: ("GHA"), alignment: "EasternBloc"),
+                    GrantIndustry(country: ("GHA"), centi: 400),
+                    AdjustTension(15),
+                    AdjustStability(country: ("GHA"), delta: -10),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "1958 French constitutional referendum" / "Ahmed Sekou Toure". Guinea alone voted NON on 28 September 1958; independence proclaimed 2 October; France withdrew administrators, files, and even telephone cable in punitive haste.
+    EventDef(
+        id: "guinea-says-non",
+        trigger: Date((1958, 10, 2, 12)),
+        title: "GUINEA VOTES NON -- FRANCE WALKS OUT",
+        body: "CONAKRY -- ALONE OF ALL FRENCH AFRICA, GUINEA REJECTS DE GAULLE'S COMMUNITY AND PROCLAIMS INDEPENDENCE. SEKOU TOURE SAYS GUINEA PREFERS POVERTY IN FREEDOM TO RICHES IN SLAVERY. PARIS ANSWERS BY STRIPPING THE TERRITORY BARE -- FILES BURNED, EQUIPMENT SHIPPED OUT, EVERY FRANC OF AID CANCELLED. A STATE IS BORN WITH EMPTY DRAWERS.",
+        effects: [
+            Independence(country: ("GIN"), from: ("FRA"), provinces: ["Conakry", "Kindia", "Labé", "Kankan", "Nzérékoré", "Boke"]),
+            AdjustStability(country: ("GIN"), delta: -10),
+            GrantLegitimacy(country: ("FRA"), amount: -5),
+            AdjustTension(5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Guinea-Soviet Union relations" / "Ahmed Sekou Toure". Moscow recognized Guinea within days and extended major credits through 1959 while the West hesitated. 300 days after 2 October 1958 = late July 1959.
+    EventDef(
+        id: "guinea-courts-moscow",
+        trigger: EventFired(id: "guinea-says-non", days_after: 300),
+        title: "MOSCOW OFFERS CONAKRY A LIFELINE",
+        body: "CONAKRY -- WITH FRENCH AID GONE AND WESTERN RECOGNITION GRUDGING, SOVIET AND CZECH DELEGATIONS ARRIVE WITH CREDITS, ENGINEERS AND PRINTING PRESSES FOR THE NEW FRANC-GUINEEN. WASHINGTON'S AID OFFER IS STILL IN COMMITTEE. TOURE MUST DECIDE WHOSE MONEY TO TAKE.",
+        country: Some(("GIN")),
+        deadline_days: 14,
+        options: [
+            EventOption(
+                label: "TAKE THE SOVIET CREDITS",
+                effects: [
+                    SetAlignment(country: ("GIN"), alignment: "EasternBloc"),
+                    GrantIndustry(country: ("GIN"), centi: 400),
+                    AdjustTension(10),
+                ],
+            ),
+            EventOption(
+                label: "NO BLOC -- AUSTERITY AND PRIDE",
+                effects: [
+                    GrantLegitimacy(country: ("GIN"), amount: 5),
+                    AdjustStability(country: ("GIN"), delta: -10),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Sharpeville massacre". Police killed 69 PAC pass-law protesters at Sharpeville on 21 March 1960; Pretoria declared a state of emergency 30 March and banned the ANC and PAC in April.
+    EventDef(
+        id: "sharpeville-massacre",
+        trigger: Date((1960, 3, 21, 14)),
+        title: "POLICE FIRE ON CROWD AT SHARPEVILLE",
+        body: "JOHANNESBURG -- POLICE AT SHARPEVILLE LOCATION OPENED FIRE ON THOUSANDS PROTESTING THE PASS LAWS. SIXTY-NINE DEAD, MANY SHOT IN THE BACK. THE PAN AFRICANIST CONGRESS CALLS FOR NATIONAL STOPPAGE. WORLD CAPITALS DEMAND EXPLANATIONS, THE RAND STOCK EXCHANGE IS FALLING, AND PRETORIA MUST ANSWER.",
+        country: Some(("ZAF")),
+        deadline_days: 9,
+        options: [
+            EventOption(
+                label: "STATE OF EMERGENCY -- BAN THE CONGRESSES",
+                effects: [
+                    AdjustStability(country: ("ZAF"), delta: -10),
+                    GrantLegitimacy(country: ("ZAF"), amount: -15),
+                    AdjustTension(5),
+                ],
+            ),
+            EventOption(
+                label: "COMMISSION AND CONCESSION -- SUSPEND THE PASS LAWS",
+                effects: [
+                    GrantLegitimacy(country: ("ZAF"), amount: 5),
+                    AdjustStability(country: ("ZAF"), delta: -25),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Congo Crisis" / "Republic of the Congo (Leopoldville)". The Belgian Congo became independent 30 June 1960; the Force Publique mutinied within a week.
+    EventDef(
+        id: "congo-independence",
+        trigger: Date((1960, 6, 30, 12)),
+        title: "THE CONGO IS FREE -- AND FRAGILE",
+        body: "LEOPOLDVILLE -- KING BAUDOUIN PRAISES THE GENIUS OF LEOPOLD II AND PREMIER LUMUMBA ANSWERS THAT NO CONGOLESE WILL EVER FORGET INDEPENDENCE WAS WON BY STRUGGLE. THE VAST BELGIAN CONGO -- COPPER, COBALT, URANIUM -- PASSES TO A GOVERNMENT DAYS OLD. THE FORCE PUBLIQUE IS ALREADY MUTTERING AGAINST ITS BELGIAN OFFICERS.",
+        effects: [
+            Independence(country: ("COD"), from: ("BEL"), provinces: ["Kinshasa City", "Équateur", "Orientale", "Kasaï-Occidental", "Sud-Kivu", "Katanga"]),
+            AdjustTension(5),
+        ],
+    ),
+    // SOURCE: Wikipedia "State of Katanga". Moise Tshombe declared Katanga's secession on 11 July 1960, backed by Belgian troops and Union Miniere money.
+    EventDef(
+        id: "katanga-secession",
+        trigger: Date((1960, 7, 11, 18)),
+        title: "KATANGA SECEDES -- CONGO SPLITS",
+        body: "ELISABETHVILLE -- MOISE TSHOMBE PROCLAIMS THE INDEPENDENT STATE OF KATANGA, TAKING THE COPPERBELT AND ITS REVENUES WITH HIM. BELGIAN PARATROOPS HOLD THE AIRFIELDS AND UNION MINIERE PAYS THE BILLS. LUMUMBA APPEALS TO THE UNITED NATIONS -- AND, POINTEDLY, TO ANYONE ELSE WHO WILL LISTEN.",
+        effects: [
+            AdjustStability(country: ("COD"), delta: -30),
+            AdjustTension(15),
+            GrantLegitimacy(country: ("BEL"), amount: -10),
+        ],
+    ),
+    // SOURCE: Wikipedia "United Nations Operation in the Congo" / "Congo Crisis". Security Council resolution of 14 July 1960 created ONUC; Washington chose to work through Hammarskjold rather than intervene directly.
+    EventDef(
+        id: "congo-crisis-washington",
+        trigger: EventFired(id: "katanga-secession", days_after: 7),
+        title: "WASHINGTON WEIGHS THE CONGO",
+        body: "WASHINGTON -- STATE AND CIA AGREE THE CONGO IS THE FIRST GREAT COLD WAR TEST IN AFRICA, AND DISAGREE ON EVERYTHING ELSE. THE UN IS ASSEMBLING A FORCE. LUMUMBA IS TALKING TO MOSCOW. THE COPPER AND URANIUM OF KATANGA CONCENTRATE MINDS WONDERFULLY. THE PRESIDENT MUST SET THE LINE.",
+        country: Some(("USA")),
+        deadline_days: 6,
+        options: [
+            EventOption(
+                label: "BACK HAMMARSKJOLD -- FUND THE UN FORCE",
+                effects: [
+                    AdjustTension(10),
+                    GrantLegitimacy(country: ("USA"), amount: 5),
+                    GrantStock(country: ("COD"), amount: 10),
+                ],
+            ),
+            EventOption(
+                label: "OUR MAN IN LEOPOLDVILLE -- BACK MOBUTU DIRECT",
+                effects: [
+                    SetAlignment(country: ("COD"), alignment: "WesternBloc"),
+                    GrantStock(country: ("COD"), amount: 20),
+                    AdjustTension(25),
+                    GrantLegitimacy(country: ("USA"), amount: -10),
+                ],
+            ),
+            EventOption(
+                label: "NOT OUR CONTINENT -- STAY OUT",
+                effects: [
+                    AdjustTension(-5),
+                    GrantLegitimacy(country: ("USA"), amount: -5),
+                    AdjustStability(country: ("COD"), delta: -10),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Congo Crisis" / "Patrice Lumumba". After the UN refused to end the secession by force, Khrushchev sent Ilyushin transports, trucks and advisers to Lumumba in August-September 1960. Fires only on the historical UN路线 -- if Washington chose differently, Moscow's moment never comes.
+    EventDef(
+        id: "congo-crisis-moscow",
+        trigger: OptionChosen(id: "congo-crisis-washington", option: 0, days_after: 20),
+        title: "KHRUSHCHEV EYES THE CONGO",
+        body: "MOSCOW -- THE PRESIDIUM CALLS THE UN OPERATION A COLONIALIST SCREEN AND HAMMARSKJOLD A LACKEY. LUMUMBA HAS ASKED FOR PLANES AND TRUCKS TO RETAKE KATANGA AND KASAI. A SOCIALIST FOOTHOLD IN THE HEART OF AFRICA IS ON OFFER -- AT THE PRICE OF AMERICAN FURY.",
+        country: Some(("SOV")),
+        deadline_days: 6,
+        options: [
+            EventOption(
+                label: "ILYUSHINS TO STANLEYVILLE -- AIRLIFT FOR LUMUMBA",
+                effects: [
+                    AdjustTension(15),
+                    GrantStock(country: ("COD"), amount: 5),
+                    GrantLegitimacy(country: ("SOV"), amount: 5),
+                    AdjustStability(country: ("COD"), delta: -10),
+                ],
+            ),
+            EventOption(
+                label: "DENOUNCE THE UN, SEND NOTHING",
+                effects: [
+                    AdjustTension(-5),
+                    GrantLegitimacy(country: ("SOV"), amount: -10),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Year of Africa". Cameroon (1 Jan), Senegal and Mali (June, ex-Mali Federation), Ivory Coast (7 Aug), Niger (3 Aug), Upper Volta (5 Aug) and Dahomey (1 Aug) all left French rule in 1960.
+    EventDef(
+        id: "year-of-africa-west",
+        trigger: Date((1960, 8, 7, 12)),
+        title: "THE YEAR OF AFRICA -- FRENCH WEST AFRICA FREE",
+        body: "DAKAR -- SINCE JANUARY THE TRICOLORE HAS COME DOWN ACROSS FRENCH WEST AFRICA -- CAMEROON AT NEW YEAR, DAHOMEY, NIGER AND UPPER VOLTA IN A SINGLE AUGUST WEEK, THE IVORY COAST TODAY, SENEGAL AND SOUDAN OUT OF THE STILLBORN MALI FEDERATION. DE GAULLE KEEPS THE FRANC ZONE AND DEFENSE ACCORDS. SEVENTEEN NEW SEATS AT THE UNITED NATIONS THIS YEAR, AND BOTH BLOCS COUNTING VOTES.",
+        effects: [
+            Independence(country: ("CMR"), from: ("FRA"), provinces: ["Ouest", "Adamaoua", "Extrême-Nord", "Nord-Ouest", "Sud-Ouest"]),
+            Independence(country: ("SEN"), from: ("FRA"), provinces: ["Dakar", "Thiès", "Saint-Louis", "Kaolack", "Ziguinchor", "Tambacounda"]),
+            Independence(country: ("MLI"), from: ("FRA"), provinces: ["Bamako", "Kayes", "Ségou", "Sikasso", "Mopti", "Gao"]),
+            Independence(country: ("CIV"), from: ("FRA"), provinces: ["Lagunes", "Bas-Sassandra", "Vallée du Bandama", "Zanzan", "Haut-Sassandra", "Sud-Comoé"]),
+            Independence(country: ("NER"), from: ("FRA"), provinces: ["Niamey", "Zinder", "Maradi", "Tahoua", "Agadez", "Diffa"]),
+            Independence(country: ("BFA"), from: ("FRA"), provinces: ["Kadiogo", "Houet", "Yatenga", "Boulgou", "Mou Houn", "Sanmatenga"]),
+            Independence(country: ("BEN"), from: ("FRA"), provinces: ["Ouémé", "Atlantique", "Borgou", "Atakora", "Zou", "Alibori"]),
+            GrantLegitimacy(country: ("FRA"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Year of Africa". Chad (11 Aug), Central African Republic (13 Aug), Congo-Brazzaville (15 Aug), Gabon (17 Aug) and Madagascar (26 Jun) completed the 1960 French handover.
+    EventDef(
+        id: "year-of-africa-equatorial",
+        trigger: Date((1960, 8, 17, 12)),
+        title: "EQUATORIAL AFRICA AND MADAGASCAR FREE",
+        body: "BRAZZAVILLE -- THE FRENCH EQUATORIAL FEDERATION DISSOLVES INTO FOUR REPUBLICS IN A SINGLE WEEK -- CHAD, THE CENTRAL AFRICAN REPUBLIC, CONGO-BRAZZAVILLE AND TODAY GABON. MADAGASCAR WENT IN JUNE. FRENCH GARRISONS AND OIL GEOLOGISTS REMAIN BY TREATY. THE MAP OF AFRICA IS BEING REDRAWN BY THE MONTH.",
+        effects: [
+            Independence(country: ("TCD"), from: ("FRA"), provinces: ["Chari-Baguirmi", "Chari-Baguirmi", "Ouaddaï", "Moyen-Chari", "Kanem", "Borkou"]),
+            Independence(country: ("CAF"), from: ("FRA"), provinces: ["Bangui", "Ouham", "Ouaka", "Haute-Kotto", "Mbomou", "Lobaye"]),
+            Independence(country: ("COG"), from: ("FRA"), provinces: ["Brazzaville", "Pool", "Niari", "Kouilou", "Pointe Noire", "Likouala"]),
+            Independence(country: ("GAB"), from: ("FRA"), provinces: ["Estuaire", "Haut-Ogooué", "Ogooué-Maritime", "Wouleu-Ntem", "Ngounié"]),
+            Independence(country: ("MDG"), from: ("FRA"), provinces: ["Analamanga", "Atsinanana", "Boeny", "Haute Matsiatra", "Diana", "Atsimo-Andrefana"]),
+        ],
+    ),
+    // SOURCE: Wikipedia "Nigeria" / "Somali Republic". Nigeria, Britain's most populous colony, became independent 1 October 1960; British and Italian Somalilands had merged as the Somali Republic on 1 July 1960.
+    EventDef(
+        id: "nigeria-independence",
+        trigger: Date((1960, 10, 1, 12)),
+        title: "NIGERIA FREE -- BRITAIN QUITS ITS GREATEST COLONY",
+        body: "LAGOS -- PRINCESS ALEXANDRA HANDS OVER THE INSTRUMENTS AND THIRTY-FIVE MILLION NIGERIANS WAKE IN THE LARGEST FREE NATION IN AFRICA. THE FEDERATION BALANCES NORTH, EAST AND WEST ON A CONSTITUTIONAL KNIFE EDGE. IN JULY THE BRITISH AND ITALIAN SOMALILANDS MERGED INTO A SOMALI REPUBLIC ALREADY TALKING OF LOST TERRITORIES. LONDON'S AFRICAN EMPIRE IS GOING FAST.",
+        effects: [
+            Independence(country: ("NGA"), from: ("GBR"), provinces: ["Lagos", "Kano", "Kaduna", "Rivers", "Borno", "Sokoto"]),
+            Independence(country: ("SOM"), from: ("ITA"), provinces: ["Banaadir", "Bay", "Mudug", "Hiiraan", "Gedo", "Nugaal"]),
+            TransferProvinces(from: ("GBR"), to: ("SOM"), names: ["Somaliland"]),
+            GrantLegitimacy(country: ("GBR"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Patrice Lumumba". Lumumba was murdered in Katanga on 17 January 1961 with Belgian complicity; the death was announced 13 February and set off protests worldwide.
+    EventDef(
+        id: "lumumba-killed",
+        trigger: Date((1961, 2, 13, 12)),
+        title: "LUMUMBA IS DEAD",
+        body: "ELISABETHVILLE -- KATANGA ANNOUNCES THAT PATRICE LUMUMBA, TRANSFERRED TO TSHOMBE'S CUSTODY A MONTH AGO, IS DEAD -- SHOT, THEY SAY, ESCAPING. NOBODY BELIEVES IT. EMBASSIES ARE STONED FROM CAIRO TO BELGRADE, AND MOSCOW DEMANDS HAMMARSKJOLD'S HEAD. THE CONGO HAS ITS MARTYR AND THE COLD WAR ITS NEWEST GHOST.",
+        effects: [
+            AdjustStability(country: ("COD"), delta: -15),
+            AdjustTension(20),
+            GrantLegitimacy(country: ("BEL"), amount: -10),
+            GrantLegitimacy(country: ("USA"), amount: -5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Angolan War of Independence". The 4 February 1961 Luanda prison attacks opened the war; Salazar sent troops en masse, declaring "to Angola, quickly and in force".
+    EventDef(
+        id: "angola-rising",
+        trigger: Date((1961, 2, 4, 8)),
+        title: "REVOLT IN ANGOLA",
+        body: "LUANDA -- ARMED MEN STORM THE SAO PAULO PRISON AND POLICE BARRACKS BEFORE DAWN. REPRISALS IN THE MUSSEQUES ARE ALREADY RUNNING BLOODY, AND IN THE NORTH THE COFFEE ESTATES ARE ARMING. LISBON CALLS ANGOLA NOT A COLONY BUT PORTUGAL OVERSEAS -- AND MUST NOW PROVE IT CAN HOLD IT.",
+        country: Some(("POR")),
+        deadline_days: 7,
+        options: [
+            EventOption(
+                label: "TO ANGOLA, QUICKLY AND IN FORCE",
+                effects: [
+                    SpawnForces(owner: ("POR"), province_owner: ("POR"), province: "Luanda", archetype: "Infantry", divisions: 3, quality: 900),
+                    GrantStock(country: ("POR"), amount: 10),
+                    AdjustStability(country: ("POR"), delta: -10),
+                    GrantLegitimacy(country: ("POR"), amount: -10),
+                    AdjustTension(5),
+                ],
+            ),
+            EventOption(
+                label: "QUIET TALKS -- BEGIN WINDING DOWN THE EMPIRE",
+                effects: [
+                    GrantLegitimacy(country: ("POR"), amount: 5),
+                    AdjustStability(country: ("POR"), delta: -25),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Tanganyika (1961-1964)". Tanganyika became independent 9 December 1961 under Julius Nyerere -- the first of British East Africa.
+    EventDef(
+        id: "tanganyika-independence",
+        trigger: Date((1961, 12, 9, 12)),
+        title: "TANGANYIKA FREE -- UHURU NA KAZI",
+        body: "DAR-ES-SALAAM -- A TORCH IS LIT ON KILIMANJARO AS TANGANYIKA BECOMES INDEPENDENT AT MIDNIGHT. NYERERE PREACHES UHURU NA KAZI -- FREEDOM AND WORK -- AND AFRICAN SOCIALISM OF A HOMEGROWN KIND. THE FIRST DOMINO OF BRITISH EAST AFRICA HAS FALLEN, PEACEFULLY, WHICH LONDON NOTES WITH RELIEF.",
+        effects: [
+            Independence(country: ("TZA"), from: ("GBR"), provinces: ["Dar-Es-Salaam", "Dodoma", "Arusha", "Tabora", "Kilimanjaro", "Iringa"]),
+            GrantLegitimacy(country: ("GBR"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "State of Katanga" / "United Nations Operation in the Congo". UN Operation Grandslam ended the secession; Tshombe conceded and Katanga was reintegrated by 21 January 1963. 924 days after 11 July 1960 = 21 January 1963.
+    EventDef(
+        id: "katanga-reintegrated",
+        trigger: EventFired(id: "katanga-secession", days_after: 924),
+        title: "KATANGA SECESSION ENDS -- UN FORCE PREVAILS",
+        body: "ELISABETHVILLE -- BLUE HELMETS ENTER KOLWEZI, LAST OF TSHOMBE'S STRONGHOLDS, AND THE STATE OF KATANGA IS NO MORE. THE COPPERBELT RETURNS TO LEOPOLDVILLE'S LEDGERS. THE UN HAS FOUGHT ITS FIRST REAL WAR AND WON IT -- AT THE COST OF A SECRETARY-GENERAL, DEAD ON A NIGHT FLIGHT TO NDOLA.",
+        effects: [
+            AdjustStability(country: ("COD"), delta: 20),
+            GrantLegitimacy(country: ("COD"), amount: 10),
+            SetAlignment(country: ("COD"), alignment: "WesternBloc"),
+            AdjustTension(-10),
+        ],
+    ),
+    // SOURCE: Wikipedia "Kenya" / "Uganda". Uganda became independent 9 October 1962, Kenya on 12 December 1963 under Kenyatta -- eleven years after the Emergency began.
+    EventDef(
+        id: "kenya-uganda-uhuru",
+        trigger: Date((1963, 12, 12, 12)),
+        title: "KENYA FREE -- BRITISH EAST AFRICA GONE",
+        body: "NAIROBI -- JOMO KENYATTA, ONCE LONDON'S PRISONER, TAKES THE OATH AS PRIME MINISTER OF A FREE KENYA. UGANDA WENT LAST OCTOBER UNDER OBOTE. ELEVEN YEARS AFTER THE EMERGENCY WAS DECLARED AGAINST HIM, KENYATTA PREACHES HARAMBEE AND FORGIVENESS -- AND THE WHITE HIGHLANDS HOLD THEIR BREATH.",
+        effects: [
+            Independence(country: ("KEN"), from: ("GBR"), provinces: ["Nairobi", "Coast", "Rift Valley", "Nyanza", "North-Eastern"]),
+            Independence(country: ("UGA"), from: ("GBR"), provinces: ["Kampala", "Jinja", "Gulu", "Mbale", "Masaka", "Hoima"]),
+            GrantLegitimacy(country: ("GBR"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Zambia" / "Malawi" / "Tanzania". The Central African Federation dissolved end-1963; Malawi became independent 6 July 1964, Zambia 24 October 1964; Tanganyika and Zanzibar united as Tanzania 26 April 1964 after the January revolution.
+    EventDef(
+        id: "africa-1964",
+        trigger: Date((1964, 10, 24, 12)),
+        title: "ZAMBIA FREE -- FEDERATION DEAD AND BURIED",
+        body: "LUSAKA -- NORTHERN RHODESIA BECOMES ZAMBIA UNDER KAUNDA, TAKING THE COPPERBELT OUT OF SETTLER HANDS. NYASALAND WENT IN JULY AS BANDA'S MALAWI. IN APRIL TANGANYIKA ABSORBED REVOLUTIONARY ZANZIBAR AS TANZANIA, TO WESTERN RELIEF -- THE ISLAND'S REVOLUTION HAD CUBAN ADMIRERS. OF THE CENTRAL AFRICAN FEDERATION ONLY SOUTHERN RHODESIA REMAINS, WHITE-RULED AND WATCHING.",
+        effects: [
+            Independence(country: ("ZMB"), from: ("GBR"), provinces: ["Lusaka", "Copperbelt", "Luapula", "Muchinga", "North-Western"]),
+            Independence(country: ("MWI"), from: ("GBR"), provinces: ["Zomba", "Lilongwe", "Blantyre", "Mzimba", "Kasungu", "Mangochi"]),
+            TransferProvinces(from: ("GBR"), to: ("TZA"), names: ["Zanzibar West", "Zanzibar South and Central", "Kaskazini-Unguja", "Kaskazini-Pemba", "Kusini-Pemba"]),
+        ],
+    ),
+    // SOURCE: Wikipedia "Mozambican War of Independence". FRELIMO opened its campaign with the attack on Chai in Cabo Delgado on 25 September 1964, forcing Lisbon into a second colonial war.
+    EventDef(
+        id: "mozambique-war",
+        trigger: Date((1964, 9, 25, 8)),
+        title: "FRELIMO OPENS FIRE IN MOZAMBIQUE",
+        body: "LOURENCO MARQUES -- FRELIMO GUERRILLAS ATTACK THE ADMINISTRATIVE POST AT CHAI IN CABO DELGADO. MONDLANE'S MEN TRAIN IN TANZANIA AND ALGERIA AND WANT FOR NOTHING FROM THE EAST. PORTUGAL NOW FIGHTS IN ANGOLA, GUINEA AND MOZAMBIQUE AT ONCE -- THREE WARS ON A SMALL NATION'S PURSE.",
+        country: Some(("POR")),
+        deadline_days: 7,
+        options: [
+            EventOption(
+                label: "SECOND FRONT -- REINFORCE THE NORTH",
+                effects: [
+                    SpawnForces(owner: ("POR"), province_owner: ("POR"), province: "Cabo Delgado", archetype: "Infantry", divisions: 2, quality: 900),
+                    GrantStock(country: ("POR"), amount: 10),
+                    AdjustStability(country: ("POR"), delta: -10),
+                    GrantLegitimacy(country: ("POR"), amount: -5),
+                ],
+            ),
+            EventOption(
+                label: "FORTIFY THE CITIES -- CEDE THE BUSH",
+                effects: [
+                    AdjustStability(country: ("POR"), delta: -5),
+                    GrantLegitimacy(country: ("POR"), amount: -15),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Rhodesia's Unilateral Declaration of Independence". Ian Smith's white-minority government declared independence 11 November 1965; Wilson ruled out force and chose sanctions.
+    EventDef(
+        id: "rhodesia-udi",
+        trigger: Date((1965, 11, 11, 13)),
+        title: "RHODESIA DECLARES UDI",
+        body: "SALISBURY -- AT ELEVEN O'CLOCK ON THE ELEVENTH DAY OF THE ELEVENTH MONTH, IAN SMITH'S GOVERNMENT UNILATERALLY DECLARES INDEPENDENCE RATHER THAN ACCEPT MAJORITY RULE. TWO HUNDRED THOUSAND WHITES CLAIM A NATION OF FOUR MILLION. THE FIRST REBELLION AGAINST THE CROWN SINCE THE AMERICAN COLONIES -- AND LONDON MUST ANSWER IT.",
+        country: Some(("GBR")),
+        deadline_days: 7,
+        options: [
+            EventOption(
+                label: "SANCTIONS, NOT SOLDIERS",
+                effects: [
+                    Independence(country: ("RHO"), from: ("GBR"), provinces: ["Harare", "Bulawayo", "Manicaland", "Midlands", "Masvingo", "Mashonaland West"]),
+                    SetAlignment(country: ("RHO"), alignment: "NonAligned"),
+                    GrantLegitimacy(country: ("RHO"), amount: -20),
+                    GrantLegitimacy(country: ("GBR"), amount: -10),
+                    AdjustStability(country: ("RHO"), delta: -10),
+                    AdjustTension(5),
+                ],
+            ),
+            EventOption(
+                label: "PUT DOWN THE REBELLION BY FORCE",
+                effects: [
+                    Independence(country: ("RHO"), from: ("GBR"), provinces: ["Harare", "Bulawayo", "Manicaland", "Midlands", "Masvingo", "Mashonaland West"]),
+                    DeclareWar(a: ("GBR"), b: ("RHO")),
+                    SetPosture(country: ("GBR"), enemy: ("RHO"), posture: "Advance"),
+                    SetWarAim(country: ("GBR"), enemy: ("RHO"), aim: "Unify"),
+                    SpawnForces(owner: ("GBR"), province_owner: ("GBR"), province: "Lusaka", archetype: "Motorized", divisions: 2, quality: 1100),
+                    AdjustTension(20),
+                    AdjustStability(country: ("GBR"), delta: -15),
+                ],
+            ),
+        ],
+    ),
+]

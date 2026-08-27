@@ -1,0 +1,365 @@
+// Western Europe — timeline content, sourced per event.
+// Sources: Wikipedia: Schuman Declaration; Wikipedia: Treaty of Paris (1951); Wikipedia: European Defence Community; Wikipedia: France and weapons of mass destruction; Wikipedia: Cyprus Emergency; Wikipedia: EOKA; Wikipedia: West Germany; Wikipedia: German rearmament; Wikipedia: Bundeswehr; Wikipedia: Austrian State Treaty; Wikipedia: Treaty of Rome; Wikipedia: May 1958 crisis in France; Wikipedia: Force de frappe; Wikipedia: London-Zurich Agreements; Wikipedia: Elysee Treaty; Wikipedia: France-NATO relations; Wikipedia: Canopus (nuclear test); Wikipedia: 1967 Greek coup d'etat; Wikipedia: Harold Wilson
+[
+    // SOURCE: Wikipedia "Schuman Declaration". 9 May 1950: French FM Robert Schuman proposes pooling Franco-German coal and steel production.
+    EventDef(
+        id: "schuman-plan",
+        trigger: Date((1950, 5, 9, 12)),
+        title: "SCHUMAN PROPOSES COAL-STEEL POOL",
+        body: "PARIS -- FOREIGN MINISTER ROBERT SCHUMAN PROPOSES PLACING FRANCO-GERMAN COAL AND STEEL PRODUCTION UNDER A COMMON HIGH AUTHORITY, OPEN TO ALL EUROPEAN NATIONS. WAR BETWEEN FRANCE AND GERMANY WOULD BECOME NOT MERELY UNTHINKABLE BUT MATERIALLY IMPOSSIBLE, HE SAYS. BONN SIGNALS IMMEDIATE INTEREST. MONNET'S HAND IS EVIDENT IN EVERY LINE.",
+        effects: [
+            GrantLegitimacy(country: ("FRA"), amount: 5),
+            GrantLegitimacy(country: ("FRG"), amount: 10),
+            AdjustTension(-5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Treaty of Paris (1951)". Signed 18 April 1951 by France, West Germany, Italy, Belgium, Netherlands, Luxembourg; created the ECSC.
+    EventDef(
+        id: "ecsc-treaty",
+        trigger: Date((1951, 4, 18, 12)),
+        title: "SIX NATIONS SIGN COAL AND STEEL TREATY",
+        body: "PARIS -- FRANCE, WEST GERMANY, ITALY, BELGIUM, THE NETHERLANDS AND LUXEMBOURG SIGN THE TREATY ESTABLISHING THE EUROPEAN COAL AND STEEL COMMUNITY. TARIFFS AND QUOTAS ON COAL AND STEEL TO BE ABOLISHED AMONG THE SIX. A SUPRANATIONAL HIGH AUTHORITY WILL GOVERN THE POOL FROM LUXEMBOURG. LONDON STAYS OUT.",
+        effects: [
+            GrantIndustry(country: ("FRA"), centi: 300),
+            GrantIndustry(country: ("FRG"), centi: 400),
+            GrantIndustry(country: ("ITA"), centi: 200),
+            GrantIndustry(country: ("BEL"), centi: 150),
+            GrantIndustry(country: ("NLD"), centi: 150),
+            GrantIndustry(country: ("LUX"), centi: 100),
+            GrantLegitimacy(country: ("FRG"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "European Defence Community". French National Assembly killed the EDC treaty on 30 August 1954; the decision window runs to that date.
+    EventDef(
+        id: "edc-collapse",
+        trigger: Date((1954, 8, 19, 12)),
+        title: "EUROPEAN ARMY TREATY BEFORE THE ASSEMBLY",
+        body: "PARIS -- THE EUROPEAN DEFENCE COMMUNITY TREATY, SIGNED IN 1952 AND RATIFIED BY FOUR PARTNERS, FINALLY REACHES THE NATIONAL ASSEMBLY FLOOR. A EUROPEAN ARMY WITH GERMAN DIVISIONS UNDER SUPRANATIONAL COMMAND -- OR NO GERMAN SOLDIERS AT ALL. GAULLISTS AND COMMUNISTS UNITE AGAINST IT. PREMIER MENDES FRANCE DECLINES TO STAKE HIS GOVERNMENT ON THE OUTCOME.",
+        country: Some(("FRA")),
+        deadline_days: 11,
+        options: [
+            EventOption(
+                label: "LET THE TREATY DIE",
+                effects: [
+                    AdjustTension(20),
+                    GrantLegitimacy(country: ("FRA"), amount: -5),
+                ],
+            ),
+            EventOption(
+                label: "RATIFY THE EUROPEAN ARMY",
+                effects: [
+                    AdjustTension(-10),
+                    GrantLegitimacy(country: ("FRA"), amount: 5),
+                    AdjustStability(country: ("FRA"), delta: -10),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "European Defence Community". Counterfactual branch: the EDC as ratified -- integrated European divisions, German contingents in European uniform.
+    EventDef(
+        id: "edc-ratified",
+        trigger: OptionChosen(id: "edc-collapse", option: 1, days_after: 60),
+        title: "EUROPEAN DEFENCE COMMUNITY STANDS UP",
+        body: "PARIS -- THE EUROPEAN DEFENCE COMMUNITY COMES INTO BEING. GERMAN CONTINGENTS WILL WEAR A EUROPEAN UNIFORM UNDER A COMMISSARIAT ANSWERABLE TO SIX GOVERNMENTS. MOSCOW DENOUNCES THE REMILITARIZATION OF GERMANY IN ANY COSTUME. WASHINGTON APPLAUDS. THE BUNDESTAG VOTES CREDITS THE SAME WEEK.",
+        effects: [
+            GrantStock(country: ("FRA"), amount: 10),
+            GrantStock(country: ("FRG"), amount: 10),
+            GrantLegitimacy(country: ("FRG"), amount: 10),
+            AdjustTension(10),
+        ],
+    ),
+    // SOURCE: Wikipedia "France and weapons of mass destruction". 26 December 1954: Premier Mendes France's interministerial meeting secretly launched the French nuclear weapons program; plutonium route via Marcoule.
+    EventDef(
+        id: "france-nuclear-program",
+        trigger: Date((1954, 12, 26, 10)),
+        title: "PARIS TAKES THE ATOMIC DECISION IN SECRET",
+        body: "PARIS -- AT AN UNANNOUNCED INTERMINISTERIAL MEETING PREMIER MENDES FRANCE AUTHORIZES THE COMMISSARIAT A L'ENERGIE ATOMIQUE TO PREPARE A MILITARY PROGRAM. PLUTONIUM PRODUCTION AT MARCOULE WILL SERVE TWO MASTERS. NO COMMUNIQUE IS ISSUED. INDOCHINA AND THE EDC DEBACLE HAVE TAUGHT THE QUAI D'ORSAY WHAT GUARANTEES ARE WORTH.",
+        effects: [
+            FoundNuclearProgram(country: ("FRA"), route: "Plutonium"),
+        ],
+    ),
+    // SOURCE: Wikipedia "Cyprus Emergency" and "EOKA". 1 April 1955: EOKA opens its armed campaign for enosis with coordinated bombings; Britain declares a state of emergency in November 1955.
+    EventDef(
+        id: "cyprus-emergency",
+        trigger: Date((1955, 4, 1, 6)),
+        title: "BOMBS ACROSS CYPRUS -- EOKA CAMPAIGN OPENS",
+        body: "NICOSIA -- COORDINATED EXPLOSIONS STRIKE GOVERNMENT INSTALLATIONS IN NICOSIA, LIMASSOL AND LARNACA AT HALF PAST MIDNIGHT. LEAFLETS SIGNED DIGENIS PROCLAIM AN ARMED STRUGGLE FOR UNION WITH GREECE. COLONEL GRIVAS IS BELIEVED DIRECTING FROM THE TROODOS. THE COLONY'S GARRISON AWAITS INSTRUCTIONS FROM LONDON.",
+        country: Some(("GBR")),
+        deadline_days: 7,
+        options: [
+            EventOption(
+                label: "DECLARE A STATE OF EMERGENCY",
+                effects: [
+                    SpawnForces(owner: ("GBR"), province_owner: ("GBR"), province: "Nicosia", archetype: "Infantry", divisions: 2, quality: 1100),
+                    GrantLegitimacy(country: ("GBR"), amount: -10),
+                    AdjustTension(5),
+                ],
+            ),
+            EventOption(
+                label: "OPEN TALKS WITH MAKARIOS",
+                effects: [
+                    AdjustTension(-5),
+                    GrantLegitimacy(country: ("GBR"), amount: -5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Cyprus Emergency". Counterfactual branch: early negotiation with Archbishop Makarios instead of emergency rule and his 1956 deportation to the Seychelles.
+    EventDef(
+        id: "cyprus-early-deal",
+        trigger: OptionChosen(id: "cyprus-emergency", option: 1, days_after: 300),
+        title: "CYPRUS TALKS YIELD A FRAMEWORK",
+        body: "LONDON -- THE COLONIAL OFFICE AND ARCHBISHOP MAKARIOS INITIAL A FRAMEWORK FOR CYPRIOT SELF-GOVERNMENT UNDER THE CROWN, ENOSIS DEFERRED SINE DIE. EOKA HARDLINERS DENOUNCE THE ARCHBISHOP. ATHENS AND ANKARA BOTH CLAIM VINDICATION. THE GARRISON STANDS DOWN FROM CORDON DUTY.",
+        effects: [
+            GrantLegitimacy(country: ("GBR"), amount: 5),
+            AdjustTension(-5),
+        ],
+    ),
+    // SOURCE: Wikipedia "West Germany" and "German rearmament". Paris Agreements in force 5 May 1955; the Federal Republic joins NATO on 9 May 1955. Rearmament follows.
+    EventDef(
+        id: "frg-nato",
+        trigger: Date((1955, 5, 9, 12)),
+        title: "GERMANY AND THE ALLIANCE: BONN MUST CHOOSE",
+        body: "BONN -- THE PARIS AGREEMENTS ARE IN FORCE. OCCUPATION STATUTE ENDED, SOVEREIGNTY RESTORED, AND THE ATLANTIC COUNCIL HOLDS A CHAIR OPEN FOR THE FEDERAL REPUBLIC -- WITH TWELVE GERMAN DIVISIONS EXPECTED IN RETURN. MOSCOW WARNS ACCESSION BURIES REUNIFICATION AND PROMISES AN EASTERN MILITARY PACT IN ANSWER. THE SPD DEMANDS NEUTRALITY BE EXPLORED FIRST. CHANCELLOR ADENAUER HAS THE FLOOR.",
+        country: Some(("FRG")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "JOIN NATO -- RAISE THE BUNDESWEHR",
+                effects: [
+                    SpawnForces(owner: ("FRG"), province_owner: ("FRG"), province: "Nordrhein-Westfalen", archetype: "Infantry", divisions: 2, quality: 1000),
+                    GrantStock(country: ("FRG"), amount: 15),
+                    GrantLegitimacy(country: ("FRG"), amount: 10),
+                    AdjustTension(30),
+                ],
+            ),
+            EventOption(
+                label: "PURSUE NEUTRAL REUNIFICATION",
+                effects: [
+                    AdjustTension(-15),
+                    AdjustStability(country: ("FRG"), delta: -10),
+                    GrantLegitimacy(country: ("FRG"), amount: -10),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Austrian State Treaty". Signed 15 May 1955 at the Belvedere; occupation forces withdraw and Austria declares permanent neutrality on 26 October 1955.
+    EventDef(
+        id: "austrian-state-treaty",
+        trigger: Date((1955, 5, 15, 12)),
+        title: "AUSTRIA IS FREE -- AND NEUTRAL",
+        body: "VIENNA -- FOREIGN MINISTERS OF THE FOUR OCCUPYING POWERS SIGN THE STATE TREATY AT THE BELVEDERE. FIGL SHOWS THE SIGNED INSTRUMENT FROM THE BALCONY TO A WEEPING CROWD. ALL OCCUPATION FORCES OUT BY OCTOBER -- AUSTRIA PLEDGES PERMANENT NEUTRALITY ON THE SWISS MODEL. THE FIRST SOVIET MILITARY WITHDRAWAL IN EUROPE SINCE THE WAR.",
+        effects: [
+            SetAlignment(country: ("AUT"), alignment: "NonAligned"),
+            GrantLegitimacy(country: ("AUT"), amount: 15),
+            AdjustStability(country: ("AUT"), delta: 10),
+            AdjustTension(-25),
+        ],
+    ),
+    // SOURCE: Wikipedia "German rearmament". Counterfactual branch: Bonn spurns NATO for neutrality feelers; Washington reads it as the loss of the keystone ally and cuts support.
+    EventDef(
+        id: "frg-neutral-fallout",
+        trigger: OptionChosen(id: "frg-nato", option: 1, days_after: 30),
+        title: "WASHINGTON RECOILS FROM NEUTRAL GERMANY",
+        body: "WASHINGTON -- STATE DEPARTMENT SUSPENDS DEFENSE SUPPORT TALKS WITH BONN AFTER THE FEDERAL REPUBLIC DECLINES ITS NATO CHAIR. MUTUAL SECURITY FUNDS REDIRECTED TO FRANCE AND ITALY. DULLES SPEAKS OF AN AGONIZING REAPPRAISAL OF THE AMERICAN COMMITMENT TO EUROPE. INDUSTRY CIRCLES IN THE RUHR REPORT ORDERS DRYING UP.",
+        effects: [
+            GrantIndustry(country: ("FRG"), centi: -800),
+            AdjustStability(country: ("FRG"), delta: -10),
+        ],
+    ),
+    // SOURCE: Wikipedia "Bundeswehr". Founded 12 November 1955 -- Scharnhorst's 200th birthday -- with the first 101 volunteers; conscription and full divisions follow.
+    EventDef(
+        id: "bundeswehr-founded",
+        trigger: OptionChosen(id: "frg-nato", option: 0, days_after: 187),
+        title: "THE BUNDESWEHR IS BORN",
+        body: "BONN -- ON SCHARNHORST'S BIRTHDAY THE FIRST HUNDRED-ODD VOLUNTEERS OF THE NEW GERMAN ARMED FORCES RECEIVE THEIR COMMISSIONS IN AN ERMEKEIL BARRACKS MOTOR HALL. NO GOOSE-STEP, NO PRUSSIAN BLUE -- CITIZENS IN UNIFORM, THE MINISTRY INSISTS. TWELVE DIVISIONS ARE PLEDGED TO SACEUR. CONSCRIPTION LEGISLATION FOLLOWS NEXT YEAR.",
+        effects: [
+            SpawnForces(owner: ("FRG"), province_owner: ("FRG"), province: "Nordrhein-Westfalen", archetype: "Infantry", divisions: 2, quality: 1000),
+            SpawnForces(owner: ("FRG"), province_owner: ("FRG"), province: "Bayern", archetype: "Infantry", divisions: 2, quality: 1000),
+            SpawnForces(owner: ("FRG"), province_owner: ("FRG"), province: "Niedersachsen", archetype: "Motorized", divisions: 2, quality: 1000),
+            GrantStock(country: ("FRG"), amount: 10),
+        ],
+    ),
+    // SOURCE: Wikipedia "Treaty of Rome". Signed 25 March 1957 on the Capitoline; EEC and Euratom in force 1 January 1958.
+    EventDef(
+        id: "rome-treaties",
+        trigger: Date((1957, 3, 25, 12)),
+        title: "THE SIX SIGN AT ROME -- COMMON MARKET BORN",
+        body: "ROME -- IN THE HALL OF THE HORATII AND CURIATII THE SIX SIGN TREATIES ESTABLISHING A EUROPEAN ECONOMIC COMMUNITY AND AN ATOMIC ENERGY COMMUNITY. A COMMON MARKET OF 170 MILLION CONSUMERS, TARIFFS TO FALL BY STAGES OVER TWELVE YEARS. SPAAK CALLS IT THE MOST IMPORTANT DATE IN EUROPE SINCE THE FALL OF ROME. LONDON OFFERS A FREE TRADE AREA INSTEAD.",
+        effects: [
+            GrantIndustry(country: ("FRA"), centi: 500),
+            GrantIndustry(country: ("FRG"), centi: 600),
+            GrantIndustry(country: ("ITA"), centi: 400),
+            GrantIndustry(country: ("BEL"), centi: 200),
+            GrantIndustry(country: ("NLD"), centi: 250),
+            GrantIndustry(country: ("LUX"), centi: 100),
+            GrantLegitimacy(country: ("FRA"), amount: 5),
+            GrantLegitimacy(country: ("FRG"), amount: 5),
+            GrantLegitimacy(country: ("ITA"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "May 1958 crisis in France". Algiers committee seizes power 13 May; President Coty calls on de Gaulle 29 May; invested 1 June 1958.
+    EventDef(
+        id: "may-1958-crisis",
+        trigger: Date((1958, 5, 29, 12)),
+        title: "ALGIERS DEFIES PARIS -- THE REPUBLIC TOTTERS",
+        body: "PARIS -- SIXTEEN DAYS AFTER THE ARMY AND SETTLERS SEIZED THE GOVERNMENT-GENERAL IN ALGIERS, PARATROOPS FROM CORSICA ARE RUMORED READY TO DROP ON THE CAPITAL. OPERATION RESURRECTION AWAITS ONLY A SIGNAL. PRESIDENT COTY TELLS THE ASSEMBLY THE CHOICE IS THE MOST ILLUSTRIOUS OF FRENCHMEN -- OR CIVIL WAR. GENERAL DE GAULLE WAITS AT COLOMBEY.",
+        country: Some(("FRA")),
+        deadline_days: 3,
+        options: [
+            EventOption(
+                label: "CALL ON DE GAULLE",
+                effects: [
+                    AdjustStability(country: ("FRA"), delta: 20),
+                    GrantLegitimacy(country: ("FRA"), amount: 10),
+                ],
+            ),
+            EventOption(
+                label: "DEFEND THE FOURTH REPUBLIC",
+                effects: [
+                    AdjustStability(country: ("FRA"), delta: -15),
+                    GrantLegitimacy(country: ("FRA"), amount: -5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "May 1958 crisis in France". Counterfactual branch: Operation Resurrection -- the planned airborne descent on Paris -- goes ahead against a government that refuses de Gaulle.
+    EventDef(
+        id: "algiers-coup-spreads",
+        trigger: OptionChosen(id: "may-1958-crisis", option: 1, days_after: 14),
+        title: "PARATROOPS MOVE ON PARIS",
+        body: "PARIS -- ELEMENTS OF THE ALGIERS COMMAND EXECUTE OPERATION RESURRECTION. AIRBORNE TROOPS SECURE ORLY AND VILLACOUBLAY WHILE THE GOVERNMENT BARRICADES THE INTERIOR MINISTRY. GENERAL STRIKE CALLED BY THE CGT. THE ARMY IN METROPOLITAN FRANCE DECLINES TO FIRE ON THE ARMY FROM ALGIERS. THE REPUBLIC'S WRIT RUNS SHORTER BY THE HOUR.",
+        effects: [
+            AdjustStability(country: ("FRA"), delta: -15),
+            GrantLegitimacy(country: ("FRA"), amount: -10),
+            AdjustTension(15),
+        ],
+    ),
+    // SOURCE: Wikipedia "Force de frappe". Back in power, de Gaulle confirms the weapons program and on 22 July 1958 fixes the timetable for the first test -- 54 days after 29 May.
+    EventDef(
+        id: "force-de-frappe",
+        trigger: OptionChosen(id: "may-1958-crisis", option: 0, days_after: 54),
+        title: "DE GAULLE ORDERS THE BOMB AT FULL SPEED",
+        body: "PARIS -- THE GENERAL, NOW PREMIER, CONFIRMS THE ATOMIC WEAPONS PROGRAM AND FIXES THE DATE FOR THE FIRST FRENCH TEST. A NATIONAL DETERRENT ANSWERABLE TO NO ALLIANCE -- A FORCE DE FRAPPE. CREDITS FLOW TO THE CEA WITHOUT PARLIAMENTARY DEBATE. THE SAHARA PROVING GROUND AT REGGANE IS SURVEYED.",
+        effects: [
+            AdjustProgramSpeed(country: ("FRA"), permille: 1300),
+            GrantLegitimacy(country: ("FRA"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "London-Zurich Agreements" and "Cyprus". Independence 16 August 1960 under Makarios; Britain retains the Akrotiri and Dhekelia base areas. Cyprus joins the Non-Aligned Movement.
+    EventDef(
+        id: "cyprus-independence",
+        trigger: Date((1960, 8, 16, 0)),
+        title: "REPUBLIC OF CYPRUS PROCLAIMED",
+        body: "NICOSIA -- AT MIDNIGHT THE UNION FLAG COMES DOWN AND THE REPUBLIC OF CYPRUS IS PROCLAIMED UNDER THE ZURICH AND LONDON ACCORDS. ARCHBISHOP MAKARIOS PRESIDENT, DR KUCUK VICE-PRESIDENT WITH A TURKISH VETO. ENOSIS AND PARTITION ALIKE FORBIDDEN BY TREATY. BRITAIN KEEPS TWO SOVEREIGN BASE AREAS AND GREECE AND TURKEY STATION CONTINGENTS.",
+        effects: [
+            Independence(country: ("CYP"), from: ("GBR"), provinces: ["Nicosia", "Limassol", "Larnaca", "Paphos", "Famagusta"]),
+            AdjustTension(-5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Elysee Treaty". Signed 22 January 1963 by de Gaulle and Adenauer -- Franco-German reconciliation institutionalized.
+    EventDef(
+        id: "elysee-treaty",
+        trigger: Date((1963, 1, 22, 12)),
+        title: "DE GAULLE AND ADENAUER SIGN AT THE ELYSEE",
+        body: "PARIS -- FRANCE AND THE FEDERAL REPUBLIC SIGN A TREATY OF FRIENDSHIP AT THE ELYSEE PALACE. REGULAR SUMMITS, MILITARY CONSULTATION, A JOINT YOUTH OFFICE -- THE HEREDITARY ENMITY DECLARED CLOSED BY THE TWO OLD MEN WHO REMEMBER IT BEST. WASHINGTON EYES THE PARIS-BONN AXIS WITH UNEASE. THE BUNDESTAG WILL ADD AN ATLANTIC PREAMBLE.",
+        effects: [
+            GrantLegitimacy(country: ("FRA"), amount: 10),
+            GrantLegitimacy(country: ("FRG"), amount: 10),
+            AdjustTension(-10),
+        ],
+    ),
+    // SOURCE: Wikipedia "France-NATO relations". De Gaulle announces withdrawal from the integrated command at his 21 February 1966 press conference; letter to Johnson follows 7 March; NATO HQ leaves for Brussels.
+    EventDef(
+        id: "france-nato-exit",
+        trigger: Date((1966, 2, 21, 15)),
+        title: "DE GAULLE MOVES AGAINST NATO COMMAND",
+        body: "PARIS -- AT THE ELYSEE PRESS CONFERENCE THE GENERAL DECLARES FRANCE MUST RECOVER FULL SOVEREIGNTY OVER HER TERRITORY AND FORCES. STAFF PAPERS PREPARED FOR WITHDRAWAL FROM THE INTEGRATED MILITARY COMMAND -- ALLIED HEADQUARTERS AND AMERICAN BASES WOULD HAVE ONE YEAR TO QUIT FRENCH SOIL. THE ALLIANCE TREATY ITSELF WOULD STAND. WASHINGTON AWAITS THE LETTER.",
+        country: Some(("FRA")),
+        deadline_days: 14,
+        options: [
+            EventOption(
+                label: "WITHDRAW FROM INTEGRATED COMMAND",
+                effects: [
+                    AdjustTension(15),
+                    GrantLegitimacy(country: ("FRA"), amount: 10),
+                    AdjustStability(country: ("FRA"), delta: 5),
+                    GrantIndustry(country: ("FRA"), centi: -200),
+                    GrantLegitimacy(country: ("USA"), amount: -5),
+                ],
+            ),
+            EventOption(
+                label: "REMAIN IN NATO COMMAND",
+                effects: [
+                    GrantLegitimacy(country: ("FRA"), amount: -10),
+                    AdjustStability(country: ("FRA"), delta: -5),
+                    AdjustTension(-5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "France and weapons of mass destruction" and "Canopus (nuclear test)". De Gaulle witnesses the Betelgeuse shot at Mururoa on 11 September 1966 and presses for the H-bomb; Canopus fires 24 August 1968.
+    EventDef(
+        id: "fra-thermonuclear",
+        trigger: Date((1966, 9, 11, 12)),
+        title: "MURUROA: THE GENERAL WANTS THE SUN ITSELF",
+        body: "MURUROA -- PRESIDENT DE GAULLE, AT SEA ABOARD DE GRASSE, OBSERVES A NUCLEAR SHOT OVER THE LAGOON AND PRONOUNCES FISSION INSUFFICIENT. THE SOVIETS, AMERICANS AND BRITISH HOLD THE THERMONUCLEAR SECRET -- AND NOW PEKING TESTS TOWARD IT. THE CEA IS PRESSED FOR A HYDROGEN WEAPON BEFORE THE DECADE IS OUT. THE BILL WOULD BE COLOSSAL.",
+        country: Some(("FRA")),
+        deadline_days: 10,
+        options: [
+            EventOption(
+                label: "ORDER THE HYDROGEN BOMB",
+                effects: [
+                    AuthorizeThermonuclear(country: ("FRA")),
+                    AdjustTension(10),
+                ],
+            ),
+            EventOption(
+                label: "FISSION IS DETERRENT ENOUGH",
+                effects: [
+                    GrantIndustry(country: ("FRA"), centi: 200),
+                    GrantLegitimacy(country: ("FRA"), amount: -5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "1967 Greek coup d'etat". 21 April 1967, 0200: colonels Papadopoulos, Pattakos and Makarezos execute the Prometheus plan; tanks in Athens, king and parliament sidelined.
+    EventDef(
+        id: "greek-colonels",
+        trigger: Date((1967, 4, 21, 2)),
+        title: "TANKS IN ATHENS -- COLONELS SEIZE GREECE",
+        body: "ATHENS -- ARMORED UNITS TOOK THE CAPITAL BEFORE DAWN UNDER THE NATO PROMETHEUS CONTINGENCY PLAN, TURNED INWARD. PARLIAMENT SUSPENDED, THOUSANDS OF LEFTISTS ARRESTED, MARTIAL LAW DECLARED WEEKS BEFORE SCHEDULED ELECTIONS. A JUNTA OF COLONELS UNKNOWN EVEN TO THE KING HOLDS POWER. GREECE REMAINS IN THE ALLIANCE -- EUROPEAN CAPITALS HOLD THEIR NOSES.",
+        effects: [
+            AdjustStability(country: ("GRC"), delta: -15),
+            GrantLegitimacy(country: ("GRC"), amount: -20),
+            AdjustTension(5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Harold Wilson". 18 November 1967: sterling devalued from $2.80 to $2.40 -- the pound in your pocket broadcast. Decision window covers the final cabinet deliberations.
+    EventDef(
+        id: "wilson-devaluation",
+        trigger: Date((1967, 11, 16, 18)),
+        title: "STERLING ON THE BRINK -- CABINET IN SESSION",
+        body: "LONDON -- RESERVES DRAIN AT A RUINOUS RATE AS SPECULATORS PRESS THE POUND. THE SIX-DAY WAR, THE DOCK STRIKES AND THE TRADE GAP HAVE DONE THEIR WORK. THE TREASURY PUTS TWO PAPERS BEFORE MR WILSON -- DEVALUE TO $2.40, OR A LOAN ON TERMS DICTATED ABROAD AND CUTS WITHOUT PRECEDENT. THREE YEARS OF DEFENDING PARITY COME DOWN TO A WEEKEND.",
+        country: Some(("GBR")),
+        deadline_days: 2,
+        options: [
+            EventOption(
+                label: "DEVALUE TO $2.40",
+                effects: [
+                    AdjustStability(country: ("GBR"), delta: -10),
+                    GrantLegitimacy(country: ("GBR"), amount: -10),
+                    GrantIndustry(country: ("GBR"), centi: 300),
+                ],
+            ),
+            EventOption(
+                label: "DEFEND THE PARITY",
+                effects: [
+                    GrantIndustry(country: ("GBR"), centi: -500),
+                    AdjustStability(country: ("GBR"), delta: -10),
+                    GrantLegitimacy(country: ("GBR"), amount: 5),
+                ],
+            ),
+        ],
+    ),
+]

@@ -836,3 +836,100 @@ mod timeline_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod world_timeline_tests {
+    use crate::calendar::GameDate;
+    use crate::{run_ticks, SimPlugin};
+    use bevy_app::App;
+    use std::path::Path;
+    use std::sync::Arc;
+    use ugs_data::CountryTag;
+
+    /// The full 1950-1970 world, hands off: the historical defaults
+    /// (option 0) drive every decision, the sim runs the wars and
+    /// settlements, and the timeline content fires on schedule.
+    #[test]
+    fn the_world_turns_to_1970() {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/data/scenario/1950");
+        let data = ugs_data::ScenarioData::load(&dir).expect("scenario");
+        let mut app = App::new();
+        app.add_plugins(SimPlugin {
+            start_date: GameDate::new(1950, 1, 1, 0),
+            seed: 1950,
+        });
+        app.insert_resource(crate::demography::SimScenario(Arc::new(data)));
+        // Twenty years, one hour at a time.
+        run_ticks(&mut app, 24 * 365 * 20 + 24 * 5);
+
+        let world = app.world();
+        let data = world.resource::<crate::demography::SimScenario>().0.clone();
+        let fired = world.resource::<crate::events::FiredEvents>();
+        let military = world.resource::<crate::military::Military>();
+        let stat = world.resource::<crate::economy::EconomyStatic>();
+
+        // The spine of the era fired.
+        for id in [
+            "stalin-death",
+            "austrian-state-treaty",
+            "secret-speech",
+            "sputnik",
+            "hungary-uprising",
+            "berlin-wall",
+            "cuban-revolution",
+            "ghana-independence",
+            "congo-independence",
+            "six-day-war",
+        ] {
+            assert!(
+                fired.fired.iter().any(|f| f == id),
+                "{id} should have fired by 1970; fired: {} events",
+                fired.fired.len()
+            );
+        }
+
+        // Decolonization happened: many new states own regions now.
+        let owners_1970: std::collections::BTreeSet<&CountryTag> =
+            stat.region_owner.values().collect();
+        let new_states = owners_1970
+            .iter()
+            .filter(|t| {
+                !data
+                    .countries
+                    .get(**t)
+                    .map(|c| c.industry > 0)
+                    .unwrap_or(true)
+            })
+            .count();
+        let born = data
+            .countries
+            .keys()
+            .filter(|t| {
+                stat.region_owner.values().any(|o| o == *t)
+                    && military.manpower.contains_key(*t)
+                    && data.countries[*t].industry <= 3
+            })
+            .count();
+        let _ = new_states;
+        assert!(
+            born >= 12,
+            "the decolonization wave produced at least a dozen region-owning new states: {born}"
+        );
+
+        // Cuba turned east (the historical default path).
+        assert_eq!(
+            military.alignment_of(&data, &CountryTag("CUB".into())),
+            ugs_data::Alignment::EasternBloc,
+            "Cuba aligned east by the mid-1960s"
+        );
+
+        // The world is intact: no runaway wars, tension within scale.
+        let t = world.resource::<crate::tension::GlobalTension>().value();
+        assert!((0..=1000).contains(&t));
+        assert!(
+            military.wars.len() < 12,
+            "1970 is not a world war: {:?}",
+            military.wars
+        );
+    }
+}

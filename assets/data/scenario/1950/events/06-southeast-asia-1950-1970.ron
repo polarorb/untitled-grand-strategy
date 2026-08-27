@@ -1,0 +1,427 @@
+// Southeast Asia 1950-1970 — timeline content, sourced per event.
+// Sources: Wikipedia: First Indochina War; Wikipedia: Briggs Plan; Wikipedia: Malayan Emergency; Wikipedia: Franco-Lao Treaty of Amity and Association; Wikipedia: Norodom Sihanouk; Wikipedia: Operation Castor; Wikipedia: Battle of Dien Bien Phu; Wikipedia: Operation Vulture; Wikipedia: 1954 Geneva Conference; Wikipedia: Southeast Asia Treaty Organization; Wikipedia: History of France's military nuclear program (https://en.wikipedia.org/wiki/History_of_France's_military_nuclear_program); nuclearweaponarchive.org: France's Nuclear Weapons - Origin of the Force de Frappe (https://nuclearweaponarchive.org/France/FranceOrigin.html); Wikipedia: Malayan Declaration of Independence; Wikipedia: Guided Democracy in Indonesia; Wikipedia: 1962 Burmese coup d'état; Wikipedia: Malaysia Agreement; Wikipedia: Indonesia–Malaysia confrontation; Wikipedia: Gulf of Tonkin incident; Wikipedia: Gulf of Tonkin Resolution; Wikipedia: Operation Rolling Thunder; Wikipedia: 30 September Movement; Wikipedia: Supersemar; Wikipedia: Tet Offensive; Wikipedia: Vietnam War; Wikipedia: Briggs Plan (https://en.wikipedia.org/wiki/Briggs_Plan)
+[
+    // SOURCE: Wikipedia "First Indochina War". 8 May 1950: Acheson announces US military and economic aid to the French war effort in Indochina; MAAG-Indochina follows in September.
+    EventDef(
+        id: "us-aid-indochina",
+        trigger: Date((1950, 5, 8, 12)),
+        title: "PARIS ASKS: WHO PAYS FOR THE WAR IN INDOCHINA",
+        body: "WASHINGTON -- FRENCH UNION FORCES BLED WHITE FIGHTING THE VIET MINH FROM TONKIN TO COCHINCHINA. PARIS REQUESTS AMERICAN ARMS, AIRCRAFT AND DOLLARS. STATE DEPARTMENT ARGUES INDOCHINA IS NOW A FRONT AGAINST INTERNATIONAL COMMUNISM, NOT A COLONIAL POLICE ACTION. SECRETARY ACHESON AWAITS THE PRESIDENT'S DECISION.",
+        country: Some(("USA")),
+        deadline_days: 10,
+        options: [
+            EventOption(
+                label: "FUND THE FRENCH WAR",
+                effects: [
+                    GrantStock(country: ("FRA"), amount: 15),
+                    GrantIndustry(country: ("FRA"), centi: 200),
+                    AdjustTension(10),
+                ],
+            ),
+            EventOption(
+                label: "NO DOLLARS FOR COLONIAL WARS",
+                effects: [
+                    AdjustStability(country: ("FRA"), delta: -10),
+                    GrantLegitimacy(country: ("FRA"), amount: -5),
+                    AdjustTension(-5),
+                ],
+            ),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Briggs Plan". June 1950: Director of Operations Briggs centralizes forced resettlement of Malaya's rural Chinese squatters into guarded New Villages to cut the MNLA off from food and recruits.
+    EventDef(
+        id: "briggs-plan",
+        trigger: Date((1950, 6, 1, 6)),
+        title: "MALAYA EMERGENCY: BRIGGS SUBMITS HIS PLAN",
+        body: "KUALA LUMPUR -- LT-GEN SIR HAROLD BRIGGS, DIRECTOR OF OPERATIONS, PROPOSES UPROOTING HALF A MILLION RURAL CHINESE SQUATTERS INTO WIRED AND GUARDED NEW VILLAGES -- STARVE THE COMMUNIST GUERRILLAS OF FOOD, INTELLIGENCE AND RECRUITS. PLANTERS PROTEST THE COST. THE JUNGLE WAR IS TWO YEARS OLD AND GOING BADLY.",
+        country: Some(("GBR")),
+        deadline_days: 14,
+        options: [
+            EventOption(
+                label: "RESETTLE THE SQUATTERS -- NEW VILLAGES",
+                effects: [
+                    GrantLegitimacy(country: ("GBR"), amount: -5),
+                    AdjustStability(country: ("GBR"), delta: 5),
+                ],
+            ),
+            EventOption(
+                label: "JUNGLE SWEEPS ONLY -- NO MASS RESETTLEMENT",
+                effects: [
+                    AdjustStability(country: ("GBR"), delta: -10),
+                ],
+            ),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Franco-Lao Treaty of Amity and Association" (22 Oct 1953) and "Norodom Sihanouk" -- Cambodia's independence proclaimed 9 Nov 1953 after Sihanouk's Royal Crusade.
+    EventDef(
+        id: "khmer-lao-independence",
+        trigger: Date((1953, 11, 9, 0)),
+        title: "FRANCE LETS GO OF LAOS AND CAMBODIA",
+        body: "PHNOM PENH -- KING NORODOM SIHANOUK ENTERS THE CAPITAL IN TRIUMPH AS FRANCE TRANSFERS THE LAST MILITARY AND JUDICIAL POWERS -- CAMBODIA INDEPENDENT AFTER 90 YEARS OF PROTECTORATE. IN VIENTIANE THE FRANCO-LAO TREATY OF OCTOBER 22 MAKES THE ROYAL LAO GOVERNMENT SOVEREIGN WITHIN THE FRENCH UNION. THE WAR AGAINST THE VIET MINH GRINDS ON WITHOUT THEM.",
+        effects: [
+            Independence(country: ("KHM"), from: ("FRA"), provinces: ["Phnom Penh", "Batdâmbâng", "Siemréab", "Kândal", "Kâmpôt"]),
+            Independence(country: ("LAO"), from: ("FRA"), provinces: ["Vientiane", "Louangphrabang", "Xiangkhoang", "Phôngsali", "Bolikhamxai"]),
+            AdjustTension(-5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Operation Castor". 20 Nov 1953: Navarre drops six parachute battalions into the Dien Bien Phu valley to block Viet Minh routes into Laos and force a set-piece battle.
+    EventDef(
+        id: "operation-castor",
+        trigger: Date((1953, 11, 20, 6)),
+        title: "NAVARRE PROPOSES A TRAP AT DIEN BIEN PHU",
+        body: "SAIGON -- GENERAL NAVARRE PROPOSES OPERATION CASTOR -- SIX PARACHUTE BATTALIONS TO SEIZE THE DIEN BIEN PHU VALLEY, 300 KILOMETERS BEHIND VIET MINH LINES, ASTRIDE THE INVASION ROUTES INTO LAOS. AN AIR-SUPPLIED FORTRESS TO FORCE GIAP INTO A SET-PIECE BATTLE FRENCH FIREPOWER MUST WIN. CRITICS NOTE THE VALLEY IS RINGED BY HILLS THE PLAN ASSUMES THE ENEMY CANNOT USE.",
+        country: Some(("FRA")),
+        deadline_days: 4,
+        options: [
+            EventOption(
+                label: "OPERATION CASTOR -- SEIZE THE VALLEY",
+                effects: [
+                    AdjustTension(10),
+                ],
+            ),
+            EventOption(
+                label: "REFUSE BATTLE -- DEFEND THE DELTA",
+                effects: [
+                    AdjustStability(country: ("FRA"), delta: -5),
+                    GrantLegitimacy(country: ("FRA"), amount: -10),
+                ],
+            ),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Battle of Dien Bien Phu". 13 Mar 1954: Giap opens the assault; Viet Minh artillery, hauled up the hills piece by piece, silences the airstrip within days.
+    EventDef(
+        id: "dien-bien-phu-siege",
+        trigger: OptionChosen(id: "operation-castor", option: 0, days_after: 113),
+        title: "GIAP'S GUNS OPEN ON DIEN BIEN PHU",
+        body: "HANOI -- MASSED VIET MINH ARTILLERY -- DRAGGED BY HAND UP JUNGLE SLOPES THE FRENCH CALLED IMPASSABLE -- OPENS ON THE FORTRESS AT 1700 HOURS. STRONGPOINT BEATRICE OVERRUN THE FIRST NIGHT. THE AIRSTRIP IS UNDER DIRECT FIRE AND THE GARRISON OF 11,000 CAN BE SUPPLIED ONLY BY PARACHUTE. FOUR VIET MINH DIVISIONS HOLD THE HILLS.",
+        effects: [
+            AdjustTension(20),
+            AdjustStability(country: ("FRA"), delta: -5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Battle of Dien Bien Phu". Late March 1954: with the airstrip closed, Cogny and Navarre weigh reinforcing by parachute drop against the breakout plan Operation Albatross.
+    EventDef(
+        id: "dien-bien-phu-airbridge",
+        trigger: EventFired(id: "dien-bien-phu-siege", days_after: 12),
+        title: "THE GARRISON CAN ONLY BE FED BY PARACHUTE",
+        body: "HANOI -- THE AIRSTRIP AT DIEN BIEN PHU IS CLOSED. EVERY SHELL, EVERY MAN, EVERY LITER OF PLASMA NOW ARRIVES BY PARACHUTE THROUGH FLAK. GENERAL COGNY ASKS FOR VOLUNTEERS TO JUMP INTO A SHRINKING PERIMETER. THE ALTERNATIVE IS OPERATION ALBATROSS -- A BREAKOUT THROUGH THE JUNGLE THAT ABANDONS THE WOUNDED.",
+        country: Some(("FRA")),
+        deadline_days: 4,
+        options: [
+            EventOption(
+                label: "PARACHUTE THE RESERVES IN",
+                effects: [
+                    AdjustStability(country: ("FRA"), delta: -5),
+                    AdjustTension(5),
+                ],
+            ),
+            EventOption(
+                label: "ORDER ALBATROSS -- BREAK OUT",
+                effects: [
+                    AdjustStability(country: ("FRA"), delta: -10),
+                    GrantLegitimacy(country: ("FRA"), amount: -10),
+                ],
+            ),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Operation Vulture". Early April 1954: Radford's plan for massed B-29 strikes to save the garrison; Eisenhower demands congressional and British backing and gets neither.
+    EventDef(
+        id: "operation-vulture",
+        trigger: EventFired(id: "dien-bien-phu-siege", days_after: 23),
+        title: "OPERATION VULTURE: RADFORD WANTS THE B-29S",
+        body: "WASHINGTON -- ADMIRAL RADFORD PRESSES A PLAN FOR 60 B-29S FROM CLARK FIELD AND THE PHILIPPINES TO SMASH THE SIEGE LINES AT DIEN BIEN PHU -- CARRIER AIR IN SUPPORT. RIDGWAY WARNS IT LEADS TO ANOTHER GROUND WAR IN ASIA. CONGRESS ASKS WHETHER LONDON IS IN. PARIS SAYS WITHOUT THE STRIKES THE FORTRESS DIES.",
+        country: Some(("USA")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "DECLINE -- NO UNILATERAL INTERVENTION",
+                effects: [
+                    GrantLegitimacy(country: ("FRA"), amount: -5),
+                    AdjustTension(-5),
+                ],
+            ),
+            EventOption(
+                label: "AUTHORIZE THE STRIKES",
+                effects: [
+                    AdjustTension(60),
+                    AdjustStability(country: ("FRA"), delta: 10),
+                    GrantStock(country: ("FRA"), amount: 15),
+                    GrantLegitimacy(country: ("USA"), amount: -10),
+                ],
+            ),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Battle of Dien Bien Phu". 7 May 1954: strongpoint Isabelle falls last; some 11,000 prisoners march east. The Laniel government falls within weeks.
+    EventDef(
+        id: "dien-bien-phu-falls",
+        trigger: EventFired(id: "dien-bien-phu-siege", days_after: 55),
+        title: "DIEN BIEN PHU HAS FALLEN",
+        body: "HANOI -- AFTER 56 DAYS THE VIET MINH FLAG FLIES OVER DE CASTRIES' COMMAND BUNKER. LAST RADIO MESSAGE AT 1730 -- 'WE ARE BLOWING UP EVERYTHING. ADIEU.' SOME 11,000 PRISONERS BEGIN THE MARCH EAST. NO EUROPEAN ARMY HAS LOST A SET-PIECE BATTLE TO AN ASIAN INDEPENDENCE MOVEMENT ON THIS SCALE. PARIS REELS -- THE GOVERNMENT CANNOT SURVIVE IT.",
+        effects: [
+            AdjustStability(country: ("FRA"), delta: -15),
+            GrantLegitimacy(country: ("FRA"), amount: -10),
+            AdjustTension(15),
+        ],
+    ),
+    // SOURCE: Wikipedia "1954 Geneva Conference". 21 Jul 1954: Indochina accords partition Vietnam at the 17th parallel pending elections -- a communist North under Ho Chi Minh, a Western-backed South under Bao Dai and Diem.
+    EventDef(
+        id: "geneva-accords",
+        trigger: Date((1954, 7, 21, 0)),
+        title: "GENEVA: VIETNAM CUT AT THE 17TH PARALLEL",
+        body: "GENEVA -- MENDES FRANCE DELIVERS HIS PROMISED PEACE. THE INDOCHINA ACCORDS PARTITION VIETNAM AT THE 17TH PARALLEL -- HO CHI MINH'S DRV REGROUPS NORTH, THE FRENCH UNION FORCES AND THE STATE OF VIETNAM SOUTH. NATIONWIDE ELECTIONS PROMISED FOR 1956. WASHINGTON AND SAIGON DECLINE TO SIGN. NOBODY IN GENEVA BELIEVES THE ELECTIONS WILL HAPPEN.",
+        effects: [
+            Independence(country: ("VNN"), from: ("FRA"), provinces: ["Ha Noi", "Hải Phòng", "Thái Nguyên", "Nam Định", "Thanh Hóa"]),
+            Independence(country: ("VNS"), from: ("FRA"), provinces: ["Hồ Chí Minh city", "Can Tho", "Khánh Hòa", "Bình Định", "Tây Ninh"]),
+            GrantLegitimacy(country: ("FRA"), amount: -5),
+            AdjustTension(-30),
+        ],
+    ),
+    // SOURCE: Wikipedia "Southeast Asia Treaty Organization". 8 Sep 1954: Manila Pact signed -- US, UK, France, Australia, NZ, Pakistan, Thailand, Philippines; a protocol extends cover to Laos, Cambodia and South Vietnam.
+    EventDef(
+        id: "seato-pact",
+        trigger: Date((1954, 9, 8, 0)),
+        title: "MANILA PACT: SEATO IS BORN",
+        body: "MANILA -- EIGHT NATIONS SIGN THE SOUTHEAST ASIA COLLECTIVE DEFENSE TREATY -- DULLES' ANSWER TO GENEVA. NO STANDING FORCES, NO AUTOMATIC TRIGGER, BUT A PROTOCOL EXTENDS THE UMBRELLA OVER LAOS, CAMBODIA AND THE STATE OF VIETNAM. INDIA AND INDONESIA POINTEDLY STAY HOME. THE DOMINOES NOW HAVE A FENCE, ON PAPER.",
+        effects: [
+            GrantLegitimacy(country: ("USA"), amount: 5),
+            GrantLegitimacy(country: ("VNS"), amount: 10),
+            GrantLegitimacy(country: ("THA"), amount: 5),
+            GrantLegitimacy(country: ("PHL"), amount: 5),
+            AdjustTension(5),
+        ],
+    ),
+    // SOURCE: Wikipedia "History of France's military nuclear program". 26 Dec 1954: Mendes France, weeks after losing Indochina and the EDC fight, secretly authorizes atomic-bomb studies; the Bureau d'Etudes Generales follows on the 28th.
+    EventDef(
+        id: "france-bomb-decision",
+        trigger: Date((1954, 12, 26, 0)),
+        title: "PARIS DECIDES IN SECRET: FRANCE WILL HAVE THE BOMB",
+        body: "PARIS -- IN A CLOSED CABINET MEETING PREMIER MENDES FRANCE AUTHORIZES THE CEA TO BEGIN ATOMIC WEAPONS STUDIES. THE HUMILIATIONS OF THE YEAR -- DIEN BIEN PHU, GENEVA, THE DEAD EDC -- HAVE CONVINCED PARIS THAT GREAT-POWER RANK CANNOT BE BORROWED FROM WASHINGTON. A BUREAU OF GENERAL STUDIES IS CREATED TO HIDE THE LINE ITEM.",
+        effects: [
+            FoundNuclearProgram(country: ("FRA"), route: "Plutonium"),
+            AdjustTension(5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Malayan Declaration of Independence". 31 Aug 1957: Merdeka -- the Federation of Malaya independent under Tunku Abdul Rahman, with the Emergency winding down and a UK defense agreement in place.
+    EventDef(
+        id: "malaya-independence",
+        trigger: Date((1957, 8, 31, 0)),
+        title: "MERDEKA: MALAYA IS FREE",
+        body: "KUALA LUMPUR -- AT MIDNIGHT THE UNION FLAG COMES DOWN AND TUNKU ABDUL RAHMAN CRIES MERDEKA SEVEN TIMES TO A HUNDRED THOUSAND VOICES. THE FEDERATION OF MALAYA IS SOVEREIGN -- THE FIRST TIME LONDON HAS HANDED POWER TO A GOVERNMENT STILL FIGHTING A COMMUNIST INSURGENCY, AND WINNING. THE ANGLO-MALAYAN DEFENSE AGREEMENT KEEPS BRITISH TROOPS IN THE JUNGLE.",
+        effects: [
+            Independence(country: ("MYS"), from: ("GBR"), provinces: ["Kuala Lumpur", "Perak", "Johor", "Kelantan", "Pulau Pinang"]),
+            GrantLegitimacy(country: ("GBR"), amount: 10),
+            AdjustTension(-5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Guided Democracy in Indonesia". 5 Jul 1959: Sukarno's decree dissolves the Konstituante and restores the 1945 constitution, concentrating power in the presidency.
+    EventDef(
+        id: "guided-democracy",
+        trigger: Date((1959, 7, 5, 6)),
+        title: "SUKARNO MOVES TO BURY PARLIAMENT",
+        body: "JAKARTA -- THE KONSTITUANTE IS DEADLOCKED, THE OUTER ISLANDS IN REVOLT, THE PARTIES DISCREDITED. PRESIDENT SUKARNO PROPOSES A DECREE -- DISSOLVE THE ASSEMBLY, RESTORE THE 1945 CONSTITUTION, AND RULE THROUGH 'GUIDED DEMOCRACY' BALANCED BETWEEN ARMY, ISLAM AND THE COMMUNIST PKI. THE GENERALS APPROVE. THE LIBERALS HAVE NO ARMY.",
+        country: Some(("IDN")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "DECREE -- RETURN TO THE 1945 CONSTITUTION",
+                effects: [
+                    AdjustStability(country: ("IDN"), delta: 10),
+                    GrantLegitimacy(country: ("IDN"), amount: -10),
+                    SetAlignment(country: ("IDN"), alignment: "NonAligned"),
+                ],
+            ),
+            EventOption(
+                label: "LET THE KONSTITUANTE STAND",
+                effects: [
+                    AdjustStability(country: ("IDN"), delta: -15),
+                    GrantLegitimacy(country: ("IDN"), amount: 5),
+                ],
+            ),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "1962 Burmese coup d'état". 2 Mar 1962: General Ne Win deposes U Nu's civilian government; the Revolutionary Council begins the isolationist Burmese Way to Socialism.
+    EventDef(
+        id: "burma-coup",
+        trigger: Date((1962, 3, 2, 0)),
+        title: "NE WIN SEIZES POWER IN RANGOON",
+        body: "RANGOON -- GENERAL NE WIN'S TROOPS TAKE THE GOVERNMENT QUARTER BEFORE DAWN. PREMIER U NU AND THE CABINET ARRESTED, PARLIAMENT DISSOLVED, THE FEDERAL TALKS WITH THE SHAN STATES DEAD. A REVOLUTIONARY COUNCIL OF SOLDIERS PROCLAIMS THE 'BURMESE WAY TO SOCIALISM' -- NEUTRAL, SEALED, AND ANSWERABLE TO NO ONE.",
+        effects: [
+            AdjustStability(country: ("MMR"), delta: -15),
+            GrantLegitimacy(country: ("MMR"), amount: -10),
+            SetAlignment(country: ("MMR"), alignment: "NonAligned"),
+        ],
+    ),
+    // SOURCE: Wikipedia "Malaysia Agreement". 16 Sep 1963: Malaya federates with Singapore, Sabah (North Borneo) and Sarawak to form Malaysia; Jakarta and Manila refuse recognition.
+    EventDef(
+        id: "malaysia-formation",
+        trigger: Date((1963, 9, 16, 0)),
+        title: "MALAYSIA PROCLAIMED -- JAKARTA CALLS IT A PLOT",
+        body: "KUALA LUMPUR -- THE FEDERATION OF MALAYSIA IS PROCLAIMED: MALAYA JOINED BY SINGAPORE AND THE BORNEO TERRITORIES OF SABAH AND SARAWAK. LONDON CALLS IT ORDERLY DECOLONIZATION. SUKARNO CALLS IT A NEOCOLONIAL ENCIRCLEMENT BUILT ON BRITISH BAYONETS AND REFUSES RECOGNITION. MANILA PRESSES ITS OWN CLAIM TO SABAH.",
+        effects: [
+            TransferProvinces(from: ("GBR"), to: ("MYS"), names: ["Sabah", "Sarawak"]),
+            GrantLegitimacy(country: ("MYS"), amount: 5),
+            AdjustTension(10),
+        ],
+    ),
+    // SOURCE: Wikipedia "Indonesia–Malaysia confrontation". Sep 1963: after Malaysia's proclamation, mobs burn the British embassy in Jakarta and Sukarno commits to 'Ganyang Malaysia' -- crush Malaysia.
+    EventDef(
+        id: "konfrontasi-launch",
+        trigger: Date((1963, 9, 18, 6)),
+        title: "GANYANG MALAYSIA -- SUKARNO'S CONFRONTATION",
+        body: "JAKARTA -- CROWDS SACK AND BURN THE BRITISH EMBASSY AS KONFRONTASI FEVER SWEEPS THE CAPITAL. SUKARNO DEMANDS THE NEW FEDERATION BE CRUSHED -- 'GANYANG MALAYSIA.' THE ARMY IS WARY, THE PKI ECSTATIC, THE ECONOMY ALREADY STARVING FOR THE FIGHT. VOLUNTEERS DRILL FOR INFILTRATION ACROSS THE BORNEO BORDER.",
+        country: Some(("IDN")),
+        deadline_days: 7,
+        options: [
+            EventOption(
+                label: "GANYANG MALAYSIA -- CONFRONTATION",
+                effects: [
+                    AdjustTension(20),
+                    AdjustStability(country: ("IDN"), delta: 5),
+                    GrantIndustry(country: ("IDN"), centi: -300),
+                    AdjustStability(country: ("MYS"), delta: -10),
+                ],
+            ),
+            EventOption(
+                label: "PROTEST AND STAND DOWN",
+                effects: [
+                    GrantLegitimacy(country: ("IDN"), amount: -10),
+                    AdjustStability(country: ("IDN"), delta: -5),
+                ],
+            ),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Gulf of Tonkin incident" and "Gulf of Tonkin Resolution". 2-4 Aug 1964: attacks on USS Maddox reported off North Vietnam; 7 Aug Congress passes the resolution near-unanimously.
+    EventDef(
+        id: "tonkin-gulf",
+        trigger: Date((1964, 8, 4, 12)),
+        title: "TONKIN GULF: DESTROYERS REPORT ATTACK",
+        body: "WASHINGTON -- USS MADDOX ENGAGED NORTH VIETNAMESE TORPEDO BOATS OFF THE TONKIN COAST AUGUST 2. TONIGHT MADDOX AND TURNER JOY REPORT A SECOND ATTACK IN HEAVY WEATHER -- SONAR CONTACTS UNCERTAIN, PILOTS OVERHEAD SAW NOTHING. THE PRESIDENT CAN GO TO CONGRESS FOR A FREE HAND IN SOUTHEAST ASIA, OR WAIT FOR DAYLIGHT AND CERTAINTY.",
+        country: Some(("USA")),
+        deadline_days: 4,
+        options: [
+            EventOption(
+                label: "ASK CONGRESS FOR THE RESOLUTION",
+                effects: [
+                    AdjustTension(25),
+                    GrantLegitimacy(country: ("USA"), amount: 10),
+                    GrantStock(country: ("VNS"), amount: 10),
+                ],
+            ),
+            EventOption(
+                label: "RESTRAINT -- THE CONTACTS ARE UNCLEAR",
+                effects: [
+                    AdjustTension(-5),
+                    GrantLegitimacy(country: ("USA"), amount: -5),
+                ],
+            ),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Operation Rolling Thunder". 2 Mar 1965 the sustained bombing of the North begins; 8 Mar 1965 Marines land at Da Nang -- the Americanization of the war.
+    EventDef(
+        id: "americanization",
+        trigger: OptionChosen(id: "tonkin-gulf", option: 0, days_after: 210),
+        title: "ROLLING THUNDER -- US COMBAT TROOPS ASHORE",
+        body: "SAIGON -- OPERATION ROLLING THUNDER OPENS THE SUSTAINED AIR CAMPAIGN AGAINST THE NORTH. WITHIN THE WEEK US MARINES WADE ASHORE IN FULL COMBAT KIT -- THE FIRST AMERICAN GROUND COMBAT UNITS ON THE ASIAN MAINLAND SINCE KOREA. THE MISSION IS BASE SECURITY. NOBODY BELIEVES IT WILL STAY THAT WAY.",
+        effects: [
+            AdjustTension(20),
+            AdjustStability(country: ("VNN"), delta: -10),
+            SpawnForces(owner: ("USA"), province_owner: ("FRA"), province: "Khánh Hòa", archetype: "Infantry", divisions: 4, quality: 1150),
+            SpawnForces(owner: ("USA"), province_owner: ("FRA"), province: "Hồ Chí Minh city", archetype: "Motorized", divisions: 2, quality: 1200),
+            GrantStock(country: ("VNS"), amount: 15),
+        ],
+    ),
+    // SOURCE: Wikipedia "Vietnam War". Without US escalation, 1964-65 Saigon cycles through coups while the Viet Cong take the countryside -- the collapse McNamara's memos predicted.
+    EventDef(
+        id: "saigon-slide",
+        trigger: OptionChosen(id: "tonkin-gulf", option: 1, days_after: 150),
+        title: "SAIGON SLIDES TOWARD COLLAPSE",
+        body: "SAIGON -- ANOTHER COUP, ANOTHER JUNTA, ANOTHER PROVINCE GONE DARK. WITH WASHINGTON HOLDING BACK, VIET CONG MAIN FORCE UNITS NOW OPERATE IN REGIMENTAL STRENGTH WITHIN 40 KILOMETERS OF THE CAPITAL. HANOI SHIPS CADRES AND HARDWARE SOUTH DOWN AN UNBOMBED TRAIL. THE EMBASSY CABLES SPEAK OF MONTHS, NOT YEARS.",
+        effects: [
+            AdjustStability(country: ("VNS"), delta: -15),
+            GrantStock(country: ("VNN"), amount: 10),
+            GrantLegitimacy(country: ("USA"), amount: -5),
+            AdjustTension(10),
+        ],
+    ),
+    // SOURCE: Wikipedia "30 September Movement". Night of 30 Sep-1 Oct 1965: six army generals murdered in Jakarta; Major General Suharto takes command of the army's response within hours.
+    EventDef(
+        id: "indonesia-hinge",
+        trigger: Date((1965, 10, 2, 6)),
+        title: "JAKARTA: GENERALS MURDERED IN THE NIGHT",
+        body: "JAKARTA -- SIX ARMY GENERALS KIDNAPPED AND MURDERED BY A SELF-STYLED 30 SEPTEMBER MOVEMENT. RADIO JAKARTA, BRIEFLY SEIZED, PROCLAIMED A REVOLUTIONARY COUNCIL. MAJOR GENERAL SUHARTO HOLDS KOSTRAD AND THE CAPITAL'S REMAINING TROOPS. THE ARMY BLAMES THE COMMUNIST PKI -- THREE MILLION MEMBERS STRONG. SUKARNO TEMPORIZES. THE COUNTRY HOLDS ITS BREATH.",
+        country: Some(("IDN")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "SUHARTO MOVES -- BREAK THE PKI",
+                effects: [
+                    SetAlignment(country: ("IDN"), alignment: "WesternBloc"),
+                    AdjustStability(country: ("IDN"), delta: -20),
+                    GrantLegitimacy(country: ("IDN"), amount: -10),
+                    AdjustTension(10),
+                ],
+            ),
+            EventOption(
+                label: "THE REVOLUTIONARY COUNCIL HOLDS",
+                effects: [
+                    SetAlignment(country: ("IDN"), alignment: "EasternBloc"),
+                    AdjustStability(country: ("IDN"), delta: -25),
+                    AdjustTension(40),
+                ],
+            ),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Supersemar". 11 Mar 1966: Sukarno signs over executive authority to Suharto; the New Order consolidates, ends Konfrontasi (Jakarta Accord, Aug 1966), and turns West for aid.
+    EventDef(
+        id: "supersemar",
+        trigger: OptionChosen(id: "indonesia-hinge", option: 0, days_after: 160),
+        title: "SUPERSEMAR: POWER PASSES TO SUHARTO",
+        body: "JAKARTA -- UNDER ARMY PRESSURE SUKARNO SIGNS THE ORDER OF MARCH 11, TRANSFERRING EXECUTIVE AUTHORITY TO GENERAL SUHARTO. THE PKI IS BANNED, THE PURGES BURN OUT, AND THE NEW ORDER OPENS TALKS TO END THE CONFRONTATION WITH MALAYSIA. WESTERN CREDITORS AND OIL MEN ARE ALREADY ON THE PLANE.",
+        effects: [
+            AdjustStability(country: ("IDN"), delta: 25),
+            AdjustTension(-15),
+            GrantIndustry(country: ("IDN"), centi: 200),
+            AdjustStability(country: ("MYS"), delta: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Tet Offensive" and "Lyndon B. Johnson". 30-31 Jan 1968: countrywide assaults on Tet; militarily broken by March, but Westmoreland's 206,000-man request leaks and Johnson announces the partial bombing halt on 31 Mar.
+    EventDef(
+        id: "tet-offensive",
+        trigger: Date((1968, 1, 30, 6)),
+        title: "TET: THE WHOLE COUNTRY ERUPTS AT ONCE",
+        body: "SAIGON -- ON THE FIRST NIGHT OF TET, VIET CONG AND NORTHERN REGULARS STRIKE OVER 100 CITIES AND BASES -- SAPPERS INSIDE THE US EMBASSY COMPOUND, HUE OVERRUN, THE CITADEL FLYING AN ENEMY FLAG. THE ATTACKERS ARE BEING DESTROYED IN THE OPEN, BUT SO IS THE STORY OF A WAR NEARLY WON. WESTMORELAND WANTS 206,000 MORE MEN. THE PRESIDENT MUST CHOOSE.",
+        country: Some(("USA")),
+        deadline_days: 60,
+        options: [
+            EventOption(
+                label: "HALT THE BOMBING -- SEEK TALKS",
+                effects: [
+                    GrantLegitimacy(country: ("USA"), amount: -15),
+                    AdjustStability(country: ("VNS"), delta: -10),
+                    AdjustStability(country: ("VNN"), delta: -5),
+                    AdjustTension(-15),
+                ],
+            ),
+            EventOption(
+                label: "GIVE WESTMORELAND HIS 206,000",
+                effects: [
+                    GrantLegitimacy(country: ("USA"), amount: -25),
+                    AdjustStability(country: ("VNS"), delta: -10),
+                    AdjustTension(25),
+                    SpawnForces(owner: ("USA"), province_owner: ("FRA"), province: "Đông Nam Bộ", archetype: "Infantry", divisions: 3, quality: 1150),
+                    GrantStock(country: ("VNS"), amount: 15),
+                ],
+            ),
+        ],
+        effects: [],
+    ),
+]

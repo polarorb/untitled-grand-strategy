@@ -1,0 +1,234 @@
+// Superpower Systemic Arc + Nuclear/Space, 1950-1970 — timeline content, sourced per event.
+// Sources: Death and state funeral of Joseph Stalin; Lavrentiy Beria; Nikita Khrushchev; Austrian State Treaty; Geneva Summit (1955); On the Cult of Personality and Its Consequences; Sputnik 1; Sputnik crisis; Berlin Crisis of 1958-1959; Kitchen Debate; 1960 U-2 incident; 1960 Paris Summit; Vostok 1; Assassination of John F. Kennedy; Partial Nuclear Test Ban Treaty; Treaty on the Non-Proliferation of Nuclear Weapons; Apollo 11; Force de dissuasion; Charles de Gaulle
+[
+    // SOURCE: Wikipedia "Death and state funeral of Joseph Stalin". Stalin died 5 March 1953 at Kuntsevo; the Presidium divided power that same night with no designated heir.
+    EventDef(
+        id: "stalin-death",
+        trigger: Date((1953, 3, 5, 0)),
+        title: "STALIN IS DEAD",
+        body: "MOSCOW -- JOSEF STALIN DIED AT 2150 HOURS AT HIS KUNTSEVO DACHA AFTER FOUR DAYS IN A COMA. THE PRESIDIUM SITS IN EMERGENCY SESSION WITH NO DESIGNATED HEIR. MALENKOV HOLDS THE GOVERNMENT, BERIA THE POLICE, KHRUSHCHEV THE PARTY MACHINE -- AND THE ARMY WATCHES ALL THREE.",
+        country: Some(("SOV")),
+        deadline_days: 7,
+        options: [
+            EventOption(label: "COLLECTIVE LEADERSHIP UNDER MALENKOV", effects: [AdjustStability(country: ("SOV"), delta: -10), AdjustTension(-15)]),
+            EventOption(label: "LET BERIA TAKE THE MINISTRIES", effects: [AdjustStability(country: ("SOV"), delta: -20), AdjustTension(-25), GrantLegitimacy(country: ("SOV"), amount: -10)]),
+            EventOption(label: "THE MARSHALS BACK KHRUSHCHEV", effects: [AdjustStability(country: ("SOV"), delta: -5), AdjustTension(10), GrantStock(country: ("SOV"), amount: 10)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Lavrentiy Beria". Under the collective leadership, Beria was arrested at a Presidium meeting on 26 June 1953 in a plot led by Khrushchev with Zhukov's officers.
+    EventDef(
+        id: "beria-arrested",
+        trigger: OptionChosen(id: "stalin-death", option: 0, days_after: 110),
+        title: "BERIA ARRESTED IN THE KREMLIN",
+        body: "MOSCOW -- MARSHAL ZHUKOV AND ARMED OFFICERS SEIZED LAVRENTIY BERIA AT A PRESIDIUM MEETING TODAY ON KHRUSHCHEV'S SIGNAL. THE MVD CHIEF IS CHARGED AS AN AGENT OF FOREIGN POWERS. THE COLLECTIVE LEADERSHIP HAS REMOVED ITS MOST FEARED MEMBER -- AND THE SECRET POLICE ANSWER TO THE PARTY AGAIN.",
+        effects: [AdjustStability(country: ("SOV"), delta: 10), AdjustTension(5), GrantLegitimacy(country: ("SOV"), amount: 5)],
+    ),
+    // SOURCE: Wikipedia "Lavrentiy Beria". Counterfactual branch -- Beria in power pushed amnesty, deportation halts, and feelers on German neutralization in spring 1953.
+    EventDef(
+        id: "beria-ascendant",
+        trigger: OptionChosen(id: "stalin-death", option: 1, days_after: 60),
+        title: "BERIA CONSOLIDATES POWER",
+        body: "MOSCOW -- LAVRENTIY BERIA HAS FOLDED STATE SECURITY AND INTERIOR INTO A SINGLE MINISTRY UNDER HIS HAND. A MASS AMNESTY EMPTIES THE CAMPS AND MOSCOW FLOATS FEELERS ON A NEUTRAL, UNIFIED GERMANY. THE PARTY APPARAT IS TERRIFIED -- AND THE WEST DOES NOT KNOW WHAT TO MAKE OF IT.",
+        effects: [AdjustTension(-30), AdjustStability(country: ("SOV"), delta: -10), AdjustStability(country: ("GDR"), delta: -15), GrantLegitimacy(country: ("SOV"), amount: -5)],
+    ),
+    // SOURCE: Wikipedia "Nikita Khrushchev". Counterfactual branch -- with the marshals behind him, Khrushchev takes the leadership in 1953 rather than 1955-57.
+    EventDef(
+        id: "khrushchev-emerges",
+        trigger: OptionChosen(id: "stalin-death", option: 2, days_after: 45),
+        title: "KHRUSHCHEV FIRST AMONG EQUALS",
+        body: "MOSCOW -- WITH ZHUKOV AND THE MARSHALS AT HIS BACK, FIRST SECRETARY KHRUSHCHEV NOW SPEAKS FOR THE SOVIET STATE. MALENKOV KEEPS A TITLE AND LOSES THE APPARAT. THE NEW MAN TALKS OF ROCKETS, VIRGIN LANDS AND PEACEFUL COMPETITION -- LOUDLY.",
+        effects: [AdjustStability(country: ("SOV"), delta: 10), AdjustTension(5)],
+    ),
+    // SOURCE: Wikipedia "Geneva Summit (1955)". First East-West summit since Potsdam, 18-23 July 1955; Eisenhower tabled the Open Skies proposal on 21 July.
+    EventDef(
+        id: "geneva-summit",
+        trigger: Date((1955, 7, 18, 0)),
+        title: "SUMMIT AT GENEVA",
+        body: "GENEVA -- EISENHOWER, BULGANIN, EDEN AND FAURE MEET FACE TO FACE, THE FIRST SUCH CONFERENCE SINCE POTSDAM. THE AGENDA IS GERMANY, DISARMAMENT AND TRADE. THE PRESS ALREADY CALLS IT THE SPIRIT OF GENEVA -- WASHINGTON MUST DECIDE WHAT TO PUT ON THE TABLE.",
+        country: Some(("USA")),
+        deadline_days: 6,
+        options: [
+            EventOption(label: "PROPOSE OPEN SKIES", effects: [AdjustTension(-25), GrantLegitimacy(country: ("USA"), amount: 10)]),
+            EventOption(label: "CONCEDE NOTHING", effects: [AdjustTension(5), GrantStock(country: ("USA"), amount: 10), GrantLegitimacy(country: ("USA"), amount: -5)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "On the Cult of Personality and Its Consequences". Khrushchev's secret speech to the 20th Congress, 25 February 1956; it shook every party in the bloc.
+    EventDef(
+        id: "secret-speech",
+        trigger: Date((1956, 2, 25, 0)),
+        title: "A SECRET SPEECH TO THE CONGRESS",
+        body: "MOSCOW -- IN A CLOSED SESSION OF THE 20TH PARTY CONGRESS, KHRUSHCHEV HOLDS A REPORT DENOUNCING STALIN'S CULT OF PERSONALITY, THE PURGES AND THE TERROR BY NAME. DELEGATES ARE SAID TO HAVE FAINTED IN THEIR SEATS. ONCE READ, THE TEXT CANNOT BE UNREAD -- IN MOSCOW OR IN THE SATELLITES.",
+        country: Some(("SOV")),
+        deadline_days: 5,
+        options: [
+            EventOption(label: "READ THE REPORT TO THE BLOC", effects: [AdjustStability(country: ("SOV"), delta: -10), GrantLegitimacy(country: ("SOV"), amount: 10), AdjustStability(country: ("POL"), delta: -15), AdjustStability(country: ("HUN"), delta: -15), AdjustTension(-10)]),
+            EventOption(label: "BURY THE TEXT", effects: [AdjustStability(country: ("SOV"), delta: 5), GrantLegitimacy(country: ("SOV"), amount: -10)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Sputnik 1". Launched 4 October 1957 from Baikonur; the beeping satellite set off the Sputnik crisis in the United States.
+    EventDef(
+        id: "sputnik",
+        trigger: Date((1957, 10, 4, 0)),
+        title: "SOVIET MOON CIRCLES THE EARTH",
+        body: "MOSCOW -- TASS ANNOUNCES THE LAUNCH OF SPUTNIK, AN ARTIFICIAL EARTH SATELLITE, FROM A SECRET RANGE IN KAZAKHSTAN. THE 84-KILOGRAM SPHERE PASSES OVER THE UNITED STATES SEVEN TIMES A DAY, BEEPING ON FREQUENCIES ANY HAM OPERATOR CAN HEAR. THE ROCKET THAT ORBITED IT COULD CARRY A WARHEAD TO ANY CITY ON EARTH.",
+        effects: [AdjustTension(30), GrantLegitimacy(country: ("USA"), amount: -15), GrantLegitimacy(country: ("SOV"), amount: 15)],
+    ),
+    // SOURCE: Wikipedia "Sputnik crisis". Washington's response through 1958: NASA (July), ARPA, and the National Defense Education Act -- a deliberate, funded crash program.
+    EventDef(
+        id: "sputnik-crash-program",
+        trigger: EventFired(id: "sputnik", days_after: 30),
+        title: "ANSWERING THE SATELLITE",
+        body: "WASHINGTON -- CONGRESS AND THE PRESS DEMAND AN ANSWER TO THE SOVIET SATELLITE. PROPOSALS ON THE PRESIDENT'S DESK WOULD CREATE A CIVILIAN SPACE AGENCY, A DEFENSE RESEARCH ARM AND FEDERAL MONEY FOR SCIENCE EDUCATION. IT WILL COST BILLIONS -- OR THE ADMINISTRATION CAN CALL SPUTNIK A STUNT AND STAY THE COURSE.",
+        country: Some(("USA")),
+        deadline_days: 10,
+        options: [
+            EventOption(label: "FUND THE CRASH PROGRAM", effects: [GrantIndustry(country: ("USA"), centi: -1000), GrantLegitimacy(country: ("USA"), amount: 5), AdjustTension(5)]),
+            EventOption(label: "IT IS ONLY A STUNT", effects: [GrantLegitimacy(country: ("USA"), amount: -10), AdjustTension(-5)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Berlin Crisis of 1958-1959". Khrushchev's 27 November 1958 note gave the West six months to leave West Berlin or he would sign a separate peace with the GDR.
+    EventDef(
+        id: "berlin-ultimatum",
+        trigger: Date((1958, 11, 27, 0)),
+        title: "SIX MONTHS ON BERLIN",
+        body: "MOSCOW -- KHRUSHCHEV HANDS THE WESTERN POWERS A NOTE DEMANDING WEST BERLIN BECOME A FREE DEMILITARIZED CITY WITHIN SIX MONTHS. FAILING THAT, MOSCOW WILL SIGN A SEPARATE PEACE WITH THE GDR AND HAND IT CONTROL OF THE ACCESS ROUTES. WASHINGTON, LONDON AND PARIS REJECT THE ULTIMATUM WITHIN DAYS -- TWO AND A HALF MILLION BERLINERS SIT ON THE FAULT LINE.",
+        effects: [AdjustTension(40), GrantLegitimacy(country: ("GDR"), amount: 5), AdjustStability(country: ("FRG"), delta: -5)],
+    ),
+    // SOURCE: Wikipedia "Kitchen Debate". Nixon and Khrushchev argued the merits of their systems in a model kitchen at the American National Exhibition in Moscow, 24 July 1959.
+    EventDef(
+        id: "kitchen-debate",
+        trigger: Date((1959, 7, 24, 0)),
+        title: "DEBATE IN A MODEL KITCHEN",
+        body: "MOSCOW -- VICE PRESIDENT NIXON AND PREMIER KHRUSHCHEV TRADED JABS TODAY IN THE MODEL KITCHEN OF THE AMERICAN NATIONAL EXHIBITION AT SOKOLNIKI PARK. WASHING MACHINES AND COLOR TELEVISION STOOD IN FOR MISSILES AS EACH MAN VOWED HIS SYSTEM WOULD BURY THE OTHER. BOTH SIDES CLAIM THE ROUND -- AND BOTH BROADCAST IT.",
+        effects: [AdjustTension(-10), GrantLegitimacy(country: ("USA"), amount: 5), GrantLegitimacy(country: ("SOV"), amount: 5)],
+    ),
+    // SOURCE: Wikipedia "1960 U-2 incident". Powers' U-2 was shot down near Sverdlovsk on 1 May 1960; Washington's cover story collapsed when Moscow produced the living pilot.
+    EventDef(
+        id: "u2-shootdown",
+        trigger: Date((1960, 5, 1, 0)),
+        title: "SPY PLANE DOWN OVER SVERDLOVSK",
+        body: "MOSCOW -- A SOVIET SA-2 BATTERY DOWNED AN AMERICAN U-2 RECONNAISSANCE AIRCRAFT DEEP OVER THE URALS ON MAY DAY. WASHINGTON CALLS IT A STRAYED WEATHER FLIGHT -- THEN KHRUSHCHEV PRODUCES PILOT FRANCIS GARY POWERS, ALIVE, WITH HIS CAMERAS AND HIS POISON PIN. THE COVER STORY IS IN RUINS TWO WEEKS BEFORE THE PARIS SUMMIT.",
+        effects: [AdjustTension(40), GrantLegitimacy(country: ("USA"), amount: -10)],
+    ),
+    // SOURCE: Wikipedia "1960 Paris Summit". The four-power summit collapsed on 16 May 1960 when Eisenhower refused Khrushchev's demand for an apology over the U-2 flights.
+    EventDef(
+        id: "paris-summit-collapse",
+        trigger: EventFired(id: "u2-shootdown", days_after: 15),
+        title: "KHRUSHCHEV DEMANDS AN APOLOGY",
+        body: "PARIS -- AT THE OPENING SESSION OF THE FOUR-POWER SUMMIT, KHRUSHCHEV DEMANDS THE UNITED STATES CONDEMN THE U-2 FLIGHTS, PUNISH THOSE RESPONSIBLE AND APOLOGIZE. DE GAULLE AND MACMILLAN WAIT ON WASHINGTON'S ANSWER. THE SUMMIT -- AND THE THAW -- HANG ON ONE WORD.",
+        country: Some(("USA")),
+        deadline_days: 4,
+        options: [
+            EventOption(label: "NO APOLOGY -- LET IT COLLAPSE", effects: [AdjustTension(20), GrantLegitimacy(country: ("USA"), amount: -5)]),
+            EventOption(label: "EXPRESS REGRET AND GROUND THE FLIGHTS", effects: [AdjustTension(-15), GrantLegitimacy(country: ("USA"), amount: -15)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Vostok 1". Yuri Gagarin completed one orbit of the earth on 12 April 1961, the first human in space.
+    EventDef(
+        id: "gagarin-orbit",
+        trigger: Date((1961, 4, 12, 0)),
+        title: "A MAN IN ORBIT",
+        body: "MOSCOW -- RADIO MOSCOW ANNOUNCES THAT MAJOR YURI GAGARIN HAS ORBITED THE EARTH ABOARD VOSTOK AND LANDED SAFELY IN THE SARATOV STEPPE. THE FLIGHT LASTED 108 MINUTES. CROWDS POUR INTO RED SQUARE -- AND WASHINGTON LEARNS OF IT FROM THE WIRE SERVICES.",
+        effects: [GrantLegitimacy(country: ("SOV"), amount: 15), GrantLegitimacy(country: ("USA"), amount: -5), AdjustTension(10)],
+    ),
+    // SOURCE: Wikipedia "Assassination of John F. Kennedy". Kennedy was shot in Dallas on 22 November 1963; Johnson was sworn in aboard Air Force One that afternoon.
+    EventDef(
+        id: "jfk-assassination",
+        trigger: Date((1963, 11, 22, 0)),
+        title: "THE PRESIDENT IS SHOT IN DALLAS",
+        body: "DALLAS -- PRESIDENT KENNEDY WAS SHOT BY A SNIPER WHILE HIS MOTORCADE CROSSED DEALEY PLAZA AND DIED AT PARKLAND HOSPITAL AT 1300 LOCAL. VICE PRESIDENT JOHNSON TOOK THE OATH ABOARD AIR FORCE ONE WITH THE WIDOW BESIDE HIM. THE UNION HAS A NEW PRESIDENT BY NIGHTFALL -- AND A COUNTRY IN SHOCK.",
+        effects: [AdjustStability(country: ("USA"), delta: -15), AdjustTension(10)],
+    ),
+    // SOURCE: Wikipedia "Partial Nuclear Test Ban Treaty". Signed in Moscow 5 August 1963 after the post-Cuba detente; it banned atmospheric, underwater and space tests.
+    EventDef(
+        id: "test-ban-treaty",
+        trigger: TensionBelow(tenths: 400),
+        chance_permille: Some(5),
+        title: "A TEST BAN ON THE TABLE",
+        body: "MOSCOW -- WITH THE CRISIS ATMOSPHERE EASING, NEGOTIATORS HAVE INITIALED A TREATY BANNING NUCLEAR TESTS IN THE ATMOSPHERE, UNDERWATER AND IN SPACE. UNDERGROUND SHOTS WOULD CONTINUE. THE JOINT CHIEFS WARN OF FROZEN WEAPONS DESIGNS -- THE STATE DEPARTMENT CALLS IT THE FIRST BRAKE ON THE ARMS RACE.",
+        country: Some(("USA")),
+        deadline_days: 10,
+        options: [
+            EventOption(label: "SIGN IN MOSCOW", effects: [AdjustTension(-50), GrantLegitimacy(country: ("USA"), amount: 10), GrantLegitimacy(country: ("SOV"), amount: 5), GrantLegitimacy(country: ("GBR"), amount: 5)]),
+            EventOption(label: "KEEP THE TEST SERIES", effects: [AdjustTension(10), AdjustProgramSpeed(country: ("USA"), permille: 1150), GrantLegitimacy(country: ("USA"), amount: -10)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Nikita Khrushchev". The Presidium voted him out on 14 October 1964 while he vacationed at Pitsunda; he accepted retirement rather than fight.
+    EventDef(
+        id: "khrushchev-fall",
+        trigger: Date((1964, 10, 14, 0)),
+        title: "THE PRESIDIUM RECALLS KHRUSHCHEV",
+        body: "MOSCOW -- SUMMONED BACK FROM HIS PITSUNDA HOLIDAY, KHRUSHCHEV FACES A PRESIDIUM UNITED AGAINST HIM. BREZHNEV AND KOSYGIN STAND READY WITH A BILL OF PARTICULARS -- HARE-BRAINED SCHEMES, THE CUBAN RETREAT, THE FAILED HARVESTS. THE FIRST SECRETARY MUST CHOOSE HOW HIS ERA ENDS.",
+        country: Some(("SOV")),
+        deadline_days: 3,
+        options: [
+            EventOption(label: "A QUIET RETIREMENT", effects: [AdjustStability(country: ("SOV"), delta: -5), AdjustTension(-10), GrantLegitimacy(country: ("SOV"), amount: -5)]),
+            EventOption(label: "APPEAL TO THE CENTRAL COMMITTEE", effects: [AdjustStability(country: ("SOV"), delta: -20), AdjustTension(15)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Treaty on the Non-Proliferation of Nuclear Weapons". Opened for signature 1 July 1968 in Washington, London and Moscow, roughly five years after the test ban.
+    EventDef(
+        id: "npt-decision",
+        trigger: OptionChosen(id: "test-ban-treaty", option: 0, days_after: 1790),
+        title: "A TREATY AGAINST THE SPREAD",
+        body: "WASHINGTON -- FIVE YEARS OF GENEVA TALKS HAVE PRODUCED A NON-PROLIFERATION TREATY. NUCLEAR POWERS WOULD PLEDGE NOT TO TRANSFER WEAPONS AND THE REST WOULD FORSWEAR THEM UNDER SAFEGUARDS. PARIS AND PEKING REFUSE OUTRIGHT -- THE QUESTION IS WHETHER WASHINGTON AND MOSCOW SIGN ANYWAY.",
+        country: Some(("USA")),
+        deadline_days: 14,
+        options: [
+            EventOption(label: "SIGN THE TREATY", effects: [AdjustTension(-40), GrantLegitimacy(country: ("USA"), amount: 10), GrantLegitimacy(country: ("SOV"), amount: 10)]),
+            EventOption(label: "LET EVERY ALLY ARM ITSELF", effects: [AdjustTension(20), GrantLegitimacy(country: ("USA"), amount: -10), GrantStock(country: ("USA"), amount: 15)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Apollo 11". Armstrong and Aldrin landed at Tranquility Base on 20 July 1969 -- the payoff of the crash program begun after Sputnik.
+    EventDef(
+        id: "apollo-11",
+        trigger: OptionChosen(id: "sputnik-crash-program", option: 0, days_after: 4270),
+        title: "MEN ON THE MOON",
+        body: "HOUSTON -- TRANQUILITY BASE HERE, THE EAGLE HAS LANDED. ARMSTRONG AND ALDRIN WALKED ON THE LUNAR SURFACE FOR TWO HOURS WHILE A FIFTH OF THE EARTH WATCHED LIVE. THE FLAG PLANTED IS AMERICAN -- THE PLAQUE SAYS THEY CAME IN PEACE FOR ALL MANKIND.",
+        effects: [GrantLegitimacy(country: ("USA"), amount: 20), AdjustTension(-10)],
+    ),
+    // SOURCE: Wikipedia "Force de dissuasion". On 26 December 1954 Mendes France's government secretly launched studies for a French atomic bomb within the CEA.
+    EventDef(
+        id: "france-nuclear-question",
+        trigger: Date((1954, 12, 26, 0)),
+        title: "SHALL FRANCE BUILD THE BOMB",
+        body: "PARIS -- IN A CLOSED CABINET MEETING, PREMIER MENDES FRANCE HEARS THE CEA'S CASE FOR A SECRET MILITARY ATOMIC PROGRAM. DIEN BIEN PHU AND THE EDC DEBACLE HAVE CONVINCED MANY THAT FRENCH SECURITY CANNOT BE SUBCONTRACTED TO WASHINGTON. THE MARCOULE PILES COULD BREED PLUTONIUM -- IF THE REPUBLIC DARES.",
+        country: Some(("FRA")),
+        deadline_days: 10,
+        options: [
+            EventOption(label: "BEGIN SECRET STUDIES", effects: [FoundNuclearProgram(country: ("FRA"), route: "Plutonium"), GrantIndustry(country: ("FRA"), centi: -400), AdjustTension(10)]),
+            EventOption(label: "RELY ON THE AMERICAN UMBRELLA", effects: [GrantIndustry(country: ("FRA"), centi: 200), GrantLegitimacy(country: ("FRA"), amount: -5), AdjustTension(-5)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Force de dissuasion". Premier Felix Gaillard signed the formal order for a French nuclear test program on 11 April 1958 -- a second chance if 1954 was declined.
+    EventDef(
+        id: "gaillard-order",
+        trigger: OptionChosen(id: "france-nuclear-question", option: 1, days_after: 1200),
+        title: "GAILLARD REOPENS THE ATOMIC FILE",
+        body: "PARIS -- SUEZ SHOWED THAT WASHINGTON WILL NOT RISK NEW YORK FOR PARIS, AND THE GENERALS HAVE NOT FORGOTTEN. PREMIER GAILLARD HAS ON HIS DESK A FORMAL ORDER FOR NUCLEAR WEAPONS DEVELOPMENT AND A TEST SITE IN THE SAHARA. THE FOURTH REPUBLIC IS DYING -- BUT IT CAN STILL SIGN.",
+        country: Some(("FRA")),
+        deadline_days: 7,
+        options: [
+            EventOption(label: "SIGN THE ORDER", effects: [FoundNuclearProgram(country: ("FRA"), route: "Plutonium"), GrantIndustry(country: ("FRA"), centi: -500), AdjustTension(10)]),
+            EventOption(label: "SHELVE IT FOR GOOD", effects: [GrantIndustry(country: ("FRA"), centi: 300), GrantLegitimacy(country: ("FRA"), amount: -10)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Charles de Gaulle". Returning to power in mid-1958, de Gaulle made the force de frappe the core of French independence and accelerated the program to the 1960 Gerboise Bleue test.
+    EventDef(
+        id: "de-gaulle-accelerates",
+        trigger: OptionChosen(id: "france-nuclear-question", option: 0, days_after: 1250),
+        title: "DE GAULLE EMBRACES THE FORCE DE FRAPPE",
+        body: "PARIS -- BACK IN POWER, GENERAL DE GAULLE HAS MADE THE ATOMIC PROGRAM THE SPINE OF FRENCH GRANDEUR. BUDGETS DOUBLE, THE SAHARA TEST SITE AT REGGANE BREAKS GROUND AND NATO INTEGRATION COMES SECOND TO NATIONAL DETERRENCE. FRANCE WILL ANSWER TO NO PROTECTOR -- VIVE LA FRANCE.",
+        effects: [AdjustProgramSpeed(country: ("FRA"), permille: 1300), AdjustTension(5), GrantLegitimacy(country: ("FRA"), amount: 5)],
+    ),
+]

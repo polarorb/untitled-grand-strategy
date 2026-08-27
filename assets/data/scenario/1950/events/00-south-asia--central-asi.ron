@@ -1,0 +1,212 @@
+// South Asia + Central Asia 1950-1970 — timeline content, sourced per event.
+// Sources: Wikipedia: Five Principles of Peaceful Coexistence; Wikipedia: Southeast Asia Treaty Organization; Wikipedia: Bandung Conference; Wikipedia: Afghanistan-Soviet Union relations; Wikipedia: Afghanistan-United States relations; Wikipedia: Sinhala Only Act; Wikipedia: 1958 anti-Tamil pogrom; Wikipedia: States Reorganisation Act, 1956; Wikipedia: 1958 Pakistani coup d'etat; Wikipedia: 1959 Tibetan uprising; Wikipedia: Mahendra of Nepal; Wikipedia: Annexation of Goa; Wikipedia: Sino-Indian War; Wikipedia: Jawaharlal Nehru; Wikipedia: Smiling Buddha; Wikipedia: Operation Gibraltar; Wikipedia: Indo-Pakistani War of 1965; Wikipedia: Tashkent Declaration; Wikipedia: Ayub Khan
+[
+    // SOURCE: Wikipedia "Five Principles of Peaceful Coexistence". Sino-Indian agreement on Tibet signed in Beijing 29 April 1954; Panchsheel becomes the rhetorical spine of Nehru's nonalignment.
+    EventDef(
+        id: "panchsheel-agreement",
+        trigger: Date((1954, 4, 29, 0)),
+        title: "DELHI AND PEKING SIGN FIVE PRINCIPLES",
+        body: "INDIA AND CHINA SIGN AGREEMENT ON TIBET TRADE EMBODYING FIVE PRINCIPLES OF PEACEFUL COEXISTENCE -- MUTUAL NON-AGGRESSION, NON-INTERFERENCE, EQUALITY. NEHRU HAILS 'PANCHSHEEL' AS MODEL FOR ASIA. HINDI-CHINI BHAI-BHAI SLOGAN SWEEPS DELHI.",
+        effects: [AdjustTension(-10), GrantLegitimacy(country: ("IND"), amount: 5), GrantLegitimacy(country: ("PRC"), amount: 5)],
+    ),
+    // SOURCE: Wikipedia "Southeast Asia Treaty Organization". Manila Pact signed 8 September 1954; Pakistan joins the Western alliance system for US arms and aid, at the price of nonaligned standing.
+    EventDef(
+        id: "pakistan-joins-seato",
+        trigger: Date((1954, 9, 8, 0)),
+        title: "KARACHI WEIGHS THE MANILA PACT",
+        body: "US OFFERS PAKISTAN FULL MEMBERSHIP IN NEW SOUTHEAST ASIA TREATY ORGANIZATION -- MILITARY AID, HARDWARE, DOLLARS ATTACHED. DELHI WARNS PACT BRINGS COLD WAR TO SUBCONTINENT. ARMY GHQ PRESSES AYUB'S CASE FOR AMERICAN TANKS.",
+        country: Some(("PAK")),
+        deadline_days: 10,
+        options: [
+            EventOption(label: "SIGN THE PACT", effects: [SetAlignment(country: ("PAK"), alignment: "WesternBloc"), GrantStock(country: ("PAK"), amount: 20), GrantIndustry(country: ("PAK"), centi: 300), AdjustTension(15)]),
+            EventOption(label: "REMAIN NONALIGNED", effects: [GrantLegitimacy(country: ("PAK"), amount: 6), AdjustStability(country: ("PAK"), delta: -6)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Bandung Conference". 29 Afro-Asian states meet at Bandung 18-24 April 1955; Nehru, Sukarno and Nasser emerge as voices of the nonaligned world.
+    EventDef(
+        id: "bandung-conference",
+        trigger: Date((1955, 4, 18, 0)),
+        title: "AFRO-ASIAN CONFERENCE OPENS AT BANDUNG",
+        body: "TWENTY-NINE NATIONS OF ASIA AND AFRICA CONVENE IN BANDUNG, INDONESIA -- FIRST SUMMIT OF THE COLONIZED WORLD WITHOUT THE COLONIZERS. NEHRU, SUKARNO, NASSER, CHOU EN-LAI SHARE ONE PLATFORM. FINAL COMMUNIQUE DAMNS COLONIALISM IN ALL ITS MANIFESTATIONS.",
+        effects: [AdjustTension(-10), GrantLegitimacy(country: ("IND"), amount: 10), GrantLegitimacy(country: ("IDN"), amount: 10), GrantLegitimacy(country: ("EGY"), amount: 10)],
+    ),
+    // SOURCE: Wikipedia "Afghanistan-Soviet Union relations". Bulganin and Khrushchev visit Kabul December 1955, offering a $100M development credit; Daoud takes Soviet aid after Washington refuses arms.
+    EventDef(
+        id: "afghan-soviet-credit",
+        trigger: Date((1955, 12, 16, 0)),
+        title: "KHRUSHCHEV COMES TO KABUL",
+        body: "BULGANIN AND KHRUSHCHEV ARRIVE IN KABUL BEARING 100 MILLION DOLLAR DEVELOPMENT CREDIT -- ROADS, AIRFIELDS, ARMS TO FOLLOW. WASHINGTON HAS ALREADY REFUSED PRIME MINISTER DAOUD'S ARMS REQUEST OVER PAKISTAN OBJECTIONS. MOSCOW ASKS ONLY THAT KABUL SAY YES.",
+        country: Some(("AFG")),
+        deadline_days: 10,
+        options: [
+            EventOption(label: "ACCEPT MOSCOW'S CREDIT", effects: [GrantIndustry(country: ("AFG"), centi: 400), GrantStock(country: ("AFG"), amount: 10), AdjustTension(10)]),
+            EventOption(label: "LOOK TO WASHINGTON INSTEAD", effects: [GrantIndustry(country: ("AFG"), centi: 150), GrantLegitimacy(country: ("AFG"), amount: -5)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Afghanistan-United States relations". Eisenhower visits Kabul 9 December 1959 on his goodwill tour; both blocs now court nonaligned Afghanistan with competing aid projects.
+    EventDef(
+        id: "eisenhower-kabul",
+        trigger: EventFired(id: "afghan-soviet-credit", days_after: 1454),
+        title: "EISENHOWER LANDS AT KABUL",
+        body: "PRESIDENT EISENHOWER MAKES FIRST VISIT BY A US PRESIDENT TO AFGHANISTAN -- SIX HOURS IN KABUL ON HIS ELEVEN-NATION TOUR. HELMAND VALLEY DOLLARS ANSWER SOVIET ROUBLES AS BOTH BLOCS PAVE THE KINGDOM'S ROADS. DAOUD POCKETS AID FROM BOTH AND SIGNS WITH NEITHER.",
+        effects: [GrantIndustry(country: ("AFG"), centi: 200), AdjustTension(-5)],
+    ),
+    // SOURCE: Wikipedia "Sinhala Only Act". Bandaranaike's Official Language Act passes parliament June 1956, making Sinhala the sole official language and igniting Tamil opposition.
+    EventDef(
+        id: "sinhala-only",
+        trigger: Date((1956, 6, 15, 0)),
+        title: "COLOMBO DEBATES SINHALA ONLY BILL",
+        body: "PRIME MINISTER BANDARANAIKE BRINGS OFFICIAL LANGUAGE BILL BEFORE PARLIAMENT -- SINHALA ALONE TO REPLACE ENGLISH, NO STATUS FOR TAMIL. FEDERAL PARTY SATYAGRAHA ON GALLE FACE GREEN MET BY MOBS. THE SWORN ELECTORAL PLEDGE COMES DUE.",
+        country: Some(("LKA")),
+        deadline_days: 7,
+        options: [
+            EventOption(label: "SINHALA ONLY", effects: [GrantLegitimacy(country: ("LKA"), amount: 6), AdjustStability(country: ("LKA"), delta: -10)]),
+            EventOption(label: "PARITY FOR BOTH LANGUAGES", effects: [AdjustStability(country: ("LKA"), delta: 4), GrantLegitimacy(country: ("LKA"), amount: -8)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "1958 anti-Tamil pogrom". Communal violence sweeps Ceylon 22 May-early June 1958; hundreds dead, emergency declared -- downstream of the language act.
+    EventDef(
+        id: "ceylon-riots-1958",
+        trigger: OptionChosen(id: "sinhala-only", option: 0, days_after: 706),
+        title: "COMMUNAL RIOTS SWEEP CEYLON",
+        body: "ANTI-TAMIL VIOLENCE ERUPTS ACROSS CEYLON -- TRAINS AMBUSHED, SHOPS BURNED, HUNDREDS DEAD BEFORE TROOPS RESTORE ORDER. GOVERNOR-GENERAL DECLARES STATE OF EMERGENCY. THE LANGUAGE WOUND OF 1956 IS NOW A BLOOD FEUD.",
+        effects: [AdjustStability(country: ("LKA"), delta: -12)],
+    ),
+    // SOURCE: Wikipedia "States Reorganisation Act, 1956". Linguistic reorganisation of Indian states takes effect 1 November 1956, defusing a decade of language agitation.
+    EventDef(
+        id: "states-reorganisation",
+        trigger: Date((1956, 11, 1, 0)),
+        title: "INDIA REDRAWS THE MAP OF ITS STATES",
+        body: "STATES REORGANISATION ACT TAKES EFFECT -- FOURTEEN STATES ON LINGUISTIC LINES REPLACE THE PATCHWORK OF THE RAJ. YEARS OF LANGUAGE AGITATION ANSWERED BY ORDERLY REDRAWING, NOT PARTITION. DELHI PROVES THE UNION CAN BEND WITHOUT BREAKING.",
+        effects: [AdjustStability(country: ("IND"), delta: 8), GrantLegitimacy(country: ("IND"), amount: 5)],
+    ),
+    // SOURCE: Wikipedia "1958 Pakistani coup d'etat". Ayub Khan deposes President Mirza 27 October 1958, three weeks after martial law abrogated the constitution.
+    EventDef(
+        id: "ayub-martial-law",
+        trigger: Date((1958, 10, 27, 0)),
+        title: "GENERAL AYUB TAKES POWER IN KARACHI",
+        body: "GENERAL AYUB KHAN DEPOSES PRESIDENT MIRZA AND ASSUMES FULL POWERS -- CONSTITUTION ABROGATED, ASSEMBLIES DISSOLVED, MARTIAL LAW COMPLETE. EXHAUSTED PUBLIC GREETS THE ARMY WITH RELIEF AFTER YEARS OF CABINET CHAOS. PARLIAMENTARY EXPERIMENT IN PAKISTAN IS OVER.",
+        effects: [AdjustStability(country: ("PAK"), delta: 10), GrantLegitimacy(country: ("PAK"), amount: -8)],
+    ),
+    // SOURCE: Wikipedia "1959 Tibetan uprising". After the Lhasa rising, the Dalai Lama crosses into India 31 March 1959; Nehru grants asylum despite Peking's fury.
+    EventDef(
+        id: "dalai-lama-flight",
+        trigger: Date((1959, 3, 31, 0)),
+        title: "DALAI LAMA REACHES INDIAN FRONTIER",
+        body: "THE DALAI LAMA, FLEEING LHASA AFTER FAILED UPRISING, CROSSES INTO INDIA WITH RAGGED ESCORT -- ASYLUM REQUEST ON NEHRU'S DESK. PEKING CALLS THE RISING A REBELLION OF SERF-OWNERS AND WARNS DELHI AGAINST INTERFERENCE. THE WORLD'S PRESS IS WATCHING THE FRONTIER.",
+        country: Some(("IND")),
+        deadline_days: 3,
+        options: [
+            EventOption(label: "GRANT ASYLUM", effects: [GrantLegitimacy(country: ("IND"), amount: 8), AdjustTension(15), AdjustStability(country: ("PRC"), delta: -5)]),
+            EventOption(label: "TURN HIM AWAY", effects: [GrantLegitimacy(country: ("IND"), amount: -10), AdjustTension(-5)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Mahendra of Nepal". King Mahendra dismisses the elected Koirala government and seizes direct rule 15 December 1960.
+    EventDef(
+        id: "nepal-royal-coup",
+        trigger: Date((1960, 12, 15, 0)),
+        title: "KING MAHENDRA SEIZES POWER IN KATHMANDU",
+        body: "KING MAHENDRA DISSOLVES NEPAL'S FIRST ELECTED PARLIAMENT AND JAILS PRIME MINISTER KOIRALA -- EIGHTEEN MONTHS OF DEMOCRACY ENDED BY ROYAL DECREE. PARTYLESS PANCHAYAT RULE PROCLAIMED. DELHI FROWNS BUT THE HIMALAYAN KINGDOM TILTS TOWARD NO ONE.",
+        effects: [AdjustStability(country: ("NPL"), delta: -8)],
+    ),
+    // SOURCE: Wikipedia "Annexation of Goa". December 1961: Nehru, under domestic and African pressure, orders Operation Vijay against Portuguese Goa after Salazar refuses all negotiation.
+    EventDef(
+        id: "goa-question",
+        trigger: Date((1961, 12, 12, 0)),
+        title: "GOA -- THE LAST COLONIAL POCKET",
+        body: "FOURTEEN YEARS AFTER INDEPENDENCE, PORTUGUESE FLAG STILL FLIES OVER GOA -- SALAZAR REFUSES ALL TALKS, CALLS ENCLAVE A PROVINCE OF PORTUGAL. AFRICAN LEADERS TAUNT NEHRU: NONVIOLENCE OR HYPOCRISY. ARMY HAS OPERATION VIJAY READY ON THE BORDER.",
+        country: Some(("IND")),
+        deadline_days: 5,
+        options: [
+            EventOption(label: "SEND IN THE ARMY", effects: [AdjustTension(20), AdjustStability(country: ("IND"), delta: 6), GrantLegitimacy(country: ("IND"), amount: -6), GrantLegitimacy(country: ("POR"), amount: -8)]),
+            EventOption(label: "KEEP NEGOTIATING", effects: [GrantLegitimacy(country: ("IND"), amount: 4), AdjustStability(country: ("IND"), delta: -8)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Sino-Indian War". 20 October 1962: after months of forward-policy clashes, Mao orders simultaneous offensives in Ladakh and the eastern sector.
+    EventDef(
+        id: "sino-indian-attack",
+        trigger: Date((1962, 10, 14, 0)),
+        title: "PEKING DECIDES ON THE HIMALAYAN FRONTIER",
+        body: "INDIAN FORWARD POSTS NOW SIT ASTRIDE CHINESE CLAIM LINES IN LADAKH AND THE NORTHEAST -- MAO TELLS THE POLITBURO DELHI MUST BE TAUGHT A LESSON. PLA MOUNTAIN DIVISIONS STAND READY ABOVE THE PASSES BEFORE WINTER CLOSES THEM. NEHRU HAS ORDERED THE ARMY TO THROW THE CHINESE OUT.",
+        country: Some(("PRC")),
+        deadline_days: 6,
+        options: [
+            EventOption(label: "STRIKE ACROSS THE LINE", effects: [DeclareWar(a: ("PRC"), b: ("IND")), SetWarAim(country: ("PRC"), enemy: ("IND"), aim: "Punish"), SetPosture(country: ("PRC"), enemy: ("IND"), posture: "Advance"), AdjustTension(40)]),
+            EventOption(label: "PRESSURE ONLY", effects: [AdjustTension(12), GrantLegitimacy(country: ("PRC"), amount: -6)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Sino-Indian War". Early November 1962: US aircraft airlift arms to India as Nehru abandons nonaligned reticence and asks Washington for help.
+    EventDef(
+        id: "us-arms-airlift-india",
+        trigger: OptionChosen(id: "sino-indian-attack", option: 0, days_after: 14),
+        title: "US ARMS AIRLIFT REACHES CALCUTTA",
+        body: "AMERICAN TRANSPORTS LAND AUTOMATIC RIFLES AND MOUNTAIN ARTILLERY FOR INDIA'S BROKEN DIVISIONS -- NEHRU'S LETTER TO KENNEDY ASKED FOR SQUADRONS, NOT SYMPATHY. NONALIGNMENT BENDS UNDER CHINESE GUNS. MOSCOW, MIRED IN CUBA, STAYS CONSPICUOUSLY SILENT.",
+        effects: [GrantStock(country: ("IND"), amount: 15), AdjustTension(5)],
+    ),
+    // SOURCE: Wikipedia "Sino-Indian War". 21 November 1962: China declares a unilateral ceasefire and withdraws behind its claim lines, having made its point.
+    EventDef(
+        id: "sino-indian-ceasefire",
+        trigger: OptionChosen(id: "sino-indian-attack", option: 0, days_after: 32),
+        title: "PEKING DECLARES UNILATERAL CEASEFIRE",
+        body: "CHINA ANNOUNCES CEASEFIRE ON ALL FRONTS AND WITHDRAWAL TWENTY KILOMETERS BEHIND THE LINE OF ACTUAL CONTROL -- THE LESSON DELIVERED, THE ARMIES STOP. INDIA'S NORTHEAST LAY OPEN AND PEKING TOOK NOTHING BUT PRESTIGE. NEHRU'S CHINA POLICY LIES IN RUINS.",
+        effects: [SetPosture(country: ("PRC"), enemy: ("IND"), posture: "Hold"), SetPosture(country: ("IND"), enemy: ("PRC"), posture: "Hold"), SetWarAim(country: ("PRC"), enemy: ("IND"), aim: "StatusQuoAnte"), AdjustTension(-25), GrantLegitimacy(country: ("PRC"), amount: 5), AdjustStability(country: ("IND"), delta: -6)],
+    ),
+    // SOURCE: Wikipedia "Jawaharlal Nehru". Nehru dies in office 27 May 1964, leaving the question 'After Nehru, who?' hanging over the republic.
+    EventDef(
+        id: "nehru-dies",
+        trigger: Date((1964, 5, 27, 0)),
+        title: "NEHRU IS DEAD",
+        body: "JAWAHARLAL NEHRU, PRIME MINISTER SINCE INDEPENDENCE, DIES IN DELHI AGED 74 -- THE LIGHT IS OUT, SAYS ALL-INDIA RADIO. MILLIONS LINE THE FUNERAL ROUTE TO THE YAMUNA. AFTER NEHRU, WHO -- THE QUESTION INDIA DREADED IS NOW DUE.",
+        effects: [AdjustStability(country: ("IND"), delta: -10), GrantLegitimacy(country: ("IND"), amount: -5)],
+    ),
+    // SOURCE: Wikipedia "Smiling Buddha". November 1964, weeks after China's first test: Shastri authorizes Bhabha's Subterranean Nuclear Explosion Project -- the plutonium road that leads to Pokhran.
+    EventDef(
+        id: "india-bomb-question",
+        trigger: Date((1964, 11, 27, 0)),
+        title: "AFTER LOP NUR -- THE INDIAN BOMB QUESTION",
+        body: "CHINA'S FIRST ATOMIC TEST ECHOES THROUGH DELHI -- BHABHA TELLS ALL-INDIA RADIO A BOMB IS EIGHTEEN MONTHS AND A DECISION AWAY. PARLIAMENT HAWKS DEMAND IT, GANDHIANS RECOIL. SHASTRI MUST CHOOSE WHAT NONALIGNMENT IS WORTH UNDER A NUCLEAR SHADOW.",
+        country: Some(("IND")),
+        deadline_days: 14,
+        options: [
+            EventOption(label: "AUTHORIZE THE STUDY", effects: [FoundNuclearProgram(country: ("IND"), route: "Plutonium"), AdjustProgramSpeed(country: ("IND"), permille: 700), AdjustTension(10), GrantLegitimacy(country: ("IND"), amount: -4)]),
+            EventOption(label: "FORSWEAR THE BOMB", effects: [GrantLegitimacy(country: ("IND"), amount: 8), AdjustStability(country: ("IND"), delta: -5)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Operation Gibraltar". August 1965: Ayub approves infiltration of irregulars into Kashmir to ignite revolt, gambling India will not cross the international border.
+    EventDef(
+        id: "operation-gibraltar",
+        trigger: Date((1965, 7, 30, 0)),
+        title: "RAWALPINDI WEIGHS OPERATION GIBRALTAR",
+        body: "FOREIGN MINISTER BHUTTO PRESSES THE PLAN -- THOUSANDS OF IRREGULARS ACROSS THE CEASEFIRE LINE TO RAISE KASHMIR IN REVOLT. RANN OF KUTCH SKIRMISH IN APRIL CONVINCED GHQ THE INDIAN ARMY IS SOFT. INTELLIGENCE PROMISES THE VALLEY WILL RISE. AYUB MUST DECIDE BEFORE THE PASSES CLOSE.",
+        country: Some(("PAK")),
+        deadline_days: 6,
+        options: [
+            EventOption(label: "LAUNCH GIBRALTAR", effects: [DeclareWar(a: ("PAK"), b: ("IND")), SetWarAim(country: ("PAK"), enemy: ("IND"), aim: "Punish"), SetPosture(country: ("PAK"), enemy: ("IND"), posture: "Advance"), SpawnForces(owner: ("PAK"), province_owner: ("PAK"), province: "Azad Kashmir", archetype: "Infantry", divisions: 2, quality: 1050), AdjustTension(35)]),
+            EventOption(label: "HOLD AT THE CEASEFIRE LINE", effects: [AdjustTension(-10), AdjustStability(country: ("PAK"), delta: -8)]),
+        ],
+        effects: [],
+    ),
+    // SOURCE: Wikipedia "Tashkent Declaration". 10 January 1966: Kosygin brokers the Indo-Pakistani settlement at Tashkent; Shastri dies there hours after signing.
+    EventDef(
+        id: "tashkent-declaration",
+        trigger: OptionChosen(id: "operation-gibraltar", option: 0, days_after: 158),
+        title: "TASHKENT -- KOSYGIN BROKERS THE PEACE",
+        body: "AYUB AND SHASTRI SIGN AT TASHKENT UNDER KOSYGIN'S PATIENT HAND -- FORCES TO WITHDRAW TO PRE-WAR POSITIONS, RELATIONS RESTORED. MOSCOW, NOT WASHINGTON, PLAYS HONEST BROKER IN ASIA. HOURS AFTER SIGNING, SHASTRI IS DEAD OF HEART FAILURE IN THE SOVIET GUEST HOUSE.",
+        effects: [SetPosture(country: ("PAK"), enemy: ("IND"), posture: "Hold"), SetPosture(country: ("IND"), enemy: ("PAK"), posture: "Hold"), SetWarAim(country: ("PAK"), enemy: ("IND"), aim: "StatusQuoAnte"), SetWarAim(country: ("IND"), enemy: ("PAK"), aim: "StatusQuoAnte"), AdjustTension(-30), GrantLegitimacy(country: ("SOV"), amount: 10), AdjustStability(country: ("IND"), delta: -5)],
+    ),
+    // SOURCE: Wikipedia "Ayub Khan". 25 March 1969: after months of mass agitation in both wings, Ayub resigns and hands power to General Yahya Khan under martial law.
+    EventDef(
+        id: "ayub-falls",
+        trigger: Date((1969, 3, 25, 0)),
+        title: "AYUB FALLS -- YAHYA TAKES OVER",
+        body: "PRESIDENT AYUB KHAN RESIGNS AFTER FIVE MONTHS OF RIOTS FROM KARACHI TO DACCA -- THE DECADE OF DEVELOPMENT ENDS IN TEAR GAS. ARMY CHIEF YAHYA KHAN DECLARES MARTIAL LAW AND PROMISES ELECTIONS. EAST WING LISTENS TO MUJIB, NOT RAWALPINDI.",
+        effects: [AdjustStability(country: ("PAK"), delta: -12), GrantLegitimacy(country: ("PAK"), amount: -8)],
+    ),
+]

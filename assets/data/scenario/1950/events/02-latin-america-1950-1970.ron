@@ -1,0 +1,359 @@
+// Latin America 1950-1970 — timeline content, sourced per event.
+// Sources: Wikipedia: 1954 Guatemalan coup d'etat; Wikipedia: Jacobo Arbenz; Wikipedia: Revolucion Libertadora; Wikipedia: Cuban Revolution; Wikipedia: Agrarian Reform Laws of Cuba; Wikipedia: Cuban nationalizations (Law 851, Resolution No. 1 of Aug 6 1960; confirmed via Justia/Duke Law/EBSCO search results); Wikipedia: United States embargo against Cuba (Oct 19 1960 partial embargo; confirmed via National Security Archive and Time); Wikipedia: Cuba-Soviet Union relations; Wikipedia: Cuba-United States relations; Wikipedia: Bay of Pigs Invasion; Wikipedia: Cuban Missile Crisis / Operation Anadyr; Wikipedia: Alliance for Progress; Wikipedia: Independence of Jamaica; Wikipedia: Trinidad and Tobago; Wikipedia: Martyrs' Day (Panama); Wikipedia: 1964 Brazilian coup d'etat; Wikipedia: 1964 Chilean presidential election; Wikipedia: Dominican Civil War; Wikipedia: Tacnazo insurrection (https://en.wikipedia.org/wiki/Tacnazo_insurrection)
+[
+    // SOURCE: Wikipedia "1954 Guatemalan coup d'etat". CIA Operation PBSUCCESS: Castillo Armas crossed from Honduras June 18, 1954; Arbenz resigned June 27.
+    EventDef(
+        id: "guatemala-pbsuccess",
+        trigger: Date((1954, 6, 14, 12)),
+        title: "GUATEMALA: THE AGENCY AWAITS THE WORD",
+        body: "WASHINGTON -- CIA REPORTS COLONEL CASTILLO ARMAS AND HIS LIBERATION ARMY STAGED IN HONDURAS, REBEL RADIO READY, PILOTS UNDER CONTRACT. STATE DEPARTMENT CITES THE ALFHEM ARMS SHIPMENT FROM STETTIN AS PROOF ARBENZ HAS CHOSEN HIS SIDE. AMBASSADOR PEURIFOY SAYS THE MAN WILL NOT MODERATE. OPERATION PBSUCCESS AWAITS AUTHORIZATION.",
+        country: Some(("USA")),
+        deadline_days: 4,
+        options: [
+            EventOption(
+                label: "AUTHORIZE PBSUCCESS",
+                effects: [
+                    AdjustStability(country: ("GTM"), delta: -15),
+                    SetAlignment(country: ("GTM"), alignment: "WesternBloc"),
+                    GrantLegitimacy(country: ("USA"), amount: -10),
+                    AdjustTension(15),
+                ],
+            ),
+            EventOption(
+                label: "TOLERATE ARBENZ",
+                effects: [
+                    SetAlignment(country: ("GTM"), alignment: "NonAligned"),
+                    GrantLegitimacy(country: ("USA"), amount: 5),
+                    AdjustTension(-5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Jacobo Arbenz". Counterfactual branch: Arbenz survives 1954, Decree 900 land reform continues, Washington-Guatemala relations sour.
+    EventDef(
+        id: "guatemala-arbenz-consolidates",
+        trigger: OptionChosen(id: "guatemala-pbsuccess", option: 1, days_after: 90),
+        title: "ARBENZ CONSOLIDATES IN GUATEMALA",
+        body: "GUATEMALA CITY -- PRESIDENT ARBENZ MARKS THE ANNIVERSARY OF THE OCTOBER REVOLUTION WITH DECREE 900 EXPROPRIATIONS PROCEEDING ACROSS THE UNITED FRUIT ESTATES. THE ARMY STANDS WITH THE GOVERNMENT. WASHINGTON PROTESTS COMPENSATION TERMS AND GETS BOOK VALUE FOR AN ANSWER. THE HEMISPHERE IS WATCHING.",
+        effects: [
+            AdjustStability(country: ("GTM"), delta: 10),
+            GrantIndustry(country: ("GTM"), centi: 100),
+            AdjustTension(5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Revolucion Libertadora". Military revolt began September 16, 1955; Peron resigned September 21 and took asylum on a Paraguayan gunboat.
+    EventDef(
+        id: "argentina-peron-falls",
+        trigger: Date((1955, 9, 21, 12)),
+        title: "PERON FALLS IN ARGENTINA",
+        body: "BUENOS AIRES -- FLASH -- PRESIDENT JUAN PERON HAS RESIGNED AFTER FIVE DAYS OF MILITARY REVOLT. NAVY AIRCRAFT BOMBED THE PLAZA DE MAYO IN JUNE -- THIS TIME THE GARRISONS OF CORDOBA ROSE AND THE FLEET PUT TO SEA. PERON ABOARD A PARAGUAYAN GUNBOAT IN THE HARBOR. GENERAL LONARDI TO ASSUME POWER. THE DESCAMISADOS ARE SILENT TONIGHT.",
+        effects: [
+            AdjustStability(country: ("ARG"), delta: -15),
+            GrantLegitimacy(country: ("ARG"), amount: -5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Cuban Revolution". Batista fled Havana at dawn January 1, 1959; Castro entered Havana January 8.
+    EventDef(
+        id: "cuban-revolution",
+        trigger: Date((1959, 1, 1, 6)),
+        title: "BATISTA FLEES -- REBELS TAKE CUBA",
+        body: "HAVANA -- FLASH -- PRESIDENT FULGENCIO BATISTA FLED THE COUNTRY BY AIR BEFORE DAWN WITH FAMILY AND CLOSE AIDES. REBEL COLUMNS UNDER GUEVARA AND CIENFUEGOS ENTERING SANTA CLARA AND ROLLING WEST UNOPPOSED. FIDEL CASTRO ADDRESSES CROWDS IN SANTIAGO -- PROMISES ELECTIONS, REFORM, AND JUSTICE FOR THE DICTATORSHIP. THE ARMY HAS STOPPED FIGHTING.",
+        effects: [
+            AdjustStability(country: ("CUB"), delta: -20),
+            AdjustTension(10),
+        ],
+    ),
+    // SOURCE: Wikipedia "Agrarian Reform Laws of Cuba". First Agrarian Reform Law signed at La Plata May 17, 1959 -- capped estates, expropriated large holdings including US-owned sugar land.
+    EventDef(
+        id: "cuba-agrarian-reform",
+        trigger: Date((1959, 5, 17, 12)),
+        title: "HAVANA WEIGHS THE AGRARIAN REFORM LAW",
+        body: "HAVANA -- THE DRAFT AGRARIAN REFORM LAW SITS BEFORE THE COUNCIL OF MINISTERS AT THE SIERRA MAESTRA HEADQUARTERS. ESTATES OVER 400 HECTARES TO BE EXPROPRIATED -- COMPENSATION IN TWENTY-YEAR BONDS AT ASSESSED TAX VALUE. US SUGAR COMPANIES HOLD THE LARGEST TRACTS ON THE ISLAND. THE MODERATES IN THE CABINET URGE DELAY. THE CAMPESINOS DO NOT.",
+        country: Some(("CUB")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "SIGN THE LAW",
+                effects: [
+                    AdjustStability(country: ("CUB"), delta: 10),
+                    AdjustTension(10),
+                ],
+            ),
+            EventOption(
+                label: "MODERATE COURSE -- DELAY",
+                effects: [
+                    AdjustStability(country: ("CUB"), delta: -10),
+                    GrantLegitimacy(country: ("CUB"), amount: -5),
+                    AdjustTension(-5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Cuban nationalizations" / Law 851 of July 6, 1960; Resolution No. 1 of August 6, 1960 nationalized 26 US-owned firms after Washington cut the sugar quota. 447 days after May 17, 1959.
+    EventDef(
+        id: "cuba-expropriations",
+        trigger: OptionChosen(id: "cuba-agrarian-reform", option: 0, days_after: 447),
+        title: "CUBA: SEIZE THE AMERICAN COMPANIES?",
+        body: "HAVANA -- WASHINGTON HAS CUT THE CUBAN SUGAR QUOTA AND THE REFINERIES REFUSED SOVIET CRUDE. LAW 851 IS ON THE BOOKS -- IT AUTHORIZES NATIONALIZATION OF US PROPERTY BY RESOLUTION. TEXACO, ESSO, SHELL, THE ELECTRIC COMPANY, THE TELEPHONE COMPANY, THE SUGAR MILLS -- ALL OF IT CAN BE TAKEN WITH ONE SIGNATURE. THE ECONOMISTS WARN OF RETALIATION. THE CROWDS CHANT FOR IT.",
+        country: Some(("CUB")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "NATIONALIZE US PROPERTY",
+                effects: [
+                    GrantIndustry(country: ("CUB"), centi: 300),
+                    AdjustStability(country: ("CUB"), delta: 5),
+                    AdjustTension(20),
+                ],
+            ),
+            EventOption(
+                label: "COMPENSATE AND NEGOTIATE",
+                effects: [
+                    AdjustStability(country: ("CUB"), delta: -10),
+                    GrantLegitimacy(country: ("CUB"), amount: 5),
+                    AdjustTension(-5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "United States embargo against Cuba". Eisenhower signed the partial export embargo October 19, 1960 -- all US exports barred except food and medicine. 74 days after August 6.
+    EventDef(
+        id: "us-embargo-decision",
+        trigger: OptionChosen(id: "cuba-expropriations", option: 0, days_after: 74),
+        title: "CUBA SEIZURES: THE PRESIDENT MUST ANSWER",
+        body: "WASHINGTON -- HAVANA HAS NATIONALIZED EVERY MAJOR AMERICAN FIRM ON THE ISLAND WITHOUT REAL COMPENSATION -- OIL, POWER, TELEPHONES, SUGAR. COMMERCE AND STATE PROPOSE AN EMBARGO ON ALL EXPORTS TO CUBA SAVE FOOD AND MEDICINE. CRITICS WARN SANCTIONS WILL HAND CASTRO TO MOSCOW AND ALARM THE HEMISPHERE. THE ELECTION IS THREE WEEKS OUT.",
+        country: Some(("USA")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "IMPOSE THE EMBARGO",
+                effects: [
+                    GrantIndustry(country: ("CUB"), centi: -300),
+                    GrantLegitimacy(country: ("USA"), amount: -5),
+                    AdjustTension(15),
+                ],
+            ),
+            EventOption(
+                label: "PRESSURE WITHOUT EMBARGO",
+                effects: [
+                    GrantLegitimacy(country: ("USA"), amount: 5),
+                    AdjustStability(country: ("CUB"), delta: 5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Cuba-Soviet Union relations". Castro proclaimed the socialist character of the revolution April 16, 1961; Soviet arms and oil had been flowing since mid-1960. 179 days after October 19, 1960.
+    EventDef(
+        id: "cuba-turns-east",
+        trigger: OptionChosen(id: "us-embargo-decision", option: 0, days_after: 179),
+        title: "CASTRO DECLARES THE REVOLUTION SOCIALIST",
+        body: "HAVANA -- AT THE FUNERAL FOR AIRSTRIKE VICTIMS, PREMIER CASTRO DECLARED FOR THE FIRST TIME THAT THE CUBAN REVOLUTION IS SOCIALIST -- AND DEFIED THE UNITED STATES TO COME. SOVIET CRUDE RUNS THE REFINERIES, SOVIET RIFLES ARM THE MILITIA, AND CUBAN SUGAR SAILS FOR BALTIC PORTS. NINETY MILES FROM KEY WEST, THE BLOC HAS A NEW MEMBER.",
+        effects: [
+            SetAlignment(country: ("CUB"), alignment: "EasternBloc"),
+            GrantStock(country: ("CUB"), amount: 10),
+            AdjustTension(25),
+        ],
+    ),
+    // SOURCE: Wikipedia "Cuba-United States relations". Counterfactual branch: without the embargo Havana keeps its trade lines and positions itself with the neutrals instead of the bloc.
+    EventDef(
+        id: "cuba-nonaligned-course",
+        trigger: OptionChosen(id: "us-embargo-decision", option: 1, days_after: 179),
+        title: "CUBA CHARTS A COURSE BETWEEN THE BLOCS",
+        body: "HAVANA -- WITH TRADE TO THE NORTH STILL OPEN, PREMIER CASTRO TELLS A MAY DAY CROWD THAT CUBA TAKES ORDERS FROM NEITHER WASHINGTON NOR MOSCOW. SUGAR SELLS IN BOTH MARKETS. THE REVOLUTION KEEPS ITS RIFLES AND ITS OPTIONS. STATE DEPARTMENT CALLS THE SPEECH -- QUOTE -- MANAGEABLE.",
+        effects: [
+            SetAlignment(country: ("CUB"), alignment: "NonAligned"),
+            AdjustTension(-10),
+        ],
+    ),
+    // SOURCE: Wikipedia "Bay of Pigs Invasion". Brigade 2506 landed at Playa Giron April 17, 1961; Kennedy gave final approval days before and withheld US air cover. Defeated within 72 hours.
+    EventDef(
+        id: "bay-of-pigs",
+        trigger: Date((1961, 4, 14, 6)),
+        title: "THE CUBA OPERATION: GO OR NO GO",
+        body: "WASHINGTON -- BRIGADE 2506 IS EMBARKED IN NICARAGUA -- FOURTEEN HUNDRED CUBAN EXILES, CIA TRAINED, BOUND FOR A BEACHHEAD AT THE BAY OF PIGS. THE PLAN ASSUMES THE ISLAND RISES AGAINST CASTRO. THE JOINT CHIEFS CALL THE ODDS FAIR. NO US FORCES ARE TO APPEAR -- DENIABILITY IS THE WHOLE DESIGN. THE PRESIDENT MUST GIVE THE WORD.",
+        country: Some(("USA")),
+        deadline_days: 3,
+        options: [
+            EventOption(
+                label: "PROCEED WITH THE LANDING",
+                effects: [
+                    GrantLegitimacy(country: ("USA"), amount: -15),
+                    AdjustStability(country: ("CUB"), delta: 10),
+                    AdjustTension(40),
+                ],
+            ),
+            EventOption(
+                label: "CANCEL THE OPERATION",
+                effects: [
+                    GrantLegitimacy(country: ("USA"), amount: -5),
+                    AdjustStability(country: ("CUB"), delta: 5),
+                    AdjustTension(-10),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Cuban Missile Crisis" / "Operation Anadyr". Khrushchev decided on deployment in May 1962; entry event only -- the sim's crisis machinery takes it from here.
+    EventDef(
+        id: "cuban-deployment",
+        trigger: TensionAbove(tenths: 600),
+        chance_permille: Some(12),
+        title: "ANADYR: MISSILES FOR CUBA",
+        body: "MOSCOW -- THE DEFENSE COUNCIL TAKES UP A PROPOSAL TO BASE MEDIUM-RANGE ROCKET REGIMENTS ON CUBAN SOIL -- SHIPPED AS AGRICULTURAL MACHINERY, EMPLACED BEFORE WASHINGTON CAN REACT. ONE STROKE EVENS THE STRATEGIC ARITHMETIC AND SHIELDS THE CUBAN REVOLUTION. IF DISCOVERED EARLY, IT INVITES THE VERY INVASION IT DETERS. THE GENERAL SECRETARY MUST DECIDE.",
+        country: Some(("SOV")),
+        deadline_days: 5,
+        options: [
+            EventOption(
+                label: "OPERATION ANADYR -- DEPLOY",
+                effects: [
+                    GrantStock(country: ("CUB"), amount: 15),
+                    AdjustTension(150),
+                ],
+            ),
+            EventOption(
+                label: "RESTRAINT -- CONVENTIONAL ARMS ONLY",
+                effects: [
+                    AdjustStability(country: ("CUB"), delta: -5),
+                    GrantLegitimacy(country: ("SOV"), amount: -5),
+                    AdjustTension(-15),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Alliance for Progress". Announced by Kennedy March 13, 1961; charter signed at Punta del Este August 1961 -- a ten-year development program for Latin America.
+    EventDef(
+        id: "alliance-for-progress",
+        trigger: Date((1961, 3, 13, 12)),
+        title: "AN ALLIANCE FOR PROGRESS",
+        body: "WASHINGTON -- THE PRESIDENT PROPOSES TO THE ASSEMBLED LATIN AMERICAN DIPLOMATIC CORPS A TEN-YEAR PLAN -- LAND REFORM, SCHOOLS, HOUSING, AND AMERICAN CAPITAL -- TO PROVE FREE MEN CAN OUTBUILD COMMUNISM IN THE HEMISPHERE. TREASURY ASKS WHERE THE BILLIONS COME FROM. THE ALTERNATIVE, SAYS THE WHITE HOUSE, IS MORE CUBAS.",
+        country: Some(("USA")),
+        deadline_days: 10,
+        options: [
+            EventOption(
+                label: "FUND THE ALLIANCE",
+                effects: [
+                    GrantIndustry(country: ("USA"), centi: -400),
+                    GrantIndustry(country: ("BRA"), centi: 200),
+                    GrantIndustry(country: ("CHL"), centi: 150),
+                    GrantIndustry(country: ("COL"), centi: 150),
+                    GrantIndustry(country: ("VEN"), centi: 100),
+                    GrantLegitimacy(country: ("USA"), amount: 10),
+                    AdjustStability(country: ("CHL"), delta: 5),
+                ],
+            ),
+            EventOption(
+                label: "SPEECHES, NOT DOLLARS",
+                effects: [
+                    GrantLegitimacy(country: ("USA"), amount: -5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Independence of Jamaica". Jamaica became independent within the Commonwealth August 6, 1962, after leaving the West Indies Federation.
+    EventDef(
+        id: "jamaica-independence",
+        trigger: Date((1962, 8, 6, 12)),
+        title: "JAMAICA INDEPENDENT",
+        body: "KINGSTON -- AT MIDNIGHT THE UNION FLAG CAME DOWN AT THE NATIONAL STADIUM AND THE BLACK, GREEN AND GOLD ROSE IN ITS PLACE. THREE HUNDRED SEVEN YEARS OF BRITISH RULE END BY ACT OF PARLIAMENT AND CONSENT. BUSTAMANTE HEADS THE FIRST GOVERNMENT. PRINCESS MARGARET DELIVERED THE INSTRUMENTS OF INDEPENDENCE FOR THE QUEEN.",
+        effects: [
+            Independence(country: ("JAM"), from: ("GBR"), provinces: ["Kingston", "Saint Catherine", "Saint Ann", "Trelawny", "Westmoreland", "Clarendon"]),
+            GrantLegitimacy(country: ("GBR"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Trinidad and Tobago". Independence from Britain August 31, 1962, under Prime Minister Eric Williams.
+    EventDef(
+        id: "trinidad-independence",
+        trigger: Date((1962, 8, 31, 12)),
+        title: "TRINIDAD AND TOBAGO INDEPENDENT",
+        body: "PORT OF SPAIN -- THE TWIN-ISLAND COLONY BECOMES A SOVEREIGN STATE AT MIDNIGHT. DR ERIC WILLIAMS, WHO TOLD HIS PEOPLE THAT MASSA DAY DONE, TAKES OFFICE AS FIRST PRIME MINISTER. THE RED, WHITE AND BLACK FLIES OVER THE RED HOUSE. OIL AND ASPHALT REVENUES GIVE THE NEW NATION A STRONGER START THAN MOST.",
+        effects: [
+            Independence(country: ("TTO"), from: ("GBR"), provinces: ["Port of Spain", "San Fernando", "Chaguanas", "Couva-Tabaquite-Talparo", "Point Fortin"]),
+        ],
+    ),
+    // SOURCE: Wikipedia "Martyrs' Day (Panama)". January 9, 1964: riots over the flag-raising at Balboa High School in the Canal Zone; 21 Panamanians dead, relations with Washington broken.
+    EventDef(
+        id: "panama-flag-riots",
+        trigger: Date((1964, 1, 9, 18)),
+        title: "FLAG RIOTS SWEEP THE CANAL ZONE",
+        body: "PANAMA CITY -- RIOTING ALONG THE CANAL ZONE FENCE AFTER AMERICAN STUDENTS AT BALBOA HIGH RAISED THE STARS AND STRIPES ALONE, CONTRARY TO AGREEMENT. PANAMANIAN STUDENTS MARCHING WITH THEIR FLAG WERE REPULSED -- THE FLAG TORN -- CROWDS NOW BURNING US PROPERTY. ZONE POLICE AND ARMY FIRING. PRESIDENT CHIARI BREAKS RELATIONS WITH WASHINGTON.",
+        effects: [
+            AdjustStability(country: ("PAN"), delta: -10),
+            GrantLegitimacy(country: ("USA"), amount: -5),
+            AdjustTension(10),
+        ],
+    ),
+    // SOURCE: Wikipedia "1964 Brazilian coup d'etat". March 31 - April 1, 1964: army moves from Minas Gerais on Rio; Goulart flees to Uruguay; Castelo Branco installed.
+    EventDef(
+        id: "brazil-coup-1964",
+        trigger: Date((1964, 3, 31, 12)),
+        title: "BRAZIL ON THE BRINK",
+        body: "RIO DE JANEIRO -- GENERAL MOURAO FILHO HAS PUT HIS TROOPS ON THE ROAD FROM MINAS GERAIS. PRESIDENT GOULART'S BASIC REFORMS, THE SAILORS MUTINY, AND HIS APPEAL TO THE SERGEANTS HAVE CONVINCED THE ARMY COMMAND THE REPUBLIC IS SLIDING TO THE LEFT. WASHINGTON HAS A CARRIER GROUP STEAMING SOUTH -- OPERATION BROTHER SAM. THE GARRISONS MUST CHOOSE.",
+        country: Some(("BRA")),
+        deadline_days: 2,
+        options: [
+            EventOption(
+                label: "THE GENERALS MOVE",
+                effects: [
+                    AdjustStability(country: ("BRA"), delta: 10),
+                    SetAlignment(country: ("BRA"), alignment: "WesternBloc"),
+                    GrantLegitimacy(country: ("BRA"), amount: -5),
+                ],
+            ),
+            EventOption(
+                label: "GOULART RIDES IT OUT",
+                effects: [
+                    AdjustStability(country: ("BRA"), delta: -15),
+                    SetAlignment(country: ("BRA"), alignment: "NonAligned"),
+                    GrantLegitimacy(country: ("BRA"), amount: 5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "1964 Chilean presidential election". September 4, 1964: Eduardo Frei Montalva (Christian Democrat) defeats Salvador Allende 56-39, with substantial covert US campaign funding.
+    EventDef(
+        id: "chile-frei-election",
+        trigger: Date((1964, 9, 4, 20)),
+        title: "FREI WINS CHILE IN A LANDSLIDE",
+        body: "SANTIAGO -- EDUARDO FREI MONTALVA AND HIS CHRISTIAN DEMOCRATS TAKE THE PRESIDENCY WITH 56 PERCENT AGAINST SENATOR ALLENDE'S POPULAR FRONT. REVOLUTION IN LIBERTY IS THE SLOGAN -- REFORM WITHOUT MARXISM. TURNOUT MASSIVE AND ORDERLY. UNREMARKED IN THE RETURNS: THE CAMPAIGN WAS THE BEST FINANCED IN CHILEAN HISTORY.",
+        effects: [
+            AdjustStability(country: ("CHL"), delta: 5),
+            GrantLegitimacy(country: ("CHL"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Dominican Civil War". April 1965: constitutionalist revolt in Santo Domingo; US Marines landed April 28 (Operation Power Pack), later folded into an OAS force.
+    EventDef(
+        id: "dominican-intervention",
+        trigger: Date((1965, 4, 28, 12)),
+        title: "SANTO DOMINGO: MARINES OR MEDIATION",
+        body: "WASHINGTON -- CIVIL WAR IN SANTO DOMINGO. CONSTITUTIONALIST REBELS DEMAND BOSCH'S RETURN -- THE JUNTA'S TANKS HAVE FAILED TO CLEAR THE CITY. EMBASSY REPORTS AMERICAN LIVES AT RISK AND WARNS OF COMMUNISTS IN THE REBEL RANKS -- A SECOND CUBA, SAYS THE AMBASSADOR. THE 82ND AIRBORNE IS ON STRIP ALERT. THE OAS HAS NOT BEEN CONSULTED.",
+        country: Some(("USA")),
+        deadline_days: 3,
+        options: [
+            EventOption(
+                label: "LAND THE MARINES",
+                effects: [
+                    AdjustStability(country: ("DOM"), delta: 10),
+                    GrantLegitimacy(country: ("USA"), amount: -10),
+                    AdjustTension(20),
+                ],
+            ),
+            EventOption(
+                label: "THE OAS ROUTE",
+                effects: [
+                    AdjustStability(country: ("DOM"), delta: -10),
+                    GrantLegitimacy(country: ("USA"), amount: 5),
+                    AdjustTension(5),
+                ],
+            ),
+        ],
+    ),
+    // SOURCE: Wikipedia "Tacnazo insurrection". October 21, 1969: General Roberto Viaux and the Tacna regiment barricade in their Santiago barracks -- the army is in politics again, one year before the 1970 election.
+    EventDef(
+        id: "chile-tacnazo",
+        trigger: Date((1969, 10, 21, 12)),
+        title: "CHILEAN REGIMENT DEFIES THE GOVERNMENT",
+        body: "SANTIAGO -- GENERAL ROBERTO VIAUX HAS SHUT HIMSELF INSIDE THE TACNA ARTILLERY BARRACKS WITH THE REGIMENT BEHIND HIM, DEMANDING PAY RISES AND THE RESIGNATION OF THE DEFENSE MINISTER. PRESIDENT FREI CALLS IT SEDITION. CROWDS GATHER AT LA MONEDA TO DEFEND THE CONSTITUTION. THE ARMY HAS NOT MARCHED ON POLITICS IN A GENERATION -- UNTIL TODAY. THE ELECTION IS ELEVEN MONTHS AWAY.",
+        effects: [
+            AdjustStability(country: ("CHL"), delta: -10),
+        ],
+    ),
+]
