@@ -1153,11 +1153,15 @@ pub fn update_military(
             .iter()
             .flat_map(|(a, b)| [a.clone(), b.clone()])
             .collect();
+        // Keyed by the CURRENT holder: an independent state mobilizes
+        // its own people; a colonial power no longer draws on ceded
+        // ground (finding from the timeline review).
         let mut pop_by_country: BTreeMap<CountryTag, u64> = BTreeMap::new();
         for (id, c) in &demo.provinces {
             if let Some(p) = data.provinces.get(id) {
-                if at_war.contains(&p.owner) {
-                    *pop_by_country.entry(p.owner.clone()).or_default() += c.total();
+                let holder = military.owner_of(*id, &p.owner);
+                if at_war.contains(&holder) {
+                    *pop_by_country.entry(holder).or_default() += c.total();
                 }
             }
         }

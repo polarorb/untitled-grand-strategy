@@ -279,13 +279,20 @@ pub enum EventEffect {
         country: CountryTag,
         centi: i64,
     },
-    /// A new state is born: regions containing the named provinces
-    /// (owned by `from` in 1950) transfer to `country`, with manpower
-    /// seeded from the transferred population.
+    /// A new state is born: EXACTLY the listed provinces (by name
+    /// and/or stable id, owned by `from` in 1950) transfer to
+    /// `country`; region ownership follows the majority holder;
+    /// manpower seeds from the transferred population. Ids are the
+    /// robust binding (generic colonial names are often ambiguous);
+    /// tools/timeline/integrate.py generates them from Natural Earth
+    /// attribution.
     Independence {
         country: CountryTag,
         from: CountryTag,
+        #[serde(default)]
         provinces: Vec<String>,
+        #[serde(default)]
+        province_ids: Vec<u32>,
     },
     /// Authorize the thermonuclear ("Super") follow-on program.
     AuthorizeThermonuclear {
@@ -569,6 +576,7 @@ impl ScenarioData {
                         country,
                         from,
                         provinces,
+                        province_ids,
                     } => {
                         if !self.countries.contains_key(country) {
                             return Err(DataError::Validation(format!(
@@ -576,7 +584,7 @@ impl ScenarioData {
                                 event.id, country.0
                             )));
                         }
-                        if provinces.is_empty() {
+                        if provinces.is_empty() && province_ids.is_empty() {
                             return Err(DataError::Validation(format!(
                                 "event {}: independence with no provinces",
                                 event.id
@@ -585,8 +593,70 @@ impl ScenarioData {
                         for name in provinces {
                             self.province_by_name(from, name)?;
                         }
+                        for id in province_ids {
+                            let Some(p) = self.provinces.get(&ProvinceId(*id)) else {
+                                return Err(DataError::Validation(format!(
+                                    "event {}: independence references unknown province id {id}",
+                                    event.id
+                                )));
+                            };
+                            if &p.owner != from {
+                                return Err(DataError::Validation(format!(
+                                    "event {}: province {} ({}) is owned by {}, not {}",
+                                    event.id, id, p.name, p.owner.0, from.0
+                                )));
+                            }
+                        }
+                    }
+                    EventEffect::TransferProvinces { from, names, .. } => {
+                        for name in names {
+                            self.province_by_name(from, name)?;
+                        }
+                    }
+                    EventEffect::SpawnForces {
+                        province_owner,
+                        province,
+                        ..
+                    } => {
+                        self.province_by_name(province_owner, province)?;
                     }
                     _ => {}
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_independence_disjoint(&self) -> Result<(), DataError> {
+        let mut claimed: std::collections::BTreeMap<u32, String> =
+            std::collections::BTreeMap::new();
+        for event in &self.events {
+            let all = event
+                .effects
+                .iter()
+                .chain(event.options.iter().flat_map(|o| o.effects.iter()));
+            for effect in all {
+                if let EventEffect::Independence {
+                    from,
+                    provinces,
+                    province_ids,
+                    ..
+                } = effect
+                {
+                    let mut ids: Vec<u32> = province_ids.clone();
+                    for name in provinces {
+                        ids.push(self.province_by_name(from, name)?.0);
+                    }
+                    for id in ids {
+                        if let Some(prev) = claimed.insert(id, event.id.clone()) {
+                            if prev != event.id {
+                                return Err(DataError::Validation(format!(
+                                    "province {id} claimed by independence events {prev} and {}",
+                                    event.id
+                                )));
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -642,6 +712,7 @@ impl ScenarioData {
     fn validate(&self) -> Result<(), DataError> {
         self.validate_projects()?;
         self.validate_events()?;
+        self.validate_independence_disjoint()?;
         for entry in &self.oob {
             self.province_by_name(&entry.owner, &entry.province)?;
             if !["Infantry", "Motorized", "Armor"].contains(&entry.archetype.as_str()) {

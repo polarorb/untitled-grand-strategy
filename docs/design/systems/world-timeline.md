@@ -1,6 +1,6 @@
 # World timeline & the living-world engine
 
-Status: designed
+Status: implemented (engine + 1950-1970 corpus)
 Pillars: all four — the timeline is what makes the pillars matter
 everywhere, not just in Korea. Alignment flips are pillar 2 made real;
 decolonization is the influence battleground; the systemic arcs
@@ -141,6 +141,42 @@ nations_meta dossier stays 1950); elections; a finer alignment scale
 (influence pillar); migrating `events.ron` content; UN membership;
 civil wars as sub-national actors (coups are stability + alignment
 changes); economic union objects (EEC is events + GrantIndustry).
+
+## Implementation notes
+
+- Shipped corpus: 189 events across nine regional files plus the
+  legacy Korea set; 37 new-state CountryDefs in
+  `countries/independence.ron`; every map name grep-verified by the
+  content agents and re-validated by the loader (which caught three
+  cross-file duplicate ids and one Chad capital rename at
+  integration).
+- `tools/timeline/integrate.py` is the swarm-output integration path:
+  binds capital names to province ids, lays out event files, reports
+  problems. Re-run it for future content passes.
+- The acid test `the_world_turns_to_1970` runs twenty hands-off years
+  (~15s): the spine fires, a dozen-plus new states own regions, Cuba
+  is Eastern-bloc, and 1970 is not a world war.
+- CI regime floors and economic-system seeding deliberately stay on
+  the 1950 baseline (regime character, not current alignment).
+
+## Post-review notes
+
+- Independence became PER-PROVINCE (id-bound) after review: colonial
+  regions are super-regions holding many future states, so
+  whole-region transfer let the first-born swallow its neighbors
+  (Guinea annexing French West Africa). Province lists are generated
+  from Natural Earth adm0 attribution with centroid disambiguation
+  for generic colonial names; load-time validation enforces ownership
+  and cross-event disjointness; region ownership follows the majority
+  holder. Some border provinces stay colonial where names could not
+  be disambiguated — historically messy edges, refined later.
+- Wartime mobilization keys off the CURRENT holder, so new states
+  mobilize their own people and parents no longer draw on ceded
+  ground.
+- Chain-trigger state (fired/resolved stamps) is digest-folded.
+- Known emergent quirk, accepted: a very late-ending Suez war can
+  leave an ISR-EGY truce alive in June 1967, degrading the Six-Day
+  War to a "TRUCE HOLDS" notice — plausible alt-history, not a bug.
 
 ## Open questions (leanings)
 

@@ -45,8 +45,8 @@
         title: "THE UNITED KINGDOM OF LIBYA",
         body: "BENGHAZI -- IN ACCORDANCE WITH THE UNITED NATIONS RESOLUTION OF 1949, THE FORMER ITALIAN COLONY ADMINISTERED BY BRITAIN SINCE THE DESERT WAR IS DECLARED INDEPENDENT UNDER KING IDRIS AL-SENUSSI. IT IS THE FIRST STATE CREATED BY THE UNITED NATIONS. THE KING IS EXPECTED TO WELCOME ALLIED BASES -- AND ALLIED RENT.",
         effects: [
-            Independence(country: ("LBY"), from: ("GBR"), provinces: ["Misratah", "Benghazi", "Al Butnan", "Ghat"]),
-            TransferProvinces(from: ("GBR"), to: ("LBY"), names: ["Ghadamis", "Al Marqab", "Al Jifarah", "An Nuqat al Khams", "Az Zawiyah", "Mizdah", "Tajura' wa an Nawahi al Arba", "Al Jufrah", "Al Kufrah", "Murzuq", "Sabha", "Ajdabiya"]),
+            Independence(country: ("LBY"), from: ("GBR"), provinces: [], province_ids: [2212, 2213, 2214, 2215, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2226, 2227, 2228, 2229, 2230, 2231, 2232, 2233]),
+            AdjustTension(0),
             GrantLegitimacy(country: ("GBR"), amount: 5),
         ],
     ),
@@ -164,8 +164,8 @@
         title: "PARIS RELEASES THE PROTECTORATES",
         body: "PARIS -- FRANCE RECOGNIZES THE INDEPENDENCE OF MOROCCO UNDER SULTAN MOHAMMED V AND OF TUNISIA UNDER HABIB BOURGUIBA. THE PROTECTORATE TREATIES OF FEZ AND BARDO ARE DEAD LETTERS. THE QUAI DORSAY CALLS IT CONCENTRATION OF EFFORT -- EVERY AVAILABLE DIVISION IS WANTED IN ALGERIA, WHICH PARIS INSISTS IS FRANCE ITSELF.",
         effects: [
-            TransferProvinces(from: ("FRA"), to: ("MAR"), names: ["Tanger - Tétouan", "Fès - Boulemane", "Taza - Al Hoceima - Taounate", "Gharb - Chrarda - Béni Hssen", "Chaouia - Ouardigha", "Grand Casablanca", "Rabat - Salé - Zemmour - Zaer", "Meknès - Tafilalet", "Tadla - Azilal", "Oriental", "Souss - Massa - Draâ", "Marrakech - Tensift - Al Haouz", "Doukkala - Abda"]),
-            TransferProvinces(from: ("FRA"), to: ("TUN"), names: ["Tunis", "Manubah", "Ben Arous (Tunis Sud)", "Bizerte", "Béja", "Jendouba", "Nabeul", "Zaghouan", "Le Kef", "Siliana", "Sousse", "Monastir", "Mahdia", "Kairouan", "Kassérine", "Sidi Bou Zid", "Sfax", "Gafsa", "Tozeur", "Gabès", "Kebili", "Médenine", "Tataouine"]),
+            Independence(country: ("MAR"), from: ("FRA"), provinces: [], province_ids: [2425, 2426, 2427, 2428, 2429, 2430, 2431, 2432, 2433, 2434, 2435, 2436, 2437, 2438, 2439, 2440]),
+            Independence(country: ("TUN"), from: ("FRA"), provinces: [], province_ids: [4037, 4038, 4039, 4040, 4041, 4042, 4043, 4044, 4045, 4046, 4047, 4048, 4049, 4050, 4051, 4052, 4053, 4054, 4055, 4056, 4057, 4058, 4059]),
             AdjustStability(country: ("FRA"), delta: 5),
             GrantLegitimacy(country: ("FRA"), amount: 5),
         ],
@@ -386,7 +386,7 @@
             EventOption(
                 label: "HONOR THE GUARANTEE -- OPERATION VANTAGE",
                 effects: [
-                    TransferProvinces(from: ("GBR"), to: ("KWT"), names: ["Al Asimah", "Al Jahrah", "Al Ahmadi", "Al Farwaniyah", "Hawalli", "Mubarak Al-Kabeer"]),
+                    Independence(country: ("KWT"), from: ("GBR"), provinces: [], province_ids: [2168, 2169, 2170, 2171, 2172, 2173]),
                     SpawnForces(owner: ("GBR"), province_owner: ("GBR"), province: "Al Jahrah", archetype: "Motorized", divisions: 1, quality: 1150),
                     GrantLegitimacy(country: ("GBR"), amount: 5),
                     AdjustTension(10),
@@ -395,7 +395,7 @@
             EventOption(
                 label: "INDEPENDENCE WITHOUT ENTANGLEMENT",
                 effects: [
-                    TransferProvinces(from: ("GBR"), to: ("KWT"), names: ["Al Asimah", "Al Jahrah", "Al Ahmadi", "Al Farwaniyah", "Hawalli", "Mubarak Al-Kabeer"]),
+                    AdjustTension(0),
                     AdjustStability(country: ("KWT"), delta: -20),
                     GrantLegitimacy(country: ("IRQ"), amount: 5),
                     AdjustTension(5),
@@ -419,7 +419,7 @@
             EventOption(
                 label: "SIGN AT EVIAN",
                 effects: [
-                    TransferProvinces(from: ("FRA"), to: ("DZA"), names: ["Alger", "Boumerdès", "Tizi Ouzou", "Tipaza", "Blida", "Bouira", "Médéa", "Aïn Defla", "Chlef", "Relizane", "Mostaganem", "Mascara", "Oran", "Aïn Témouchent", "Sidi Bel Abbès", "Tlemcen", "Naâma", "El Bayadh", "Saïda", "Tiaret", "Tissemsilt", "Djelfa", "Laghouat", "Ghardaïa", "Ouargla", "El Oued", "Biskra", "Khenchela", "Batna", "M'Sila", "Bordj Bou Arréridj", "Béjaïa", "Sétif", "Mila", "Jijel", "Skikda", "Constantine", "Oum el Bouaghi", "Guelma", "Annaba", "El Tarf", "Souk Ahras", "Tébessa", "Béchar", "Tindouf", "Illizi", "Tamanghasset"]),
+                    Independence(country: ("DZA"), from: ("FRA"), provinces: [], province_ids: [886, 887, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 899, 900, 901, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913, 914, 915, 916, 917, 918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 930, 931, 932]),
                     AdjustStability(country: ("FRA"), delta: 10),
                     GrantLegitimacy(country: ("FRA"), amount: 10),
                     AdjustTension(-10),
@@ -445,7 +445,7 @@
         title: "ALGERIA GOES AT LAST",
         body: "PARIS -- THE WAR PROLONGED PAST EVIAN HAS DELIVERED ONLY CONSCRIPT COFFINS, OAS BOMBS IN METROPOLITAN FRANCE AND EMPTY VAULTS AT THE BANK OF FRANCE. PARIS CONCEDES WHAT IT REFUSED AT THE LAKESIDE -- ALGERIA IS INDEPENDENT WITHOUT A TREATY OF COOPERATION AND WITHOUT FRIENDS IN ALGIERS. NOTHING WAS BOUGHT BY THE DELAY.",
         effects: [
-            TransferProvinces(from: ("FRA"), to: ("DZA"), names: ["Alger", "Boumerdès", "Tizi Ouzou", "Tipaza", "Blida", "Bouira", "Médéa", "Aïn Defla", "Chlef", "Relizane", "Mostaganem", "Mascara", "Oran", "Aïn Témouchent", "Sidi Bel Abbès", "Tlemcen", "Naâma", "El Bayadh", "Saïda", "Tiaret", "Tissemsilt", "Djelfa", "Laghouat", "Ghardaïa", "Ouargla", "El Oued", "Biskra", "Khenchela", "Batna", "M'Sila", "Bordj Bou Arréridj", "Béjaïa", "Sétif", "Mila", "Jijel", "Skikda", "Constantine", "Oum el Bouaghi", "Guelma", "Annaba", "El Tarf", "Souk Ahras", "Tébessa", "Béchar", "Tindouf", "Illizi", "Tamanghasset"]),
+            AdjustTension(0),
             AdjustStability(country: ("FRA"), delta: -10),
             GrantLegitimacy(country: ("FRA"), amount: -10),
             AdjustTension(-5),

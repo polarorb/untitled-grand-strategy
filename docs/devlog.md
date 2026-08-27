@@ -7,6 +7,37 @@ otherwise. Newest first.
 
 ---
 
+## 2026-08-26 — The world turns: 189 events, 37 new states, twenty years
+
+The biggest content pass yet, and the engine change that made it
+cheap: **content is configuration**
+([design](design/systems/world-timeline.md)). The event grammar grew
+tension-gated triggers, real chains (`EventFired`/`OptionChosen` with
+day offsets — choosing differently now goes somewhere), dynamic
+alignment and stability as runtime overrides behind one accessor, and
+region-granularity `Independence` so decolonization moves the actual
+economy: a new state takes its regions, its industry, its manpower,
+and its place on the map in one data-file effect.
+
+Then nine regional research agents wrote the world, Wikipedia-sourced
+and map-verified (every province name grepped against world.ron
+before being written): Stalin's succession as a three-way decision
+whose Beria branch floats a neutral Germany; Hungary 1956 where
+tolerating Nagy is a real branch; the Sino-Soviet split ending at the
+Ussuri with a war option priced to terrify; Dien Bien Phu with the
+American air-strike decision; Mossadegh surviving if Washington
+refuses the coup; Suez where backing the allies is possible and
+expensive; the Cuba chain that hands the missile decision to the
+existing crisis system; and the decolonization wave — Ghana first,
+seventeen states in 1960, the Congo crisis, Rhodesia's UDI — as 24
+African independence events among 37 new states.
+
+The loader validates everything (unique ids, chain references,
+alignment strings, independence provinces), and the acid test runs
+twenty hands-off years in fifteen seconds: the spine of the era fires
+on schedule, the map fills with new flags, and 1970 arrives without a
+world war. 74 tests green.
+
 ## 2026-08-26 — The economy becomes a place: regions, constraints, projects
 
 Same complaint that produced the military command layer, same cure:

@@ -61,6 +61,35 @@ impl FiredEvents {
     pub fn is_pending(&self, id: &str) -> bool {
         self.pending.iter().any(|p| p.id == id)
     }
+
+    /// Chain-trigger state drives future behavior — it must be
+    /// divergence-visible to the determinism harnesses.
+    pub fn digest(&self) -> u64 {
+        fn fold(h: &mut u64, v: u64) {
+            *h = (*h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
+        }
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        for (id, t) in &self.fired_ticks {
+            for b in id.bytes() {
+                fold(&mut h, b as u64);
+            }
+            fold(&mut h, *t);
+        }
+        for (id, (o, t)) in &self.resolved_ticks {
+            for b in id.bytes() {
+                fold(&mut h, b as u64);
+            }
+            fold(&mut h, *o as u64);
+            fold(&mut h, *t);
+        }
+        for p in &self.pending {
+            for b in p.id.bytes() {
+                fold(&mut h, b as u64);
+            }
+            fold(&mut h, p.deadline_tick);
+        }
+        h
+    }
 }
 
 #[allow(clippy::too_many_arguments)] // effects touch every domain
@@ -200,36 +229,58 @@ fn apply_effects(
                 country,
                 from,
                 provinces,
+                province_ids,
             } => {
                 use std::collections::BTreeSet;
-                let regions: BTreeSet<ugs_data::RegionId> = provinces
+                // Per-province transfer (the region is NOT the unit:
+                // colonial super-regions hold many future states).
+                let mut ids: BTreeSet<ugs_data::ProvinceId> = province_ids
                     .iter()
-                    .filter_map(|name| data.province_by_name(from, name).ok())
-                    .filter_map(|id| data.provinces.get(&id).map(|p| p.region))
+                    .map(|i| ugs_data::ProvinceId(*i))
                     .collect();
-                let mut pop: u64 = 0;
-                for p in data.provinces.values() {
-                    if !regions.contains(&p.region) {
-                        continue;
+                for name in provinces {
+                    if let Ok(id) = data.province_by_name(from, name) {
+                        ids.insert(id);
                     }
-                    let holder = military.owner_of(p.id, &p.owner);
+                }
+                let mut pop: u64 = 0;
+                let mut affected_regions: BTreeSet<ugs_data::RegionId> = BTreeSet::new();
+                for id in &ids {
+                    let Some(p) = data.provinces.get(id) else {
+                        continue;
+                    };
+                    let holder = military.owner_of(*id, &p.owner);
                     // Enemy-occupied ground stays occupied: the state is
                     // born into a claim, not a possession.
-                    if &holder == from {
-                        military.occupation.insert(p.id, country.clone());
-                        settlements.recognized.insert(p.id);
+                    if &holder != from {
+                        continue;
                     }
-                    if let Some(c) = demo.provinces.get(&p.id) {
+                    military.occupation.insert(*id, country.clone());
+                    settlements.recognized.insert(*id);
+                    affected_regions.insert(p.region);
+                    if let Some(c) = demo.provinces.get(id) {
                         pop += c.total();
                     }
                 }
-                for r in &regions {
-                    stat.region_owner.insert(*r, country.clone());
+                // Region ownership follows the majority CURRENT holder
+                // (deterministic: counts over BTreeMap order, ties to
+                // the lexicographically first tag).
+                for region in &affected_regions {
+                    let mut counts: std::collections::BTreeMap<CountryTag, u32> =
+                        Default::default();
+                    for p in data.provinces.values().filter(|p| p.region == *region) {
+                        let holder = military.owner_of(p.id, &p.owner);
+                        *counts.entry(holder).or_default() += 1;
+                    }
+                    if let Some((winner, _)) = counts
+                        .iter()
+                        .max_by_key(|(tag, n)| (**n, std::cmp::Reverse((*tag).clone())))
+                    {
+                        stat.region_owner.insert(*region, winner.clone());
+                    }
                 }
-                military.manpower.insert(
-                    country.clone(),
-                    pop * crate::military::tuning::MANPOWER_BASE_PERMILLE / 1000,
-                );
+                *military.manpower.entry(country.clone()).or_default() +=
+                    pop * crate::military::tuning::MANPOWER_BASE_PERMILLE / 1000;
                 let name = data
                     .countries
                     .get(country)
@@ -725,6 +776,7 @@ mod timeline_tests {
                 country: CountryTag("GHA".into()),
                 from: CountryTag("GBR".into()),
                 provinces: vec!["Ashanti".into()],
+                province_ids: vec![],
             }],
         });
         data.events.push(EventDef {
@@ -914,6 +966,34 @@ mod world_timeline_tests {
         assert!(
             born >= 12,
             "the decolonization wave produced at least a dozen region-owning new states: {born}"
+        );
+
+        // The map itself is right: the new states hold their ground
+        // (these pin the per-province independence semantics — under
+        // the old whole-region transfer, Guinea swallowed West Africa).
+        for (tag, parent, province) in [
+            ("NGA", "GBR", "Lagos"),
+            ("KEN", "GBR", "Nairobi"),
+            ("DZA", "FRA", "Alger"),
+            ("GHA", "GBR", "Ashanti"),
+        ] {
+            let id = data
+                .province_by_name(&CountryTag(parent.into()), province)
+                .expect("map name");
+            assert_eq!(
+                military.owner_of(id, &data.provinces[&id].owner),
+                CountryTag(tag.into()),
+                "{tag} holds {province} by 1970"
+            );
+        }
+        // And Guinea did NOT swallow its neighbors.
+        let dakar = data
+            .province_by_name(&CountryTag("FRA".into()), "Dakar")
+            .expect("map name");
+        assert_ne!(
+            military.owner_of(dakar, &data.provinces[&dakar].owner),
+            CountryTag("GIN".into()),
+            "Dakar is not Guinean"
         );
 
         // Cuba turned east (the historical default path).

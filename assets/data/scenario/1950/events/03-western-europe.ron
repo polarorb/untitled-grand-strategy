@@ -253,7 +253,7 @@
         title: "REPUBLIC OF CYPRUS PROCLAIMED",
         body: "NICOSIA -- AT MIDNIGHT THE UNION FLAG COMES DOWN AND THE REPUBLIC OF CYPRUS IS PROCLAIMED UNDER THE ZURICH AND LONDON ACCORDS. ARCHBISHOP MAKARIOS PRESIDENT, DR KUCUK VICE-PRESIDENT WITH A TURKISH VETO. ENOSIS AND PARTITION ALIKE FORBIDDEN BY TREATY. BRITAIN KEEPS TWO SOVEREIGN BASE AREAS AND GREECE AND TURKEY STATION CONTINGENTS.",
         effects: [
-            Independence(country: ("CYP"), from: ("GBR"), provinces: ["Nicosia", "Limassol", "Larnaca", "Paphos", "Famagusta"]),
+            Independence(country: ("CYP"), from: ("GBR"), provinces: [], province_ids: [797, 798, 799, 800, 801]),
             AdjustTension(-5),
         ],
     ),

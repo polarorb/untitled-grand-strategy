@@ -61,8 +61,8 @@
         title: "FRANCE LETS GO OF LAOS AND CAMBODIA",
         body: "PHNOM PENH -- KING NORODOM SIHANOUK ENTERS THE CAPITAL IN TRIUMPH AS FRANCE TRANSFERS THE LAST MILITARY AND JUDICIAL POWERS -- CAMBODIA INDEPENDENT AFTER 90 YEARS OF PROTECTORATE. IN VIENTIANE THE FRANCO-LAO TREATY OF OCTOBER 22 MAKES THE ROYAL LAO GOVERNMENT SOVEREIGN WITHIN THE FRENCH UNION. THE WAR AGAINST THE VIET MINH GRINDS ON WITHOUT THEM.",
         effects: [
-            Independence(country: ("KHM"), from: ("FRA"), provinces: ["Phnom Penh", "Batdâmbâng", "Siemréab", "Kândal", "Kâmpôt"]),
-            Independence(country: ("LAO"), from: ("FRA"), provinces: ["Vientiane", "Louangphrabang", "Xiangkhoang", "Phôngsali", "Bolikhamxai"]),
+            Independence(country: ("KHM"), from: ("FRA"), provinces: [], province_ids: [2081, 2082, 2083, 2084, 2085, 2086, 2087, 2088, 2089, 2090, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2099, 2100, 2101, 2102, 2103, 2104]),
+            Independence(country: ("LAO"), from: ("FRA"), provinces: [], province_ids: [2174, 2175, 2176, 2177, 2178, 2179, 2180, 2181, 2182, 2183, 2184, 2185, 2186, 2187, 2188, 2189, 2190]),
             AdjustTension(-5),
         ],
     ),
@@ -175,8 +175,8 @@
         title: "GENEVA: VIETNAM CUT AT THE 17TH PARALLEL",
         body: "GENEVA -- MENDES FRANCE DELIVERS HIS PROMISED PEACE. THE INDOCHINA ACCORDS PARTITION VIETNAM AT THE 17TH PARALLEL -- HO CHI MINH'S DRV REGROUPS NORTH, THE FRENCH UNION FORCES AND THE STATE OF VIETNAM SOUTH. NATIONWIDE ELECTIONS PROMISED FOR 1956. WASHINGTON AND SAIGON DECLINE TO SIGN. NOBODY IN GENEVA BELIEVES THE ELECTIONS WILL HAPPEN.",
         effects: [
-            Independence(country: ("VNN"), from: ("FRA"), provinces: ["Ha Noi", "Hải Phòng", "Thái Nguyên", "Nam Định", "Thanh Hóa"]),
-            Independence(country: ("VNS"), from: ("FRA"), provinces: ["Hồ Chí Minh city", "Can Tho", "Khánh Hòa", "Bình Định", "Tây Ninh"]),
+            Independence(country: ("VNN"), from: ("FRA"), provinces: [], province_ids: [4460, 4462, 4463, 4464, 4465, 4466, 4467, 4468, 4469, 4470, 4471, 4472, 4473, 4474, 4475, 4476, 4477, 4478, 4479, 4480, 4481, 4482, 4483, 4484, 4485, 4486, 4520, 4521, 4522]),
+            Independence(country: ("VNS"), from: ("FRA"), provinces: [], province_ids: [4461, 4487, 4488, 4489, 4490, 4491, 4492, 4493, 4494, 4495, 4496, 4497, 4498, 4499, 4500, 4501, 4502, 4503, 4504, 4505, 4506, 4507, 4508, 4509, 4510, 4511, 4512, 4513, 4514, 4515, 4516, 4517, 4518, 4519]),
             GrantLegitimacy(country: ("FRA"), amount: -5),
             AdjustTension(-30),
         ],
@@ -213,7 +213,7 @@
         title: "MERDEKA: MALAYA IS FREE",
         body: "KUALA LUMPUR -- AT MIDNIGHT THE UNION FLAG COMES DOWN AND TUNKU ABDUL RAHMAN CRIES MERDEKA SEVEN TIMES TO A HUNDRED THOUSAND VOICES. THE FEDERATION OF MALAYA IS SOVEREIGN -- THE FIRST TIME LONDON HAS HANDED POWER TO A GOVERNMENT STILL FIGHTING A COMMUNIST INSURGENCY, AND WINNING. THE ANGLO-MALAYAN DEFENSE AGREEMENT KEEPS BRITISH TROOPS IN THE JUNGLE.",
         effects: [
-            Independence(country: ("MYS"), from: ("GBR"), provinces: ["Kuala Lumpur", "Perak", "Johor", "Kelantan", "Pulau Pinang"]),
+            Independence(country: ("MYS"), from: ("GBR"), provinces: [], province_ids: [2853, 2854, 2855, 2856, 2857, 2858, 2859, 2860, 2861, 2862, 2863, 2864, 2865, 2866, 2867, 2868]),
             GrantLegitimacy(country: ("GBR"), amount: 10),
             AdjustTension(-5),
         ],
@@ -264,7 +264,7 @@
         title: "MALAYSIA PROCLAIMED -- JAKARTA CALLS IT A PLOT",
         body: "KUALA LUMPUR -- THE FEDERATION OF MALAYSIA IS PROCLAIMED: MALAYA JOINED BY SINGAPORE AND THE BORNEO TERRITORIES OF SABAH AND SARAWAK. LONDON CALLS IT ORDERLY DECOLONIZATION. SUKARNO CALLS IT A NEOCOLONIAL ENCIRCLEMENT BUILT ON BRITISH BAYONETS AND REFUSES RECOGNITION. MANILA PRESSES ITS OWN CLAIM TO SABAH.",
         effects: [
-            TransferProvinces(from: ("GBR"), to: ("MYS"), names: ["Sabah", "Sarawak"]),
+            AdjustTension(0),
             GrantLegitimacy(country: ("MYS"), amount: 5),
             AdjustTension(10),
         ],

@@ -34,7 +34,7 @@
         title: "SUDAN INDEPENDENT -- CONDOMINIUM ENDS",
         body: "KHARTOUM -- THE EGYPTIAN AND BRITISH FLAGS COME DOWN OVER THE PALACE WHERE GORDON DIED. THE REPUBLIC OF THE SUDAN IS PROCLAIMED, FIRST OF BRITAIN'S AFRICAN TERRITORIES TO GO. THE SOUTH IS ALREADY RESTIVE AFTER LAST YEAR'S TOROT MUTINY. CAIRO AND LONDON BOTH CLAIM THE CREDIT.",
         effects: [
-            Independence(country: ("SDN"), from: ("GBR"), provinces: ["Khartoum", "Gezira", "Kassala", "North Kordufan", "Northern Bahr el Ghazal", "Central Equatoria"]),
+            Independence(country: ("SDN"), from: ("GBR"), provinces: [], province_ids: [3475, 3476, 3477, 3478, 3479, 3480, 3481, 3482, 3483, 3484, 3485, 3486, 3487, 3488, 3489, 3490, 3491]),
             GrantLegitimacy(country: ("GBR"), amount: 5),
         ],
     ),
@@ -45,7 +45,7 @@
         title: "GHANA FREE -- FIRST OF THE NEW AFRICA",
         body: "ACCRA -- AT MIDNIGHT THE GOLD COAST BECAME GHANA. NKRUMAH TELLS A DELIRIOUS POLO GROUND CROWD THAT GHANA'S INDEPENDENCE IS MEANINGLESS UNLESS LINKED WITH THE TOTAL LIBERATION OF AFRICA. VICE PRESIDENT NIXON ATTENDS FOR WASHINGTON. EVERY COLONIAL CAPITAL ON THE CONTINENT HEARD THAT SENTENCE.",
         effects: [
-            Independence(country: ("GHA"), from: ("GBR"), provinces: ["Greater Accra", "Ashanti", "Brong Ahafo", "Volta", "Upper East", "Upper West"]),
+            Independence(country: ("GHA"), from: ("GBR"), provinces: [], province_ids: [1454, 1455, 1456, 1457, 1458, 1459, 1460, 1461, 1462, 1463]),
             GrantLegitimacy(country: ("GBR"), amount: 5),
         ],
     ),
@@ -92,7 +92,7 @@
         title: "GUINEA VOTES NON -- FRANCE WALKS OUT",
         body: "CONAKRY -- ALONE OF ALL FRENCH AFRICA, GUINEA REJECTS DE GAULLE'S COMMUNITY AND PROCLAIMS INDEPENDENCE. SEKOU TOURE SAYS GUINEA PREFERS POVERTY IN FREEDOM TO RICHES IN SLAVERY. PARIS ANSWERS BY STRIPPING THE TERRITORY BARE -- FILES BURNED, EQUIPMENT SHIPPED OUT, EVERY FRANC OF AID CANCELLED. A STATE IS BORN WITH EMPTY DRAWERS.",
         effects: [
-            Independence(country: ("GIN"), from: ("FRA"), provinces: ["Conakry", "Kindia", "Labé", "Kankan", "Nzérékoré", "Boke"]),
+            Independence(country: ("GIN"), from: ("FRA"), provinces: [], province_ids: [1465, 1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1474, 1475, 1476, 1477, 1478, 1479, 1480, 1481, 1482, 1483, 1484, 1485, 1486, 1487, 1488, 1489, 1490, 1491, 1492, 1493, 1494, 1495, 1496, 1497, 1498]),
             AdjustStability(country: ("GIN"), delta: -10),
             GrantLegitimacy(country: ("FRA"), amount: -5),
             AdjustTension(5),
@@ -157,7 +157,7 @@
         title: "THE CONGO IS FREE -- AND FRAGILE",
         body: "LEOPOLDVILLE -- KING BAUDOUIN PRAISES THE GENIUS OF LEOPOLD II AND PREMIER LUMUMBA ANSWERS THAT NO CONGOLESE WILL EVER FORGET INDEPENDENCE WAS WON BY STRUGGLE. THE VAST BELGIAN CONGO -- COPPER, COBALT, URANIUM -- PASSES TO A GOVERNMENT DAYS OLD. THE FORCE PUBLIQUE IS ALREADY MUTTERING AGAINST ITS BELGIAN OFFICERS.",
         effects: [
-            Independence(country: ("COD"), from: ("BEL"), provinces: ["Kinshasa City", "Équateur", "Orientale", "Kasaï-Occidental", "Sud-Kivu", "Katanga"]),
+            Independence(country: ("COD"), from: ("BEL"), provinces: [], province_ids: [677, 678, 679, 680, 681, 682, 683, 684, 685, 686, 687]),
             AdjustTension(5),
         ],
     ),
@@ -243,13 +243,13 @@
         title: "THE YEAR OF AFRICA -- FRENCH WEST AFRICA FREE",
         body: "DAKAR -- SINCE JANUARY THE TRICOLORE HAS COME DOWN ACROSS FRENCH WEST AFRICA -- CAMEROON AT NEW YEAR, DAHOMEY, NIGER AND UPPER VOLTA IN A SINGLE AUGUST WEEK, THE IVORY COAST TODAY, SENEGAL AND SOUDAN OUT OF THE STILLBORN MALI FEDERATION. DE GAULLE KEEPS THE FRANC ZONE AND DEFENSE ACCORDS. SEVENTEEN NEW SEATS AT THE UNITED NATIONS THIS YEAR, AND BOTH BLOCS COUNTING VOTES.",
         effects: [
-            Independence(country: ("CMR"), from: ("FRA"), provinces: ["Ouest", "Adamaoua", "Extrême-Nord", "Nord-Ouest", "Sud-Ouest"]),
-            Independence(country: ("SEN"), from: ("FRA"), provinces: ["Dakar", "Thiès", "Saint-Louis", "Kaolack", "Ziguinchor", "Tambacounda"]),
-            Independence(country: ("MLI"), from: ("FRA"), provinces: ["Bamako", "Kayes", "Ségou", "Sikasso", "Mopti", "Gao"]),
-            Independence(country: ("CIV"), from: ("FRA"), provinces: ["Lagunes", "Bas-Sassandra", "Vallée du Bandama", "Zanzan", "Haut-Sassandra", "Sud-Comoé"]),
-            Independence(country: ("NER"), from: ("FRA"), provinces: ["Niamey", "Zinder", "Maradi", "Tahoua", "Agadez", "Diffa"]),
-            Independence(country: ("BFA"), from: ("FRA"), provinces: ["Kadiogo", "Houet", "Yatenga", "Boulgou", "Mou Houn", "Sanmatenga"]),
-            Independence(country: ("BEN"), from: ("FRA"), provinces: ["Ouémé", "Atlantique", "Borgou", "Atakora", "Zou", "Alibori"]),
+            Independence(country: ("CMR"), from: ("FRA"), provinces: [], province_ids: [667, 668, 669, 670, 671, 672, 673, 674, 675, 676]),
+            Independence(country: ("SEN"), from: ("FRA"), provinces: [], province_ids: [3502, 3503, 3504, 3505, 3506, 3507, 3508, 3509, 3510, 3511, 3512, 3513, 3514, 3515]),
+            Independence(country: ("MLI"), from: ("FRA"), provinces: [], province_ids: [2644, 2645, 2646, 2647, 2648, 2649, 2650, 2651, 2652]),
+            Independence(country: ("CIV"), from: ("FRA"), provinces: [], province_ids: [647, 648, 649, 650, 651, 652, 653, 654, 655, 656, 657, 658, 659, 660, 661, 662, 663, 664, 665]),
+            Independence(country: ("NER"), from: ("FRA"), provinces: [], province_ids: [2885, 2886, 2887, 2888, 2889, 2890, 2891, 2892]),
+            Independence(country: ("BFA"), from: ("FRA"), provinces: [], province_ids: [299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343]),
+            Independence(country: ("BEN"), from: ("FRA"), provinces: [], province_ids: [287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298]),
             GrantLegitimacy(country: ("FRA"), amount: 5),
         ],
     ),
@@ -260,11 +260,11 @@
         title: "EQUATORIAL AFRICA AND MADAGASCAR FREE",
         body: "BRAZZAVILLE -- THE FRENCH EQUATORIAL FEDERATION DISSOLVES INTO FOUR REPUBLICS IN A SINGLE WEEK -- CHAD, THE CENTRAL AFRICAN REPUBLIC, CONGO-BRAZZAVILLE AND TODAY GABON. MADAGASCAR WENT IN JUNE. FRENCH GARRISONS AND OIL GEOLOGISTS REMAIN BY TREATY. THE MAP OF AFRICA IS BEING REDRAWN BY THE MONTH.",
         effects: [
-            Independence(country: ("TCD"), from: ("FRA"), provinces: ["Chari-Baguirmi", "Chari-Baguirmi", "Ouaddaï", "Moyen-Chari", "Kanem", "Borkou"]),
-            Independence(country: ("CAF"), from: ("FRA"), provinces: ["Bangui", "Ouham", "Ouaka", "Haute-Kotto", "Mbomou", "Lobaye"]),
-            Independence(country: ("COG"), from: ("FRA"), provinces: ["Brazzaville", "Pool", "Niari", "Kouilou", "Pointe Noire", "Likouala"]),
-            Independence(country: ("GAB"), from: ("FRA"), provinces: ["Estuaire", "Haut-Ogooué", "Ogooué-Maritime", "Wouleu-Ntem", "Ngounié"]),
-            Independence(country: ("MDG"), from: ("FRA"), provinces: ["Analamanga", "Atsinanana", "Boeny", "Haute Matsiatra", "Diana", "Atsimo-Andrefana"]),
+            Independence(country: ("TCD"), from: ("FRA"), provinces: [], province_ids: [3889, 3890, 3891, 3892, 3893, 3894, 3895, 3896, 3897, 3898, 3899, 3900, 3901, 3902, 3903, 3904, 3905, 3906, 3907, 3908, 3909, 3910]),
+            Independence(country: ("CAF"), from: ("FRA"), provinces: [], province_ids: [544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556, 557, 558, 559, 560]),
+            Independence(country: ("COG"), from: ("FRA"), provinces: [], province_ids: [688, 689, 690, 691, 692, 693, 694, 695, 696, 697, 698, 699]),
+            Independence(country: ("GAB"), from: ("FRA"), provinces: [], province_ids: [1199, 1200, 1201, 1202, 1203, 1204, 1205, 1206, 1207]),
+            Independence(country: ("MDG"), from: ("FRA"), provinces: [], province_ids: [2482, 2483, 2484, 2485, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496, 2497, 2498, 2499, 2500, 2501, 2502, 2503]),
         ],
     ),
     // SOURCE: Wikipedia "Nigeria" / "Somali Republic". Nigeria, Britain's most populous colony, became independent 1 October 1960; British and Italian Somalilands had merged as the Somali Republic on 1 July 1960.
@@ -274,9 +274,9 @@
         title: "NIGERIA FREE -- BRITAIN QUITS ITS GREATEST COLONY",
         body: "LAGOS -- PRINCESS ALEXANDRA HANDS OVER THE INSTRUMENTS AND THIRTY-FIVE MILLION NIGERIANS WAKE IN THE LARGEST FREE NATION IN AFRICA. THE FEDERATION BALANCES NORTH, EAST AND WEST ON A CONSTITUTIONAL KNIFE EDGE. IN JULY THE BRITISH AND ITALIAN SOMALILANDS MERGED INTO A SOMALI REPUBLIC ALREADY TALKING OF LOST TERRITORIES. LONDON'S AFRICAN EMPIRE IS GOING FAST.",
         effects: [
-            Independence(country: ("NGA"), from: ("GBR"), provinces: ["Lagos", "Kano", "Kaduna", "Rivers", "Borno", "Sokoto"]),
-            Independence(country: ("SOM"), from: ("ITA"), provinces: ["Banaadir", "Bay", "Mudug", "Hiiraan", "Gedo", "Nugaal"]),
-            TransferProvinces(from: ("GBR"), to: ("SOM"), names: ["Somaliland"]),
+            Independence(country: ("NGA"), from: ("GBR"), provinces: [], province_ids: [2894, 2895, 2896, 2897, 2898, 2899, 2900, 2901, 2902, 2903, 2904, 2905, 2906, 2907, 2908, 2909, 2910, 2911, 2912, 2913, 2914, 2915, 2916, 2917, 2918, 2919, 2920, 2921, 2922, 2923, 2924, 2925, 2926, 2927, 2928, 2929, 2930]),
+            Independence(country: ("SOM"), from: ("ITA"), provinces: [], province_ids: [3563, 3564, 3565, 3566, 3567, 3568, 3569, 3570, 3571, 3572, 3573, 3574, 3575]),
+            AdjustTension(0),
             GrantLegitimacy(country: ("GBR"), amount: 5),
         ],
     ),
@@ -328,7 +328,7 @@
         title: "TANGANYIKA FREE -- UHURU NA KAZI",
         body: "DAR-ES-SALAAM -- A TORCH IS LIT ON KILIMANJARO AS TANGANYIKA BECOMES INDEPENDENT AT MIDNIGHT. NYERERE PREACHES UHURU NA KAZI -- FREEDOM AND WORK -- AND AFRICAN SOCIALISM OF A HOMEGROWN KIND. THE FIRST DOMINO OF BRITISH EAST AFRICA HAS FALLEN, PEACEFULLY, WHICH LONDON NOTES WITH RELIEF.",
         effects: [
-            Independence(country: ("TZA"), from: ("GBR"), provinces: ["Dar-Es-Salaam", "Dodoma", "Arusha", "Tabora", "Kilimanjaro", "Iringa"]),
+            Independence(country: ("TZA"), from: ("GBR"), provinces: [], province_ids: [4163, 4164, 4165, 4166, 4167, 4168, 4169, 4170, 4171, 4172, 4173, 4174, 4175, 4176, 4177, 4178, 4179, 4180, 4181, 4182, 4183, 4184, 4185, 4186, 4187, 4188, 4189, 4190, 4191, 4192]),
             GrantLegitimacy(country: ("GBR"), amount: 5),
         ],
     ),
@@ -352,8 +352,8 @@
         title: "KENYA FREE -- BRITISH EAST AFRICA GONE",
         body: "NAIROBI -- JOMO KENYATTA, ONCE LONDON'S PRISONER, TAKES THE OATH AS PRIME MINISTER OF A FREE KENYA. UGANDA WENT LAST OCTOBER UNDER OBOTE. ELEVEN YEARS AFTER THE EMERGENCY WAS DECLARED AGAINST HIM, KENYATTA PREACHES HARAMBEE AND FORGIVENESS -- AND THE WHITE HIGHLANDS HOLD THEIR BREATH.",
         effects: [
-            Independence(country: ("KEN"), from: ("GBR"), provinces: ["Nairobi", "Coast", "Rift Valley", "Nyanza", "North-Eastern"]),
-            Independence(country: ("UGA"), from: ("GBR"), provinces: ["Kampala", "Jinja", "Gulu", "Mbale", "Masaka", "Hoima"]),
+            Independence(country: ("KEN"), from: ("GBR"), provinces: [], province_ids: [2065, 2066, 2067, 2068, 2069, 2070, 2071, 2072]),
+            Independence(country: ("UGA"), from: ("GBR"), provinces: [], province_ids: [4193, 4194, 4195, 4196, 4197, 4198, 4199, 4200, 4201, 4202, 4203, 4204, 4205, 4206, 4207, 4208, 4209, 4210, 4211, 4212, 4213, 4214, 4215, 4216, 4217, 4218, 4219, 4220, 4221, 4222, 4223, 4224, 4225, 4226, 4227, 4228, 4229, 4230, 4231, 4232, 4233, 4234, 4235, 4236, 4237, 4238, 4239, 4240, 4241, 4242, 4243, 4244, 4245, 4246, 4247, 4248, 4249, 4250, 4251, 4252, 4253, 4254, 4255, 4256, 4257, 4258, 4259, 4260, 4261, 4262, 4263, 4264, 4265, 4266, 4267, 4268, 4269, 4270, 4271, 4272, 4273, 4274, 4275, 4276, 4277, 4278, 4279, 4280, 4281, 4282, 4283, 4284, 4285, 4286, 4287, 4288, 4289, 4290, 4291, 4292, 4293, 4294, 4295, 4296, 4297, 4298, 4299, 4300, 4301, 4302, 4303, 4304]),
             GrantLegitimacy(country: ("GBR"), amount: 5),
         ],
     ),
@@ -364,9 +364,9 @@
         title: "ZAMBIA FREE -- FEDERATION DEAD AND BURIED",
         body: "LUSAKA -- NORTHERN RHODESIA BECOMES ZAMBIA UNDER KAUNDA, TAKING THE COPPERBELT OUT OF SETTLER HANDS. NYASALAND WENT IN JULY AS BANDA'S MALAWI. IN APRIL TANGANYIKA ABSORBED REVOLUTIONARY ZANZIBAR AS TANZANIA, TO WESTERN RELIEF -- THE ISLAND'S REVOLUTION HAD CUBAN ADMIRERS. OF THE CENTRAL AFRICAN FEDERATION ONLY SOUTHERN RHODESIA REMAINS, WHITE-RULED AND WATCHING.",
         effects: [
-            Independence(country: ("ZMB"), from: ("GBR"), provinces: ["Lusaka", "Copperbelt", "Luapula", "Muchinga", "North-Western"]),
-            Independence(country: ("MWI"), from: ("GBR"), provinces: ["Zomba", "Lilongwe", "Blantyre", "Mzimba", "Kasungu", "Mangochi"]),
-            TransferProvinces(from: ("GBR"), to: ("TZA"), names: ["Zanzibar West", "Zanzibar South and Central", "Kaskazini-Unguja", "Kaskazini-Pemba", "Kusini-Pemba"]),
+            Independence(country: ("ZMB"), from: ("GBR"), provinces: [], province_ids: [4575, 4576, 4577, 4578, 4579, 4580, 4581, 4582, 4583, 4584]),
+            Independence(country: ("MWI"), from: ("GBR"), provinces: [], province_ids: [2825, 2826, 2827, 2828, 2829, 2830, 2831, 2832, 2833, 2834, 2835, 2836, 2837, 2838, 2839, 2840, 2841, 2842, 2843, 2844, 2845, 2846, 2847, 2848, 2849, 2850, 2851, 2852]),
+            AdjustTension(0),
         ],
     ),
     // SOURCE: Wikipedia "Mozambican War of Independence". FRELIMO opened its campaign with the attack on Chai in Cabo Delgado on 25 September 1964, forcing Lisbon into a second colonial war.
@@ -408,7 +408,7 @@
             EventOption(
                 label: "SANCTIONS, NOT SOLDIERS",
                 effects: [
-                    Independence(country: ("RHO"), from: ("GBR"), provinces: ["Harare", "Bulawayo", "Manicaland", "Midlands", "Masvingo", "Mashonaland West"]),
+                    Independence(country: ("RHO"), from: ("GBR"), provinces: [], province_ids: [4585, 4586, 4587, 4588, 4589, 4590, 4591, 4592, 4593, 4594]),
                     SetAlignment(country: ("RHO"), alignment: "NonAligned"),
                     GrantLegitimacy(country: ("RHO"), amount: -20),
                     GrantLegitimacy(country: ("GBR"), amount: -10),
@@ -419,7 +419,7 @@
             EventOption(
                 label: "PUT DOWN THE REBELLION BY FORCE",
                 effects: [
-                    Independence(country: ("RHO"), from: ("GBR"), provinces: ["Harare", "Bulawayo", "Manicaland", "Midlands", "Masvingo", "Mashonaland West"]),
+                    AdjustTension(0),
                     DeclareWar(a: ("GBR"), b: ("RHO")),
                     SetPosture(country: ("GBR"), enemy: ("RHO"), posture: "Advance"),
                     SetWarAim(country: ("GBR"), enemy: ("RHO"), aim: "Unify"),

@@ -136,7 +136,7 @@ mod tests {
     fn digest(app: &App) -> String {
         let world = app.world();
         format!(
-            "{:?}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}",
+            "{:?}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}",
             world.resource::<SimClock>(),
             world.resource::<Demographics>().digest(),
             world.resource::<Economies>().digest(),
@@ -150,6 +150,7 @@ mod tests {
                 .resource::<crate::construction::Construction>()
                 .digest(),
             world.resource::<crate::economy::EconomyStatic>().digest(),
+            world.resource::<crate::events::FiredEvents>().digest(),
         )
     }
 

@@ -63,6 +63,15 @@ an echelon share, and rules of engagement — "may not cross the Yalu"
 is a checkbox. The theater controller spreads divisions along the
 front; there is no unit micro, and unpaid armies melt.
 
+And the world *turns*: 189 sourced events across twenty years — the
+Stalin succession, Hungary, Suez, the Sino-Soviet split, Vietnam, the
+Six-Day War — with real decision branches (tolerate Nagy, refuse the
+Mossadegh coup, back the Suez allies) and 37 new states born on their
+historical dates through region-level independence that transfers the
+actual economy. Every event Wikipedia-sourced, every map name
+validated, all of it data — the event grammar is configuration, so
+the timeline extends without touching the engine.
+
 The economy is a place now, not a dashboard: ~250 named regions each
 compute their binding constraint ("OUTPUT LIMITED BY POWER") into a
 worst-first ledger, a teletype region dossier with the verbs in its
