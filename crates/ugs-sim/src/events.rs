@@ -825,10 +825,14 @@ mod timeline_tests {
             .province_by_name(&CountryTag("GBR".into()), "Ashanti")
             .unwrap();
         let region = data.provinces[&ashanti].region;
+        // Region ownership follows the MAJORITY holder: one province
+        // out of a colonial super-region is not a majority, so the
+        // region correctly stays with the parent (the full-corpus
+        // timeline test pins the majority-flip case).
         assert_eq!(
             stat.region_owner.get(&region),
-            Some(&gha),
-            "the region belongs to the new state"
+            Some(&CountryTag("GBR".into())),
+            "a single province does not flip a super-region"
         );
         // Map-level ownership + recognition.
         assert_eq!(
