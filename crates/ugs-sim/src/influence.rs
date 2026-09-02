@@ -624,6 +624,9 @@ impl Influence {
         if sponsor == target {
             return Err("NOT A FOREIGN COUNTRY");
         }
+        if !data.countries.contains_key(target) {
+            return Err("NO SUCH COUNTRY");
+        }
         if !(1..=3).contains(&tier) {
             return Err("TIER 1-3");
         }

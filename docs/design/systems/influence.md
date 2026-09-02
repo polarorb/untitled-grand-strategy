@@ -98,11 +98,13 @@ the player is scored on what the map says at 1955, 1960 and 1965.
 | `wire` | `Vec<(u64, String)>` | ring of 60, excluded from the digest |
 | `seeded` | `bool` | first-tick seeding done |
 
-Alignment stays the derived enum: after every position write the
-system calls `project()`, which sets `Military.alignments[tag]` from
-the band, so all eleven `alignment_of` consumers (basing, patrons, red
-lines, the nuclear ultimatum, the masthead) are untouched. **No code
-path writes `Military.alignments` except `project()`.**
+Alignment stays the derived enum: `project()` sets
+`Military.alignments[tag]` from the band — immediately after shoves,
+coups, locks, clauses and independence, and at the month rollover for
+program flows, elections and zone releases — so all eleven
+`alignment_of` consumers (basing, patrons, red lines, the nuclear
+ultimatum, the masthead) are untouched. **No code path writes
+`Military.alignments` except `project()`.**
 
 Scenario data, hand-authored in `assets/data/scenario/1950/influence.ron`
 (loaded into `ScenarioData.influence`, optional, validated):
@@ -121,8 +123,8 @@ Every row carries a source comment (`historian` agent, 2026-09-02).
 `update_influence` runs in `TickSet::Politics` after `update_events`
 and before `intel::update_intel` (so a coup resolved this tick reads
 this month's network and the paper reads this month's band). Hourly:
-seed on the first tick; resolve due operations; fire elections whose
-date has arrived (hour 12). Monthly (`SimClock::new_month`): program
+seed before the first command flush; resolve due operations; fire
+elections whose calendar date has arrived (the first tick of the day). Monthly (`SimClock::new_month`): program
 flows, decay toward baseline, the NAM pull, hysteresis and band
 projection, window closes, standings, the AI allocator, the checkpoint
 freeze, the wire.
