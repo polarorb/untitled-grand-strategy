@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
-use ugs_data::{Alignment, CountryTag};
+use ugs_data::CountryTag;
 
 use crate::demography::SimScenario;
 use crate::events::FiredEvents;
@@ -185,16 +185,15 @@ impl Intel {
         self.counterintel.get(country).copied().unwrap_or(0)
     }
 
-    /// Counterintel permille = regime floor + funded component.
-    pub fn ci_permille(&self, country: &CountryTag, data: &ugs_data::ScenarioData) -> u32 {
-        let floor = data
-            .countries
-            .get(country)
-            .map(|c| match c.alignment {
-                Alignment::EasternBloc => tuning::CI_FLOOR_CLOSED,
-                _ => tuning::CI_FLOOR_OPEN,
-            })
-            .unwrap_or(tuning::CI_FLOOR_OPEN);
+    /// Counterintel permille = regime floor + funded component. Regime
+    /// openness is dynamic (`Influence::is_closed`): a coup closes a
+    /// country, so Cuba after 1961 no longer reads as open.
+    pub fn ci_permille(&self, country: &CountryTag, closed: bool) -> u32 {
+        let floor = if closed {
+            tuning::CI_FLOOR_CLOSED
+        } else {
+            tuning::CI_FLOOR_OPEN
+        };
         floor + self.ci_level(country) as u32 * 200
     }
 
@@ -257,6 +256,7 @@ fn decay_to(value: u32, floor: u32, rate: u32) -> u32 {
 pub fn update_intel(
     clock: Res<SimClock>,
     scenario: Option<Res<SimScenario>>,
+    influence: Res<crate::influence::Influence>,
     mut intel: ResMut<Intel>,
 ) {
     use tuning::*;
@@ -310,7 +310,7 @@ pub fn update_intel(
             .get(&(viewer.clone(), subject.clone()))
             .cloned()
             .unwrap_or_default();
-        let ci = intel.ci_permille(&subject, data);
+        let ci = intel.ci_permille(&subject, influence.is_closed(&subject));
         let ci_penalty = ci / CI_CAP_PENALTY_DIVISOR;
         let net_active = net.funding > 0 && net.strength > 0;
         let net_scale = net.strength.min(100);
@@ -380,6 +380,7 @@ pub fn update_espionage(
     mut programs: ResMut<crate::nuclear::NuclearPrograms>,
     mut tension: ResMut<GlobalTension>,
     mut fired: ResMut<FiredEvents>,
+    influence: Res<crate::influence::Influence>,
 ) {
     use tuning::*;
     let Some(scenario) = scenario else { return };
@@ -443,7 +444,7 @@ pub fn update_espionage(
             n.strength = n.strength.saturating_sub(OP_STRENGTH_COST);
         }
         // Blown chance rises with target counterintel and tension band.
-        let ci = intel.ci_permille(&op.target, data);
+        let ci = intel.ci_permille(&op.target, influence.is_closed(&op.target));
         let band = tension.value().max(0) as u32 / 250; // 0-3
         let blown_chance = OP_BLOWN_BASE + ci / 4 + band * 40;
         let mut stream = rng.fork(b"op-resolve");
@@ -549,7 +550,7 @@ pub fn update_espionage(
     // Iterate defenders in order; at most one catch reported per defender.
     let defenders: Vec<CountryTag> = data.countries.keys().cloned().collect();
     for defender in &defenders {
-        let ci = intel.ci_permille(defender, data);
+        let ci = intel.ci_permille(defender, influence.is_closed(defender));
         // The loudest hostile network against this defender.
         let loudest = intel
             .networks

@@ -145,6 +145,9 @@ pub struct NationMeta {
     pub hook: String,
 }
 
+/// The three bloc-band names as they appear in event data.
+pub const ALIGNMENT_NAMES: [&str; 3] = ["WesternBloc", "EasternBloc", "NonAligned"];
+
 /// A scripted historical event.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventDef {
@@ -213,6 +216,18 @@ pub enum EventTrigger {
         id: String,
         option: u8,
         days_after: u16,
+    },
+    /// Fires while the country's current bloc band is the named one:
+    /// "WesternBloc" | "EasternBloc" | "NonAligned" (influence.md).
+    /// Lets chains branch on who won a contest.
+    AlignmentBand {
+        country: CountryTag,
+        band: String,
+    },
+    /// Fires while the country's dynamic stability is below `value`.
+    StabilityBelow {
+        country: CountryTag,
+        value: u8,
     },
 }
 
@@ -309,6 +324,140 @@ pub enum EventEffect {
         country: CountryTag,
         route: String,
     },
+    /// Influence: move a country's position (and baseline — a scripted
+    /// shift is structural) by `delta` on the -1000 East..+1000 West
+    /// axis (influence.md).
+    ShiftAlignment {
+        country: CountryTag,
+        delta: i16,
+    },
+    /// Influence: lock the current band for `months` (0 = unlock) under
+    /// a label ("WARSAW PACT", "STATE TREATY"). Locked positions do not
+    /// move by program; breaking a lock is an explicit act.
+    LockAlignment {
+        country: CountryTag,
+        months: u16,
+        label: String,
+    },
+    /// Influence: a patron crushes a rising — re-locks the satellite
+    /// for five years toward the patron, records the crush (the next
+    /// rising is worse), and hardens the position to the patron's edge.
+    Crush {
+        patron: CountryTag,
+        country: CountryTag,
+    },
+    /// Influence: who equips and trains the army — "West" | "East" |
+    /// "None". The coup gate.
+    SetArmyPatron {
+        country: CountryTag,
+        patron: String,
+    },
+    /// Influence: a dated unlock — one more standing-program slot (or,
+    /// with `ops: true`, one more active-operation slot).
+    GrantInfluenceSlot {
+        country: CountryTag,
+        #[serde(default)]
+        ops: bool,
+    },
+    /// Influence: the sponsor may now run PRESENCE programs (Campaign
+    /// of Truth, Radio Free Europe).
+    UnlockPresence {
+        country: CountryTag,
+    },
+    /// Influence: open a contested window on a country for `months`
+    /// (rates doubled, hysteresis suspended). Independence does this
+    /// automatically for 24 months.
+    OpenContest {
+        country: CountryTag,
+        months: u16,
+    },
+}
+
+/// Static influence-pillar content (influence.ron; optional). Every
+/// row is sourced in the file's comments (historian pass, 2026-09-02).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct InfluenceData {
+    /// Per-country 1950 seed (or, for states born later, the seed at
+    /// birth). Tags absent here seed from CountryDef.alignment.
+    #[serde(default)]
+    pub seeds: Vec<InfluenceSeedDef>,
+    /// The contested set the standings score over.
+    #[serde(default)]
+    pub battlegrounds: Vec<BattlegroundDef>,
+    /// Per-region Presence / Domination / Control counts.
+    #[serde(default)]
+    pub thresholds: Vec<RegionThresholdDef>,
+    /// Sourced election calendar for the battleground democracies.
+    #[serde(default)]
+    pub elections: Vec<ElectionDef>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InfluenceSeedDef {
+    pub tag: CountryTag,
+    /// -1000 East .. +1000 West.
+    pub position: i16,
+    /// A standing lock: label and the year it lapses (None = open-ended).
+    #[serde(default)]
+    pub lock: Option<LockDef>,
+    /// "West" | "East" | absent.
+    #[serde(default)]
+    pub army_patron: Option<String>,
+    /// Competitive elections exist (false: one-party, military,
+    /// absolute monarchy, colonial).
+    #[serde(default = "default_true")]
+    pub open: bool,
+    /// Sourced stability, overriding CountryDef's flat value at seed.
+    #[serde(default)]
+    pub stability: Option<u8>,
+    /// Standing-program slots and active-operation slots this country
+    /// starts with (superpowers 3/1, UK and France 2/1, most 0/0).
+    #[serde(default)]
+    pub slots: u8,
+    #[serde(default)]
+    pub op_slots: u8,
+    /// For states born by Independence: the date the independence date
+    /// was publicly announced (programs may target the tag from then).
+    #[serde(default)]
+    pub announced: Option<(i32, u8, u8)>,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LockDef {
+    pub label: String,
+    #[serde(default)]
+    pub until_year: Option<i32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BattlegroundDef {
+    pub tag: CountryTag,
+    /// EUROPE | MIDDLE_EAST | ASIA | AFRICA | CENTRAL_AMERICA | SOUTH_AMERICA
+    pub region: String,
+    /// 1-3: how hard the blocs actually contested it.
+    pub weight: u8,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegionThresholdDef {
+    pub region: String,
+    pub presence: u8,
+    pub domination: u8,
+    pub control: u8,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ElectionDef {
+    pub date: (i32, u8, u8),
+    pub tag: CountryTag,
+    /// What was at stake, one line (dossier NEXT block).
+    pub stake: String,
+    /// The historical result, one line (printed on the wire).
+    pub result: String,
 }
 
 /// A nation's nuclear-program state at scenario start (nuclear.ron).
@@ -432,6 +581,9 @@ pub struct ScenarioData {
     pub nuclear: Vec<NuclearSeedDef>,
     /// Great Project catalog (projects.ron; optional).
     pub projects: Vec<GreatProjectDef>,
+    /// Influence-pillar seeds, battlegrounds, elections (influence.ron;
+    /// optional).
+    pub influence: InfluenceData,
 }
 
 impl ScenarioData {
@@ -498,6 +650,11 @@ impl ScenarioData {
         if projects_path.exists() {
             projects = load_ron(&projects_path)?;
         }
+        let mut influence = InfluenceData::default();
+        let influence_path = scenario_dir.join("influence.ron");
+        if influence_path.exists() {
+            influence = load_ron(&influence_path)?;
+        }
         // Regional event files merge after the legacy events.ron, in
         // sorted filename order (deterministic definition order).
         let events_dir = scenario_dir.join("events");
@@ -531,6 +688,7 @@ impl ScenarioData {
             oob,
             nuclear,
             projects,
+            influence,
         };
         data.validate()?;
         Ok(data)
@@ -554,6 +712,18 @@ impl ScenarioData {
                         event.id
                     )));
                 }
+                EventTrigger::AlignmentBand { country, band } => {
+                    self.require_country(&event.id, country)?;
+                    if !ALIGNMENT_NAMES.contains(&band.as_str()) {
+                        return Err(DataError::Validation(format!(
+                            "event {}: unknown alignment band {band}",
+                            event.id
+                        )));
+                    }
+                }
+                EventTrigger::StabilityBelow { country, .. } => {
+                    self.require_country(&event.id, country)?;
+                }
                 _ => {}
             }
             let all_effects = event
@@ -562,12 +732,31 @@ impl ScenarioData {
                 .chain(event.options.iter().flat_map(|o| o.effects.iter()));
             for effect in all_effects {
                 match effect {
-                    EventEffect::SetAlignment { alignment, .. } => {
-                        if !["WesternBloc", "EasternBloc", "NonAligned"]
-                            .contains(&alignment.as_str())
-                        {
+                    EventEffect::SetAlignment { country, alignment } => {
+                        self.require_country(&event.id, country)?;
+                        if !ALIGNMENT_NAMES.contains(&alignment.as_str()) {
                             return Err(DataError::Validation(format!(
                                 "event {}: unknown alignment {alignment}",
+                                event.id
+                            )));
+                        }
+                    }
+                    EventEffect::ShiftAlignment { country, .. }
+                    | EventEffect::LockAlignment { country, .. }
+                    | EventEffect::GrantInfluenceSlot { country, .. }
+                    | EventEffect::UnlockPresence { country }
+                    | EventEffect::OpenContest { country, .. } => {
+                        self.require_country(&event.id, country)?;
+                    }
+                    EventEffect::Crush { patron, country } => {
+                        self.require_country(&event.id, patron)?;
+                        self.require_country(&event.id, country)?;
+                    }
+                    EventEffect::SetArmyPatron { country, patron } => {
+                        self.require_country(&event.id, country)?;
+                        if !["West", "East", "None"].contains(&patron.as_str()) {
+                            return Err(DataError::Validation(format!(
+                                "event {}: unknown army patron {patron}",
                                 event.id
                             )));
                         }
@@ -709,10 +898,130 @@ impl ScenarioData {
         }
     }
 
+    fn require_country(&self, event_id: &str, tag: &CountryTag) -> Result<(), DataError> {
+        if self.countries.contains_key(tag) {
+            Ok(())
+        } else {
+            Err(DataError::Validation(format!(
+                "event {event_id}: unknown country {}",
+                tag.0
+            )))
+        }
+    }
+
+    fn validate_influence(&self) -> Result<(), DataError> {
+        let inf = &self.influence;
+        let mut seen = std::collections::BTreeSet::new();
+        for seed in &inf.seeds {
+            if !self.countries.contains_key(&seed.tag) {
+                return Err(DataError::Validation(format!(
+                    "influence seed for unknown country {}",
+                    seed.tag.0
+                )));
+            }
+            if !seen.insert(seed.tag.clone()) {
+                return Err(DataError::Validation(format!(
+                    "duplicate influence seed for {}",
+                    seed.tag.0
+                )));
+            }
+            if !(-1000..=1000).contains(&seed.position) {
+                return Err(DataError::Validation(format!(
+                    "influence seed {}: position {} out of range",
+                    seed.tag.0, seed.position
+                )));
+            }
+            if let Some(p) = &seed.army_patron {
+                if !["West", "East"].contains(&p.as_str()) {
+                    return Err(DataError::Validation(format!(
+                        "influence seed {}: unknown army patron {p}",
+                        seed.tag.0
+                    )));
+                }
+            }
+            if seed.stability.is_some_and(|s| s > 100) {
+                return Err(DataError::Validation(format!(
+                    "influence seed {}: stability > 100",
+                    seed.tag.0
+                )));
+            }
+            if let Some((y, m, d)) = seed.announced {
+                if !(1..=12).contains(&m) || !(1..=31).contains(&d) || !(1900..=2100).contains(&y) {
+                    return Err(DataError::Validation(format!(
+                        "influence seed {}: bad announced date",
+                        seed.tag.0
+                    )));
+                }
+            }
+        }
+        let regions: std::collections::BTreeSet<&str> =
+            inf.thresholds.iter().map(|t| t.region.as_str()).collect();
+        let mut bg_seen = std::collections::BTreeSet::new();
+        for bg in &inf.battlegrounds {
+            if !self.countries.contains_key(&bg.tag) {
+                return Err(DataError::Validation(format!(
+                    "battleground for unknown country {}",
+                    bg.tag.0
+                )));
+            }
+            if !bg_seen.insert(bg.tag.clone()) {
+                return Err(DataError::Validation(format!(
+                    "duplicate battleground {}",
+                    bg.tag.0
+                )));
+            }
+            if !regions.contains(bg.region.as_str()) {
+                return Err(DataError::Validation(format!(
+                    "battleground {}: region {} has no thresholds row",
+                    bg.tag.0, bg.region
+                )));
+            }
+            if !(1..=3).contains(&bg.weight) {
+                return Err(DataError::Validation(format!(
+                    "battleground {}: weight must be 1-3",
+                    bg.tag.0
+                )));
+            }
+        }
+        for t in &inf.thresholds {
+            if !(t.presence <= t.domination && t.domination <= t.control) {
+                return Err(DataError::Validation(format!(
+                    "thresholds {}: presence <= domination <= control required",
+                    t.region
+                )));
+            }
+        }
+        let mut last: Option<(i32, u8, u8)> = None;
+        for e in &inf.elections {
+            if !self.countries.contains_key(&e.tag) {
+                return Err(DataError::Validation(format!(
+                    "election for unknown country {}",
+                    e.tag.0
+                )));
+            }
+            let (y, m, d) = e.date;
+            if !(1900..=2100).contains(&y) || !(1..=12).contains(&m) || !(1..=31).contains(&d) {
+                return Err(DataError::Validation(format!(
+                    "election {} {:?}: bad date",
+                    e.tag.0, e.date
+                )));
+            }
+            if last.is_some_and(|l| l > e.date) {
+                return Err(DataError::Validation(format!(
+                    "election calendar must be sorted by date (at {} {:?})",
+                    e.tag.0, e.date
+                )));
+            }
+            last = Some(e.date);
+        }
+        Ok(())
+    }
+
     fn validate(&self) -> Result<(), DataError> {
         self.validate_projects()?;
         self.validate_events()?;
         self.validate_independence_disjoint()?;
+        self.validate_influence()?;
         for entry in &self.oob {
             self.province_by_name(&entry.owner, &entry.province)?;
             if !["Infantry", "Motorized", "Armor"].contains(&entry.archetype.as_str()) {

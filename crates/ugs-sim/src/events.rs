@@ -105,6 +105,7 @@ fn apply_effects(
     stat: &mut crate::economy::EconomyStatic,
     regional: &mut crate::construction::RegionalIndustry,
     demo: &crate::demography::Demographics,
+    influence: &mut crate::influence::Influence,
     fired_notices: &mut Vec<(String, String)>,
     month_index: i64,
     tick: u64,
@@ -208,13 +209,54 @@ fn apply_effects(
                 *settlements.legitimacy.entry(country.clone()).or_default() += amount;
             }
             EventEffect::SetAlignment { country, alignment } => {
-                use ugs_data::Alignment;
-                let a = match alignment.as_str() {
-                    "WesternBloc" => Alignment::WesternBloc,
-                    "EasternBloc" => Alignment::EasternBloc,
-                    _ => Alignment::NonAligned,
+                // A band-edge shove: no-op if already in the band. The
+                // bloc enum is derived from the influence position.
+                crate::influence::effect_set_alignment(
+                    influence, military, data, country, alignment, tick,
+                );
+            }
+            EventEffect::ShiftAlignment { country, delta } => {
+                influence.shift(country, *delta);
+                influence.project(military, data, country, tick);
+            }
+            EventEffect::LockAlignment {
+                country,
+                months,
+                label,
+            } => {
+                let until = if *months == 0 {
+                    0
+                } else {
+                    tick + *months as u64 * 30 * 24
                 };
-                military.alignments.insert(country.clone(), a);
+                influence.set_lock(country, until, label);
+            }
+            EventEffect::Crush { patron, country } => {
+                influence.crush(military, data, patron, country, tick);
+            }
+            EventEffect::SetArmyPatron { country, patron } => {
+                match crate::influence::Pole::parse(patron) {
+                    Some(p) => {
+                        influence.army_patron.insert(country.clone(), p);
+                    }
+                    None => {
+                        influence.army_patron.remove(country);
+                    }
+                }
+            }
+            EventEffect::GrantInfluenceSlot { country, ops } => {
+                let map = if *ops {
+                    &mut influence.op_slots
+                } else {
+                    &mut influence.slots
+                };
+                *map.entry(country.clone()).or_default() += 1;
+            }
+            EventEffect::UnlockPresence { country } => {
+                influence.presence_unlocked.insert(country.clone());
+            }
+            EventEffect::OpenContest { country, months } => {
+                influence.open_contest(country, tick + *months as u64 * 30 * 24);
             }
             EventEffect::AdjustStability { country, delta } => {
                 let current = military.stability_of(data, country) as i32;
@@ -281,6 +323,8 @@ fn apply_effects(
                 }
                 *military.manpower.entry(country.clone()).or_default() +=
                     pop * crate::military::tuning::MANPOWER_BASE_PERMILLE / 1000;
+                // The newborn is a contest, not a script.
+                influence.on_independence(military, data, country, tick);
                 let name = data
                     .countries
                     .get(country)
@@ -317,6 +361,18 @@ fn trigger_met(
     data: &ScenarioData,
 ) -> bool {
     match &event.trigger {
+        EventTrigger::AlignmentBand { country, band } => {
+            let current = military.alignment_of(data, country);
+            let want = match band.as_str() {
+                "WesternBloc" => ugs_data::Alignment::WesternBloc,
+                "EasternBloc" => ugs_data::Alignment::EasternBloc,
+                _ => ugs_data::Alignment::NonAligned,
+            };
+            current == want
+        }
+        EventTrigger::StabilityBelow { country, value } => {
+            military.stability_of(data, country) < *value
+        }
         EventTrigger::TensionAbove { tenths } => tension.value() >= *tenths,
         EventTrigger::TensionBelow { tenths } => tension.value() <= *tenths,
         EventTrigger::EventFired { id, days_after } => fired
@@ -383,6 +439,7 @@ pub fn update_events(
     mut stat: ResMut<crate::economy::EconomyStatic>,
     mut regional: ResMut<crate::construction::RegionalIndustry>,
     demo: Res<crate::demography::Demographics>,
+    mut influence: ResMut<crate::influence::Influence>,
 ) {
     let Some(scenario) = scenario else { return };
     let data = &scenario.0;
@@ -426,6 +483,7 @@ pub fn update_events(
                     &mut stat,
                     &mut regional,
                     &demo,
+                    &mut influence,
                     &mut notices,
                     clock.date.year as i64 * 12 + clock.date.month as i64,
                     clock.tick,
@@ -480,6 +538,7 @@ pub fn update_events(
                 &mut stat,
                 &mut regional,
                 &demo,
+                &mut influence,
                 &mut notices,
                 clock.date.year as i64 * 12 + clock.date.month as i64,
                 clock.tick,
@@ -502,6 +561,7 @@ pub fn resolve_event(
     stat: &mut crate::economy::EconomyStatic,
     regional: &mut crate::construction::RegionalIndustry,
     demo: &crate::demography::Demographics,
+    influence: &mut crate::influence::Influence,
     data: &ScenarioData,
     month_index: i64,
     tick: u64,
@@ -548,6 +608,7 @@ pub fn resolve_event(
         stat,
         regional,
         demo,
+        influence,
         &mut notices,
         month_index,
         tick,

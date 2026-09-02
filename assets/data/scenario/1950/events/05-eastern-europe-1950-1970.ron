@@ -146,6 +146,7 @@
             EventOption(
                 label: "OPERATION WHIRLWIND -- CRUSH IT",
                 effects: [
+                    Crush(patron: ("SOV"), country: ("HUN")),
                     AdjustTension(50),
                     AdjustStability(country: ("HUN"), delta: -15),
                     GrantLegitimacy(country: ("SOV"), amount: -15),
@@ -158,6 +159,7 @@
                 label: "TOLERATE NAGY -- LET HUNGARY GO",
                 effects: [
                     AdjustTension(-15),
+                    LockAlignment(country: ("HUN"), months: 0, label: ""),
                     SetAlignment(country: ("HUN"), alignment: "NonAligned"),
                     AdjustStability(country: ("HUN"), delta: 10),
                     GrantLegitimacy(country: ("HUN"), amount: 15),

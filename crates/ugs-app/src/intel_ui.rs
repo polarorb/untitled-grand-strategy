@@ -112,7 +112,9 @@ fn refresh_panel(
     if !rebuild {
         return;
     }
-    let Ok(panel) = panel_any.single() else { return };
+    let Ok(panel) = panel_any.single() else {
+        return;
+    };
     commands.entity(panel).despawn_related::<Children>();
     let Some(me) = player.as_ref().map(|p| p.0.clone()) else {
         commands.entity(panel).with_children(|p| {

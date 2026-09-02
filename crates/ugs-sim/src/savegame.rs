@@ -78,6 +78,7 @@ pub fn reset_sim(world: &mut World, start_date: GameDate, seed: u64) {
     world.insert_resource(crate::crisis::Crises::default());
     world.remove_resource::<crate::crisis::GameOver>();
     world.insert_resource(crate::intel::Intel::default());
+    world.insert_resource(crate::influence::Influence::default());
     world.insert_resource(crate::settlement::Settlements::default());
     world.insert_resource(crate::construction::RegionalIndustry::default());
     world.insert_resource(crate::construction::Construction::default());
@@ -136,7 +137,7 @@ mod tests {
     fn digest(app: &App) -> String {
         let world = app.world();
         format!(
-            "{:?}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}",
+            "{:?}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}|{:x}",
             world.resource::<SimClock>(),
             world.resource::<Demographics>().digest(),
             world.resource::<Economies>().digest(),
@@ -151,6 +152,8 @@ mod tests {
                 .digest(),
             world.resource::<crate::economy::EconomyStatic>().digest(),
             world.resource::<crate::events::FiredEvents>().digest(),
+            world.resource::<crate::intel::Intel>().digest(),
+            world.resource::<crate::influence::Influence>().digest(),
         )
     }
 

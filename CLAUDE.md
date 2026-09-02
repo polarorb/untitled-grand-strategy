@@ -120,14 +120,15 @@ finishing any feature:
 
 - `UGS_SCREEN=select|game` — boot directly into a screen.
 - `UGS_NATION=TAG` — play as a nation (with `UGS_SCREEN=game`).
-- `UGS_MAPMODE=terrain|power|strategic` — boot in that map mode.
+- `UGS_MAPMODE=terrain|power|strategic|war|economy|influence` — boot in that map mode.
 - `UGS_SHOT=path.png` — the game screenshots its own window after
   `UGS_SHOT_FRAMES` frames (default 120; raise it when the shot needs sim
   time to pass first). Use for visual verification; never screencapture
   the desktop.
 - `UGS_SPEED=1..5` — boot unpaused at that speed (e.g. to get past the
   first month boundary so monthly systems have output).
-- `UGS_PANEL=econ|war|atomic` — boot with that panel open.
+- `UGS_PANEL=econ|war|atomic|intel|influence|paper` — boot with that panel open
+  (keys E, R, B, I, P, N respectively).
 - `UGS_LOAD=path.ron` — auto-load a save on the first in-game frame
   (adopts the save's player nation). `saves/war-jul-1950.ron` is a
   mid-Korean-War fixture (regenerate via the ignored `make_midwar_save`

@@ -231,6 +231,7 @@
             EventOption(
                 label: "FUND THE ALLIANCE",
                 effects: [
+                    GrantInfluenceSlot(country: ("USA")),
                     GrantIndustry(country: ("USA"), centi: -400),
                     GrantIndustry(country: ("BRA"), centi: 200),
                     GrantIndustry(country: ("CHL"), centi: 150),

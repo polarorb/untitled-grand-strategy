@@ -174,6 +174,11 @@ Shipped in `crates/ugs-sim/src/intel.rs` (+ `intel_ui.rs`):
   (1953), Petrov (1954) join the existing Fuchs arrest.
 - Intelligence panel (`UGS_PANEL=intel`, key I): coverage grades,
   observed industry, network/CI/op controls. Never raw permille.
+  (Written with v1 but never registered in the app until the
+  influence slice wired it in, 2026-09-02.)
+- Regime openness for the counterintel floor now reads the influence
+  pillar's dynamic `closed` set instead of static 1950 alignment, so a
+  coup-made junta is closed and a liberalized state is open.
 
 ### v1 deviations (deliberate)
 - One network per (owner, target) with a funding tier, not a per-op

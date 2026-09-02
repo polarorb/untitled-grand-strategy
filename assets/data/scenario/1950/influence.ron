@@ -1,0 +1,482 @@
+// Influence pillar seed (docs/design/systems/influence.md), hand-authored.
+// Researched by the historian agent, 2026-09-02; every row carries its source.
+// Positions: -1000 East .. +1000 West (700 treaty/satellite, 450 aligned, 150 leaning, 0 non-aligned).
+// Locks block program movement and read as depth; scripted coups still shove through them.
+// `until_year` lapses on 1 January of that year (real calendar). Event-granted locks and
+// contest windows count 30-day months.
+(
+    seeds: [
+    // AFG: Zahir Shah / PM Shah Mahmud; Pashtunistan quarrel; US refused arms 1948; Soviet trade-transit pact Jul 1950. src: Westad, The Global Cold War (2005) ch.4
+        InfluenceSeedDef(tag: ("AFG"), position: 0, open: false, stability: Some(55)),
+    // ALB: Hoxha; NOT a Cominform member; Anglo-American infiltration ops 1949-52. src: Bethell, The Great Betrayal (1984)
+        InfluenceSeedDef(tag: ("ALB"), position: -700, lock: Some(LockDef(label: "SATELLITE: SOVIET")), army_patron: Some("East"), open: false, stability: Some(45)),
+    // AND: Co-principality, no parties; Franco-Spanish orbit. src: Britannica
+        InfluenceSeedDef(tag: ("AND"), position: 150, open: false, stability: Some(75)),
+    // ARG: Rio ratifier but a contested battleground: no lock, programs may move it. Peron's Third Position; ratified Rio only mid-1950; no US military mission; 1951 election contested, press suppressed. src: Rock, Argentina 1516-1987
+        InfluenceSeedDef(tag: ("ARG"), position: 150, stability: Some(55)),
+    // AUS: Menzies; Commonwealth; ANZUS 1 Sep 1951 -> +700 lock. src: ANZUS treaty text
+        InfluenceSeedDef(tag: ("AUS"), position: 450, army_patron: Some("West"), stability: Some(80)),
+    // AUT: Four-power occupation; OVP-SPO coalition West-oriented; communist strikes Sep-Oct 1950. src: Bischof, Austria in the First Cold War (1999)
+        InfluenceSeedDef(tag: ("AUT"), position: 150, lock: Some(LockDef(label: "OCCUPATION: FOUR POWER", until_year: Some(1955))), stability: Some(60)),
+    // BEL: NATO founder; Royal Question: Mar 1950 referendum, Jul 1950 general strike. src: NATO; Witte, Political History of Belgium
+        InfluenceSeedDef(tag: ("BEL"), position: 700, lock: Some(LockDef(label: "NATO")), army_patron: Some("West"), stability: Some(50)),
+    // BGR: Chervenkov; Kostov executed Dec 1949. src: Crampton, Concise History of Bulgaria
+        InfluenceSeedDef(tag: ("BGR"), position: -700, lock: Some(LockDef(label: "SATELLITE: COMINFORM")), army_patron: Some("East"), open: false, stability: Some(60)),
+    // BOL: Rio ratifier but a contested battleground: no lock, programs may move it. Sexenio; 1949 civil war; May 1951 election annulled; MNR revolution Apr 1952. src: Klein, Concise History of Bolivia
+        InfluenceSeedDef(tag: ("BOL"), position: 450, army_patron: Some("West"), open: false, stability: Some(35)),
+    // BRA: Rio ratifier but a contested battleground: no lock, programs may move it. Dutra; JBUSMC; hemisphere anchor ally. src: Rabe, Eisenhower and Latin America (1988)
+        InfluenceSeedDef(tag: ("BRA"), position: 700, army_patron: Some("West"), stability: Some(55)),
+    // BTN: Indo-Bhutan Treaty 8 Aug 1949: foreign relations guided by India. src: treaty text
+        InfluenceSeedDef(tag: ("BTN"), position: 0, open: false, stability: Some(70)),
+    // CAN: NATO founder. src: NATO
+        InfluenceSeedDef(tag: ("CAN"), position: 700, lock: Some(LockDef(label: "NATO")), stability: Some(85)),
+    // CHE: Perpetual neutrality; Hotz-Linder agreement Jul 1951 aligns exports with COCOM. src: Schaufelbuehl, La Suisse et la guerre froide
+        InfluenceSeedDef(tag: ("CHE"), position: 150, lock: Some(LockDef(label: "NEUTRALITY: PERMANENT")), stability: Some(85)),
+    // CHL: Rio ratifier but a contested battleground: no lock, programs may move it. Gonzalez Videla; PCCh banned (Ley Maldita 1948). src: Collier & Sater, A History of Chile
+        InfluenceSeedDef(tag: ("CHL"), position: 450, army_patron: Some("West"), stability: Some(55)),
+    // COL: La Violencia; Congress closed Nov 1949; Gomez unopposed; only Latin American battalion to Korea. src: Bushnell, Making of Modern Colombia
+        InfluenceSeedDef(tag: ("COL"), position: 450, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), open: false, stability: Some(30)),
+    // CRI: Ulate; army abolished 1948-49; PVP banned. src: Longley, The Sparrow and the Hawk
+        InfluenceSeedDef(tag: ("CRI"), position: 450, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), stability: Some(60)),
+    // CSK: Gottwald; purges building to Slansky 1952. src: Cominform founding 1947
+        InfluenceSeedDef(tag: ("CSK"), position: -700, lock: Some(LockDef(label: "SATELLITE: COMINFORM")), army_patron: Some("East"), open: false, stability: Some(60)),
+    // CUB: Rio ratifier but a contested battleground: no lock, programs may move it. Prio; Autentico democracy; Batista coup 10 Mar 1952. src: Perez, Cuba: Between Reform and Revolution
+        InfluenceSeedDef(tag: ("CUB"), position: 450, army_patron: Some("West"), stability: Some(50)),
+    // DNK: NATO founder (generated.ron NonAligned is an anachronism; the seed corrects it). src: NATO
+        InfluenceSeedDef(tag: ("DNK"), position: 700, lock: Some(LockDef(label: "NATO")), army_patron: Some("West"), stability: Some(75)),
+    // DOM: Rio ratifier but a contested battleground: no lock, programs may move it. Trujillo; Luperon landing Jun 1949 crushed. src: Roorda, The Dictator Next Door
+        InfluenceSeedDef(tag: ("DOM"), position: 700, army_patron: Some("West"), open: false, stability: Some(55)),
+    // ECU: Galo Plaza; Ambato earthquake Aug 1949. src: Britannica
+        InfluenceSeedDef(tag: ("ECU"), position: 450, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), stability: Some(45)),
+    // EGY: Wafd wins 3 Jan 1950 election; treaty abrogated Oct 1951; Free Officers 23 Jul 1952. src: Vatikiotis, History of Modern Egypt
+        InfluenceSeedDef(tag: ("EGY"), position: 150, lock: Some(LockDef(label: "ANGLO EGYPTIAN 1936", until_year: Some(1951))), army_patron: Some("West"), stability: Some(45), slots: 1, op_slots: 0),
+    // ESP: Franco; UN ostracism lifted 4 Nov 1950; Pact of Madrid 26 Sep 1953 -> +700 lock. src: Payne, The Franco Regime
+        InfluenceSeedDef(tag: ("ESP"), position: 450, open: false, stability: Some(65)),
+    // ETH: British Military Mission to 1951; US Kagnew/MAAG agreements 22 May 1953. src: Marcus, Haile Sellassie I; FRUS 1952-54 XI
+        InfluenceSeedDef(tag: ("ETH"), position: 150, army_patron: Some("West"), open: false, stability: Some(60)),
+    // FIN: FCMA treaty 6 Apr 1948; Porkkala base; SKDL ~20%. src: Jakobson, Finland in the New Europe
+        InfluenceSeedDef(tag: ("FIN"), position: -150, lock: Some(LockDef(label: "NEUTRALITY: FCMA 1948")), stability: Some(55)),
+    // FRA: Fourth Republic instability; PCF ~25%; Indochina; own arms industry. src: Rioux, The Fourth Republic
+        InfluenceSeedDef(tag: ("FRA"), position: 700, lock: Some(LockDef(label: "NATO")), stability: Some(50), slots: 2, op_slots: 1),
+    // FRG: Occupation Statute 21 Sep 1949 - 5 May 1955; no army; Adenauer. src: Schwarz, Adenauer vol.1
+        InfluenceSeedDef(tag: ("FRG"), position: 700, lock: Some(LockDef(label: "OCCUPATION: AHC", until_year: Some(1955))), stability: Some(60)),
+    // GBR: Attlee; election 23 Feb 1950. src: NATO
+        InfluenceSeedDef(tag: ("GBR"), position: 700, lock: Some(LockDef(label: "NATO")), stability: Some(85), slots: 2, op_slots: 1),
+    // GDR: Proclaimed 7 Oct 1949; Soviet Control Commission; not in Cominform. src: Naimark, The Russians in Germany
+        InfluenceSeedDef(tag: ("GDR"), position: -700, lock: Some(LockDef(label: "SATELLITE: SOVIET")), army_patron: Some("East"), open: false, stability: Some(50)),
+    // GRC: Civil war ended Oct 1949; JUSMAPG; NATO 18 Feb 1952 -> +700 lock. src: Iatrides (ed.), Greece in the 1940s
+        InfluenceSeedDef(tag: ("GRC"), position: 450, army_patron: Some("West"), stability: Some(45)),
+    // GTM: Arevalo; Arana assassinated 18 Jul 1949; Rio ratified only 1955 (so no lock: programs may move it). src: Gleijeses, Shattered Hope
+        InfluenceSeedDef(tag: ("GTM"), position: 150, army_patron: Some("West"), stability: Some(40)),
+    // HND: Galvez (unopposed 1948); UFCO. src: Euraque, Reinterpreting the Banana Republic
+        InfluenceSeedDef(tag: ("HND"), position: 450, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), open: false, stability: Some(50)),
+    // HTI: Estime ousted by Magloire junta May 1950. src: Britannica
+        InfluenceSeedDef(tag: ("HTI"), position: 450, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), open: false, stability: Some(40)),
+    // HUN: Rakosi; Rajk executed Oct 1949. src: Cominform
+        InfluenceSeedDef(tag: ("HUN"), position: -700, lock: Some(LockDef(label: "SATELLITE: COMINFORM")), army_patron: Some("East"), open: false, stability: Some(55)),
+    // IDN: RIS federal state; Hatta free and active; Westerling coup Jan 1950, RMS Apr 1950, Darul Islam. src: Ricklefs, History of Modern Indonesia
+        InfluenceSeedDef(tag: ("IDN"), position: 0, open: false, stability: Some(40)),
+    // IND: Nehru non-alignment; Republic 26 Jan 1950; Telangana. src: Guha, India After Gandhi
+        InfluenceSeedDef(tag: ("IND"), position: 0, army_patron: Some("West"), stability: Some(55), slots: 1, op_slots: 0),
+    // IRL: Declined NATO Feb 1949 over partition; Marshall aid. src: Kennedy & Skelly, Irish Foreign Policy 1919-66
+        InfluenceSeedDef(tag: ("IRL"), position: 150, army_patron: Some("West"), stability: Some(70)),
+    // IRN: Shah; ARMISH 1947; 16th Majlis election rigged then partly rerun; semi-competitive. src: Abrahamian, Iran Between Two Revolutions
+        InfluenceSeedDef(tag: ("IRN"), position: 150, army_patron: Some("West"), stability: Some(45)),
+    // IRQ: Nuri; 1930 treaty in force; Portsmouth failed 1948; managed elections. src: Tripp, A History of Iraq
+        InfluenceSeedDef(tag: ("IRQ"), position: 450, lock: Some(LockDef(label: "ANGLO IRAQI 1930", until_year: Some(1957))), army_patron: Some("West"), open: false, stability: Some(50)),
+    // ISL: NATO founder (anachronism in generated.ron corrected here); no army; defence agreement 5 May 1951. src: Ingimundarson, Struggle for Western Integration
+        InfluenceSeedDef(tag: ("ISL"), position: 700, lock: Some(LockDef(label: "NATO")), stability: Some(65)),
+    // ISR: Non-identification until Korea vote Jul 1950; Czech arms 1948. src: Bialer, Between East and West (1990)
+        InfluenceSeedDef(tag: ("ISR"), position: 0, stability: Some(60)),
+    // ITA: De Gasperi; PCI-PSI 31% (1948); Modena shootings Jan 1950. src: Ginsborg, History of Contemporary Italy
+        InfluenceSeedDef(tag: ("ITA"), position: 700, lock: Some(LockDef(label: "NATO")), army_patron: Some("West"), stability: Some(55)),
+    // JAP: SCAP; Yoshida; NPR Aug 1950; treaty in force 28 Apr 1952. src: Dower, Embracing Defeat
+        InfluenceSeedDef(tag: ("JAP"), position: 700, lock: Some(LockDef(label: "OCCUPATION: SCAP", until_year: Some(1952))), army_patron: Some("West"), stability: Some(65)),
+    // JOR: Abdullah; Arab Legion under Glubb; West Bank annexed Apr 1950; king killed Jul 1951. src: Robins, A History of Jordan
+        InfluenceSeedDef(tag: ("JOR"), position: 700, lock: Some(LockDef(label: "ANGLO JORDANIAN 1948", until_year: Some(1957))), army_patron: Some("West"), open: false, stability: Some(50)),
+    // KOR: Rhee; US troops out Jun 1949, KMAG; guerrillas; MDT 1 Oct 1953 -> +700. src: Cumings, Korea's Place in the Sun
+        InfluenceSeedDef(tag: ("KOR"), position: 450, army_patron: Some("West"), stability: Some(40)),
+    // LBN: Khoury; merchant republic; French-trained army. src: Salibi, Modern History of Lebanon
+        InfluenceSeedDef(tag: ("LBN"), position: 150, army_patron: Some("West"), stability: Some(55)),
+    // LBR: Tubman; True Whig one-party; Firestone. src: Britannica
+        InfluenceSeedDef(tag: ("LBR"), position: 450, army_patron: Some("West"), open: false, stability: Some(60)),
+    // LIE: Swiss customs union 1923. src: Britannica
+        InfluenceSeedDef(tag: ("LIE"), position: 150, stability: Some(85)),
+    // LKA: D.S. Senanayake; UK-Ceylon Defence Agreement 11 Nov 1947; Colombo Plan Jan 1950. src: de Silva, A History of Sri Lanka
+        InfluenceSeedDef(tag: ("LKA"), position: 450, army_patron: Some("West"), stability: Some(60)),
+    // LUX: NATO founder (anachronism in generated.ron corrected here). src: NATO
+        InfluenceSeedDef(tag: ("LUX"), position: 700, lock: Some(LockDef(label: "NATO")), army_patron: Some("West"), stability: Some(85)),
+    // MCO: Principality; French orbit. src: Britannica
+        InfluenceSeedDef(tag: ("MCO"), position: 150, open: false, stability: Some(85)),
+    // MEX: Aleman; PRI hegemonic; refused MDAP 1952; weak patron tie. src: Rabe (1988)
+        InfluenceSeedDef(tag: ("MEX"), position: 450, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), open: false, stability: Some(65)),
+    // MMR: U Nu; Let Ya-Freeman defence agreement Aug 1947; KNU/CPB/PVO insurgencies at peak; KMT irregulars. src: Callahan, Making Enemies
+        InfluenceSeedDef(tag: ("MMR"), position: 0, army_patron: Some("West"), stability: Some(25)),
+    // MNG: Soviet-Mongolian treaty 27 Feb 1946. src: Rupen, How Mongolia Is Really Ruled
+        InfluenceSeedDef(tag: ("MNG"), position: -700, lock: Some(LockDef(label: "SATELLITE: TREATY 1946")), army_patron: Some("East"), open: false, stability: Some(65)),
+    // NIC: Somoza Garcia; US-created Guardia. src: Walter, Regime of Anastasio Somoza
+        InfluenceSeedDef(tag: ("NIC"), position: 700, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), open: false, stability: Some(55)),
+    // NLD: Drees; Indonesia transferred 27 Dec 1949. src: NATO
+        InfluenceSeedDef(tag: ("NLD"), position: 700, lock: Some(LockDef(label: "NATO")), army_patron: Some("West"), stability: Some(65)),
+    // NOR: NATO founder (anachronism in generated.ron corrected here); no-foreign-bases declaration 1949. src: NATO; Riste
+        InfluenceSeedDef(tag: ("NOR"), position: 700, lock: Some(LockDef(label: "NATO")), army_patron: Some("West"), stability: Some(75)),
+    // NPL: Rana oligarchy; Nepali Congress revolt Nov 1950; Indo-Nepal treaty 31 Jul 1950. src: Whelpton, A History of Nepal
+        InfluenceSeedDef(tag: ("NPL"), position: 0, open: false, stability: Some(35)),
+    // NZL: Frigates and Kayforce to Korea 1950 (anachronism in generated.ron corrected here); ANZUS 1951 -> +700. src: McGibbon, New Zealand and the Korean War
+        InfluenceSeedDef(tag: ("NZL"), position: 450, army_patron: Some("West"), stability: Some(85)),
+    // OMN: Said bin Taimur; 1939 treaty; British-officered forces; Imamate interior autonomous. src: Peterson, Oman's Insurgencies
+        InfluenceSeedDef(tag: ("OMN"), position: 450, army_patron: Some("West"), open: false, stability: Some(55)),
+    // PAK: Liaquat; seeks US arms (May 1950 visit); no national election until 1970. src: Kux, US and Pakistan 1947-2000
+        InfluenceSeedDef(tag: ("PAK"), position: 150, army_patron: Some("West"), open: false, stability: Some(50)),
+    // PAN: Canal Zone; Arnulfo Arias installed Nov 1949, ousted May 1951. src: Conniff, Panama and the United States
+        InfluenceSeedDef(tag: ("PAN"), position: 700, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), open: false, stability: Some(40)),
+    // PER: Odria (coup Oct 1948); APRA banned. src: Klaren, Peru: Society and Nationhood
+        InfluenceSeedDef(tag: ("PER"), position: 450, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), open: false, stability: Some(50)),
+    // PHL: Quirino; 1947 Bases/Military Assistance agreements; Huk peak 1950; MDT 30 Aug 1951 -> +700. src: Kerkvliet, The Huk Rebellion
+        InfluenceSeedDef(tag: ("PHL"), position: 450, army_patron: Some("West"), stability: Some(40)),
+    // POL: Bierut; Rokossovsky defence minister Nov 1949. src: Cominform
+        InfluenceSeedDef(tag: ("POL"), position: -700, lock: Some(LockDef(label: "SATELLITE: COMINFORM")), army_patron: Some("East"), open: false, stability: Some(55)),
+    // POR: Salazar; NATO founder (anachronism in generated.ron corrected here); Azores. src: NATO
+        InfluenceSeedDef(tag: ("POR"), position: 700, lock: Some(LockDef(label: "NATO")), open: false, stability: Some(70)),
+    // PRC: Mao in Moscow 16 Dec 1949-17 Feb 1950; treaty 14 Feb 1950 arrives as the sino-soviet-treaty event; Hainan, Tibet pending. src: Westad (ed.), Brothers in Arms; treaty text
+        InfluenceSeedDef(tag: ("PRC"), position: -700, army_patron: Some("East"), open: false, stability: Some(50), slots: 1, op_slots: 0),
+    // PRK: Kim Il-sung; Soviet-equipped KPA; no treaty until 6 Jul 1961. src: Weathersby, CWIHP WP 8
+        InfluenceSeedDef(tag: ("PRK"), position: -700, lock: Some(LockDef(label: "SATELLITE: SOVIET")), army_patron: Some("East"), open: false, stability: Some(65)),
+    // PRY: 1947 civil war; six presidents 1948-49; Colorado one-party. src: Lewis, Paraguay under Stroessner
+        InfluenceSeedDef(tag: ("PRY"), position: 450, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), open: false, stability: Some(35)),
+    // ROC: Chiang resumes presidency 1 Mar 1950; Truman 5 Jan 1950 no-aid statement; Hainan lost May 1950; MDT 2 Dec 1954 -> +700. src: FRUS 1950 VI; Tucker, Strait Talk
+        InfluenceSeedDef(tag: ("ROC"), position: 450, army_patron: Some("West"), open: false, stability: Some(35)),
+    // ROU: Gheorghiu-Dej; Cominform HQ Bucharest. src: Cominform
+        InfluenceSeedDef(tag: ("ROU"), position: -700, lock: Some(LockDef(label: "SATELLITE: COMINFORM")), army_patron: Some("East"), open: false, stability: Some(55)),
+    // SAU: ARAMCO; Dhahran airfield renewed Jun 1951; US training mission 1951. src: Safran, Saudi Arabia
+        InfluenceSeedDef(tag: ("SAU"), position: 450, army_patron: Some("West"), open: false, stability: Some(65)),
+    // SLV: Osorio Revolutionary Council; managed election Mar 1950. src: Britannica
+        InfluenceSeedDef(tag: ("SLV"), position: 450, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), open: false, stability: Some(50)),
+    // SMR: Communist-Socialist coalition governs 1945-57 (Rovereta crisis Oct 1957). src: Britannica
+        InfluenceSeedDef(tag: ("SMR"), position: -150, stability: Some(60)),
+    // SOV: Stalin; bloc leader.
+        InfluenceSeedDef(tag: ("SOV"), position: -1000, open: false, stability: Some(80), slots: 3, op_slots: 1),
+    // SWE: Non-alignment in peace; secret Western staff contacts; Scandinavian defence union failed Jan 1949. src: Petersson, The Hidden Alliance
+        InfluenceSeedDef(tag: ("SWE"), position: 150, stability: Some(85)),
+    // SYR: Three coups in 1949; Shishakli behind Atassi; Hashemite vs Saudi-Egyptian tug. src: Seale, The Struggle for Syria
+        InfluenceSeedDef(tag: ("SYR"), position: 0, open: false, stability: Some(30)),
+    // THA: Phibun; recognised Bao Dai Feb 1950; troops to Korea; US military assistance agreement 17 Oct 1950; Manhattan rebellion Jun 1951. src: Fineman, A Special Relationship
+        InfluenceSeedDef(tag: ("THA"), position: 450, army_patron: Some("West"), open: false, stability: Some(50)),
+    // TUR: JAMMAT since 1947; DP victory 14 May 1950; brigade to Korea; NATO 18 Feb 1952 -> +700. src: Hale, Turkish Foreign Policy
+        InfluenceSeedDef(tag: ("TUR"), position: 450, army_patron: Some("West"), stability: Some(60)),
+    // URY: Batlle Berres; stable Colorado democracy. src: Britannica
+        InfluenceSeedDef(tag: ("URY"), position: 450, lock: Some(LockDef(label: "RIO")), army_patron: Some("West"), stability: Some(75)),
+    // USA: Truman; NSC-68 in drafting; McCarthy Wheeling speech 9 Feb 1950.
+        InfluenceSeedDef(tag: ("USA"), position: 1000, stability: Some(80), slots: 3, op_slots: 1),
+    // VAT: Pius XII; decree excommunicating communists 1 Jul 1949. src: Kertzer, The Pope at War
+        InfluenceSeedDef(tag: ("VAT"), position: 450, open: false, stability: Some(80)),
+    // VEN: Rio ratifier but a contested battleground: no lock, programs may move it. Junta since Nov 1948; Delgado Chalbaud assassinated 13 Nov 1950. src: Ewell, Venezuela: A Century of Change
+        InfluenceSeedDef(tag: ("VEN"), position: 450, army_patron: Some("West"), open: false, stability: Some(45)),
+    // YEM: Imam Ahmad since Feb 1948; isolationist; Aden dispute. src: Dresch, History of Modern Yemen
+        InfluenceSeedDef(tag: ("YEM"), position: 0, open: false, stability: Some(45)),
+    // YUG: Expelled from Cominform 28 Jun 1948; Ex-Im loan Sep 1949, US food aid Nov 1950; MAP 14 Nov 1951 -> +150. src: Lees, Keeping Tito Afloat
+        InfluenceSeedDef(tag: ("YUG"), position: 0, open: false, stability: Some(50), slots: 1, op_slots: 0),
+    // ZAF: Malan NP; Suppression of Communism Act Jun 1950; SAAF squadron to Korea. src: Giliomee & Mbenga, New History of South Africa
+        InfluenceSeedDef(tag: ("ZAF"), position: 450, army_patron: Some("West"), stability: Some(60)),
+    // BEN: born 1960-08-07; announced: 11 Jul 1960 Entente transfer agreements; Maga; coups from 1963. src: Decalo, Hist. Dict. of Benin
+        InfluenceSeedDef(tag: ("BEN"), position: 150, army_patron: Some("West"), stability: Some(40), announced: Some((1960, 7, 11))),
+    // BFA: born 1960-08-07; announced: 11 Jul 1960; Yameogo; one-party by 1961. src: Decalo
+        InfluenceSeedDef(tag: ("BFA"), position: 150, army_patron: Some("West"), stability: Some(45), announced: Some((1960, 7, 11))),
+    // CAF: born 1960-08-17; announced: 12 Jul 1960 equatorial agreements; Dacko; single party 1962. src: Kalck, Hist. Dict. of CAR
+        InfluenceSeedDef(tag: ("CAF"), position: 150, army_patron: Some("West"), stability: Some(40), announced: Some((1960, 7, 12))),
+    // CIV: born 1960-08-07; announced: 11 Jul 1960; Houphouet; PDCI de facto single party since 1957. src: Zolberg, One-Party Government in the Ivory Coast
+        InfluenceSeedDef(tag: ("CIV"), position: 150, army_patron: Some("West"), open: false, stability: Some(65), announced: Some((1960, 7, 11))),
+    // CMR: born 1960-08-07; announced: UNGA Res 1349 of 13 Mar 1959 fixed 1 Jan 1960; Ahidjo; UPC insurgency, French troops. src: Joseph, Radical Nationalism in Cameroun
+        InfluenceSeedDef(tag: ("CMR"), position: 150, army_patron: Some("West"), open: false, stability: Some(40), announced: Some((1959, 3, 13))),
+    // COD: born 1960-06-30; announced: Brussels Round Table fixed 30 Jun in its first week, 27 Jan 1960; Force Publique Belgian-officered until 5 Jul mutiny; Lumumba neutralist. src: Hoskyns, The Congo Since Independence
+        InfluenceSeedDef(tag: ("COD"), position: 0, army_patron: Some("West"), stability: Some(35), announced: Some((1960, 1, 27))),
+    // COG: born 1960-08-17; announced: 12 Jul 1960; Youlou; ousted Aug 1963. src: Decalo
+        InfluenceSeedDef(tag: ("COG"), position: 150, army_patron: Some("West"), stability: Some(45), announced: Some((1960, 7, 12))),
+    // CYP: born 1960-08-16; announced: Zurich-London agreements 19 Feb 1959; Makarios joins NAM 1961; no national army. src: Holland, Britain and the Revolt in Cyprus
+        InfluenceSeedDef(tag: ("CYP"), position: 0, stability: Some(45), announced: Some((1959, 2, 19))),
+    // DZA: born 1962-03-18; announced: Evian accords 18 Mar 1962; Ben Bella; Soviet arms 1963 but French oil/aid ties. src: Horne, A Savage War of Peace
+        InfluenceSeedDef(tag: ("DZA"), position: 0, open: false, stability: Some(40), announced: Some((1962, 3, 18))),
+    // GAB: born 1960-08-17; announced: 15 Jul 1960; M'ba; French garrison restores him Feb 1964. src: Decalo
+        InfluenceSeedDef(tag: ("GAB"), position: 150, army_patron: Some("West"), stability: Some(60), announced: Some((1960, 7, 15))),
+    // GHA: born 1957-03-06; announced: 18 Sep 1956 Lennox-Boyd Commons statement; British officers command army to 1961; drifts non-aligned by Dec 1958. src: Hansard 18 Sep 1956; Rathbone (ed.), BDEEP Ghana
+        InfluenceSeedDef(tag: ("GHA"), position: 150, army_patron: Some("West"), stability: Some(60), announced: Some((1956, 9, 18))),
+    // GIN: born 1958-10-02; announced: de Gaulle at Conakry 25 Aug 1958; France cut everything; Czech arms Nov 1958; USSR recognises 4 Oct. src: Schmidt, Cold War and Decolonization in Guinea
+        InfluenceSeedDef(tag: ("GIN"), position: -150, open: false, stability: Some(50), announced: Some((1958, 8, 25))),
+    // JAM: born 1962-08-06; announced: London conference 9 Feb 1962 agreed 6 Aug; Bustamante JLP. src: Wikipedia Independence of Jamaica
+        InfluenceSeedDef(tag: ("JAM"), position: 150, army_patron: Some("West"), stability: Some(55), announced: Some((1962, 2, 9))),
+    // KEN: born 1963-12-12; announced: Third Lancaster House conference fixed 12 Dec on 19 Oct 1963; Kenyatta; UK defence agreement Mar 1964. src: Kyle, Politics of the Independence of Kenya
+        InfluenceSeedDef(tag: ("KEN"), position: 150, army_patron: Some("West"), stability: Some(55), announced: Some((1963, 10, 19))),
+    // KHM: born 1953-11-09; announced: France ceded the army 17 Oct 1953; French Union member; US aid from 1955; neutrality after Bandung. src: Chandler, Tragedy of Cambodian History
+        InfluenceSeedDef(tag: ("KHM"), position: 150, army_patron: Some("West"), stability: Some(55), announced: Some((1953, 10, 17))),
+    // KWT: born 1961-06-19; announced: Exchange of notes 19 Jun 1961; Qasim claim 25 Jun; British troops 1 Jul; first Assembly election Jan 1963. src: Crystal, Oil and Politics in the Gulf
+        InfluenceSeedDef(tag: ("KWT"), position: 150, army_patron: Some("West"), open: false, stability: Some(60), announced: Some((1961, 6, 19))),
+    // LAO: born 1953-11-09; announced: French statement 3 Jul 1953; Royal govt; US PEO from Dec 1955; Pathet Lao hold two provinces. src: Stuart-Fox, A History of Laos
+        InfluenceSeedDef(tag: ("LAO"), position: 150, army_patron: Some("West"), stability: Some(40), announced: Some((1953, 7, 3))),
+    // LBY: born 1951-12-24; announced: UNGA Res 289(IV) 21 Nov 1949 set not later than 1 Jan 1952; Idris; UK treaty Jul 1953, Wheelus Sep 1954; parties banned after Feb 1952. src: Vandewalle, History of Modern Libya
+        InfluenceSeedDef(tag: ("LBY"), position: 150, army_patron: Some("West"), stability: Some(45), announced: Some((1949, 11, 21))),
+    // MAR: born 1956-03-20; announced: La Celle-Saint-Cloud declaration 6 Nov 1955; Mohammed V; US SAC bases; no elections until 1963. src: Pennell, Morocco since 1830
+        InfluenceSeedDef(tag: ("MAR"), position: 150, army_patron: Some("West"), open: false, stability: Some(50), announced: Some((1955, 11, 6))),
+    // MDG: born 1960-08-17; announced: Agreements initialled 2 Apr 1960; Tsiranana PSD; French base Diego Suarez. src: Brown, A History of Madagascar
+        InfluenceSeedDef(tag: ("MDG"), position: 150, army_patron: Some("West"), stability: Some(55), announced: Some((1960, 4, 2))),
+    // MLI: born 1960-08-07; announced: Federation agreement 4 Apr 1960; Keita; French bases out 1961; Soviet aid 1961; leaves franc zone 1962 (baseline East with the historian's caveat: the turn came in 1961). src: Snyder, Political Thought of Modibo Keita
+        InfluenceSeedDef(tag: ("MLI"), position: -150, army_patron: Some("West"), open: false, stability: Some(50), announced: Some((1960, 4, 4))),
+    // MWI: born 1964-10-24; announced: Lancaster House conference 15 Nov 1963 set 6 Jul 1964; Banda; cabinet crisis Sep 1964. src: Short, Banda
+        InfluenceSeedDef(tag: ("MWI"), position: 150, army_patron: Some("West"), open: false, stability: Some(50), announced: Some((1963, 11, 15))),
+    // MYS: born 1957-08-31; announced: London Agreement 8 Feb 1956 set 31 Aug 1957; AMDA 12 Oct 1957; Emergency ongoing. src: Stockwell (ed.), BDEEP Malaya
+        InfluenceSeedDef(tag: ("MYS"), position: 150, army_patron: Some("West"), stability: Some(60), announced: Some((1956, 2, 8))),
+    // NER: born 1960-08-07; announced: 11 Jul 1960; Diori; Sawaba banned 1959. src: Decalo
+        InfluenceSeedDef(tag: ("NER"), position: 150, army_patron: Some("West"), open: false, stability: Some(50), announced: Some((1960, 7, 11))),
+    // NGA: born 1960-10-01; announced: Lennox-Boyd at the resumed London conference 27 Oct 1958; Balewa; defence agreement Nov 1960 abrogated Jan 1962. src: Hansard 15 Jul 1960; Lynn (ed.), BDEEP Nigeria
+        InfluenceSeedDef(tag: ("NGA"), position: 150, army_patron: Some("West"), stability: Some(50), announced: Some((1958, 10, 27))),
+    // RHO: born 1965-11-11; announced: Smith-Wilson talks failed 12 Oct 1965; Pro-Western white minority, unrecognised, sanctioned. src: Wood, So Far and No Further!
+        InfluenceSeedDef(tag: ("RHO"), position: 0, open: false, stability: Some(55), announced: Some((1965, 10, 12))),
+    // SDN: born 1956-01-01; announced: Sudanese parliament declared 19 Dec 1955; Azhari; chose neither Cairo nor London; Abboud coup Nov 1958. src: Holt & Daly, History of the Sudan
+        InfluenceSeedDef(tag: ("SDN"), position: 0, army_patron: Some("West"), stability: Some(40), announced: Some((1955, 12, 19))),
+    // SEN: born 1960-08-07; announced: 4 Apr 1960; Senghor; French base Dakar. src: Vaillant, Black, French and African
+        InfluenceSeedDef(tag: ("SEN"), position: 150, army_patron: Some("West"), stability: Some(60), announced: Some((1960, 4, 4))),
+    // SOM: born 1960-10-01; announced: UNGA Res 1418 of 5 Dec 1959 fixed 1 Jul 1960; Italian-trained police; Soviet arms Nov 1963; Greater Somalia claims. src: Lewis, Modern History of the Somali
+        InfluenceSeedDef(tag: ("SOM"), position: 0, stability: Some(45), announced: Some((1959, 12, 5))),
+    // TCD: born 1960-08-17; announced: 12 Jul 1960; Tombalbaye; French troops stay; northern revolt 1965. src: Decalo, Hist. Dict. of Chad
+        InfluenceSeedDef(tag: ("TCD"), position: 150, army_patron: Some("West"), stability: Some(35), announced: Some((1960, 7, 12))),
+    // TTO: born 1962-08-31; announced: Marlborough House conference 8 Jun 1962 set 31 Aug; Williams PNM; Chaguaramas US base. src: Wikipedia Trinidad and Tobago
+        InfluenceSeedDef(tag: ("TTO"), position: 150, army_patron: Some("West"), stability: Some(55), announced: Some((1962, 6, 8))),
+    // TUN: born 1956-03-20; announced: Negotiations opened 27 Feb 1956; Bourguiba; single-list election 25 Mar 1956; Bizerte to 1963. src: Perkins, History of Modern Tunisia
+        InfluenceSeedDef(tag: ("TUN"), position: 150, army_patron: Some("West"), open: false, stability: Some(55), announced: Some((1956, 2, 27))),
+    // TZA: born 1961-12-09; announced: Dar es Salaam conference Mar 1961 set 28 Dec; advanced to 9 Dec in Jun 1961; Nyerere; British officers to Jan 1964 mutiny. src: Hansard 8 Nov 1961; Iliffe, Modern History of Tanganyika
+        InfluenceSeedDef(tag: ("TZA"), position: 150, army_patron: Some("West"), stability: Some(60), announced: Some((1961, 3, 1))),
+    // UGA: born 1963-12-12; announced: London conference ended 9 Oct 1961 fixing 9 Oct 1962; Obote UPC-KY coalition. src: Low, Buganda in Modern History
+        InfluenceSeedDef(tag: ("UGA"), position: 150, army_patron: Some("West"), stability: Some(50), announced: Some((1961, 10, 9))),
+    // VNN: born 1954-07-21; announced: Geneva conference opened 8 May 1954; DRV; Chinese and Soviet aid since Jan 1950; real patron PRC. src: Geneva Agreements text
+        InfluenceSeedDef(tag: ("VNN"), position: -150, army_patron: Some("East"), open: false, stability: Some(65), announced: Some((1954, 5, 8))),
+    // VNS: born 1954-07-21; announced: Geneva conference opened 8 May 1954; Diem PM 7 Jul 1954; US aid direct Jan 1955; MAAG trains from Feb 1955. src: Pentagon Papers vol.1
+        InfluenceSeedDef(tag: ("VNS"), position: 150, army_patron: Some("West"), open: false, stability: Some(35), announced: Some((1954, 5, 8))),
+    // ZMB: born 1964-10-24; announced: London conference ended 19 May 1964 fixing 24 Oct; Kaunda; copper; UDI Nov 1965 forces non-aligned drift. src: Mulford, Zambia: The Politics of Independence
+        InfluenceSeedDef(tag: ("ZMB"), position: 150, army_patron: Some("West"), stability: Some(55), announced: Some((1964, 5, 19))),
+    ],
+    battlegrounds: [
+    // ITA: Largest Western CP (PCI 22-27%); US covert election money 1948-72 (Church Committee)
+        BattlegroundDef(tag: ("ITA"), region: "EUROPE", weight: 3),
+    // FRA: PCF ~25%; NATO exit 1966; Suez/Algeria a US management problem
+        BattlegroundDef(tag: ("FRA"), region: "EUROPE", weight: 2),
+    // FRG: Stalin Note 1952, Berlin 1958-61, neutralist SPD until 1960
+        BattlegroundDef(tag: ("FRG"), region: "EUROPE", weight: 3),
+    // GRC: Civil war just over; EDA 24% in 1958; Cyprus and 1965-67 crises
+        BattlegroundDef(tag: ("GRC"), region: "EUROPE", weight: 2),
+    // TUR: Straits, Jupiters, 1960 coup, Cyprus 1964 (Johnson letter) opened Soviet courtship
+        BattlegroundDef(tag: ("TUR"), region: "EUROPE", weight: 2),
+    // AUT: Four-power occupation until May 1955; neutrality model Moscow marketed
+        BattlegroundDef(tag: ("AUT"), region: "EUROPE", weight: 2),
+    // FIN: FCMA lock; night frost 1958, Note Crisis 1961
+        BattlegroundDef(tag: ("FIN"), region: "EUROPE", weight: 2),
+    // YUG: Only communist state up for bid; US arms 1951-57, Soviet reconciliation 1955-56
+        BattlegroundDef(tag: ("YUG"), region: "EUROPE", weight: 3),
+    // ISL: Keflavik base vote 28 Mar 1956; Soviet fish purchases as leverage
+        BattlegroundDef(tag: ("ISL"), region: "EUROPE", weight: 1),
+    // IRN: Oil nationalisation, Tudeh, Ajax 1953; Soviet pressure to 1962 non-missile pledge
+        BattlegroundDef(tag: ("IRN"), region: "MIDDLE_EAST", weight: 3),
+    // IRQ: Baghdad Pact hub 1955 -> 1958 revolution -> Soviet arms; Qasim and the ICP
+        BattlegroundDef(tag: ("IRQ"), region: "MIDDLE_EAST", weight: 3),
+    // EGY: Czech arms deal, Aswan, Suez; Nasser the auctioneer of the decade
+        BattlegroundDef(tag: ("EGY"), region: "MIDDLE_EAST", weight: 3),
+    // SYR: 1954 election, 1957 crisis, UAR, 1963 Ba'ath; the swing Arab state
+        BattlegroundDef(tag: ("SYR"), region: "MIDDLE_EAST", weight: 3),
+    // ISR: Non-identification 1948-50 then West; French then US arms
+        BattlegroundDef(tag: ("ISR"), region: "MIDDLE_EAST", weight: 1),
+    // LBN: 1957 election money, 1958 Marines
+        BattlegroundDef(tag: ("LBN"), region: "MIDDLE_EAST", weight: 1),
+    // AFG: Soviet credit Dec 1955 after US refusal; Eisenhower Kabul 1959; classic aid auction
+        BattlegroundDef(tag: ("AFG"), region: "MIDDLE_EAST", weight: 2),
+    // IND: NAM centre; Bhilai vs PL-480; 1962 war brought US arms
+        BattlegroundDef(tag: ("IND"), region: "ASIA", weight: 3),
+    // PAK: SEATO/Baghdad 1954-55; drift after 1962 US aid to India; Tashkent 1966
+        BattlegroundDef(tag: ("PAK"), region: "ASIA", weight: 2),
+    // IDN: PKI largest non-ruling CP; 1955 election, 1958 rebellion, Soviet arms, 1965 massacre
+        BattlegroundDef(tag: ("IDN"), region: "ASIA", weight: 3),
+    // MMR: Insurgencies, KMT irregulars, 1962 coup; neutralism courted by PRC
+        BattlegroundDef(tag: ("MMR"), region: "ASIA", weight: 2),
+    // LAO: Three-way civil war 1959-62; Geneva neutrality 1962; secret war
+        BattlegroundDef(tag: ("LAO"), region: "ASIA", weight: 3),
+    // VNS: The pillar's war
+        BattlegroundDef(tag: ("VNS"), region: "ASIA", weight: 3),
+    // KHM: Sihanouk's neutrality; broke with US 1963-65
+        BattlegroundDef(tag: ("KHM"), region: "ASIA", weight: 2),
+    // JAP: Anpo 1960, JSP neutralism, 1955 system; the Asian keystone
+        BattlegroundDef(tag: ("JAP"), region: "ASIA", weight: 3),
+    // KOR: 1960 April Revolution, 1961 coup; depth not direction
+        BattlegroundDef(tag: ("KOR"), region: "ASIA", weight: 2),
+    // COD: Congo Crisis 1960-65: UN, Lumumba, Soviet airlift, Katanga
+        BattlegroundDef(tag: ("COD"), region: "AFRICA", weight: 3),
+    // GHA: Nkrumah's positive neutralism, Volta dam auction, Soviet ties 1961-66
+        BattlegroundDef(tag: ("GHA"), region: "AFRICA", weight: 2),
+    // GIN: Moscow's first African client 1958-61; Solod expelled Dec 1961
+        BattlegroundDef(tag: ("GIN"), region: "AFRICA", weight: 2),
+    // ETH: Kagnew vs Somali threat; largest US military aid in Africa; 1960 coup attempt
+        BattlegroundDef(tag: ("ETH"), region: "AFRICA", weight: 2),
+    // DZA: Ben Bella's Third-Worldism; Soviet arms 1963; Evian ties to France
+        BattlegroundDef(tag: ("DZA"), region: "AFRICA", weight: 2),
+    // MLI: Keita's Soviet turn 1961; Casablanca Group
+        BattlegroundDef(tag: ("MLI"), region: "AFRICA", weight: 2),
+    // SOM: Soviet arms Nov 1963 after Western package refused
+        BattlegroundDef(tag: ("SOM"), region: "AFRICA", weight: 1),
+    // NGA: Defence pact abrogated 1962; largest population; both blocs bid modestly
+        BattlegroundDef(tag: ("NGA"), region: "AFRICA", weight: 1),
+    // CUB: The one hemisphere flip
+        BattlegroundDef(tag: ("CUB"), region: "CENTRAL_AMERICA", weight: 3),
+    // GTM: Arbenz 1950-54, PBSUCCESS
+        BattlegroundDef(tag: ("GTM"), region: "CENTRAL_AMERICA", weight: 3),
+    // DOM: Trujillo assassination 1961, Bosch 1962-63, intervention 1965
+        BattlegroundDef(tag: ("DOM"), region: "CENTRAL_AMERICA", weight: 2),
+    // BRA: Quadros-Goulart independent policy 1961-64; 1964 coup
+        BattlegroundDef(tag: ("BRA"), region: "SOUTH_AMERICA", weight: 3),
+    // CHL: Allende near-miss 1958, CIA 1964, win 1970
+        BattlegroundDef(tag: ("CHL"), region: "SOUTH_AMERICA", weight: 3),
+    // BOL: 1952 revolution then largest per-capita US aid in hemisphere; 1964 coup
+        BattlegroundDef(tag: ("BOL"), region: "SOUTH_AMERICA", weight: 3),
+    // VEN: Betancourt Doctrine vs Castro-backed FALN 1962-65
+        BattlegroundDef(tag: ("VEN"), region: "SOUTH_AMERICA", weight: 2),
+    // ARG: Peron's Third Position, Frondizi, 1962/1966 coups
+        BattlegroundDef(tag: ("ARG"), region: "SOUTH_AMERICA", weight: 2),
+    ],
+    thresholds: [
+        RegionThresholdDef(region: "EUROPE", presence: 1, domination: 5, control: 8),
+        RegionThresholdDef(region: "MIDDLE_EAST", presence: 1, domination: 4, control: 6),
+        RegionThresholdDef(region: "ASIA", presence: 1, domination: 5, control: 8),
+        RegionThresholdDef(region: "AFRICA", presence: 1, domination: 4, control: 7),
+        RegionThresholdDef(region: "CENTRAL_AMERICA", presence: 1, domination: 2, control: 3),
+        RegionThresholdDef(region: "SOUTH_AMERICA", presence: 1, domination: 3, control: 5),
+    ],
+    elections: [
+    // GBR (1950, 2, 23): NONE. src: Nohlen, Elections in Europe
+        ElectionDef(date: (1950, 2, 23), tag: ("GBR"), stake: "ATTLEE'S MANDATE FOR REARMAMENT", result: "LABOUR 315 V 298"),
+    // GRC (1950, 3, 5): NONE. src: Nohlen
+        ElectionDef(date: (1950, 3, 5), tag: ("GRC"), stake: "FIRST POST-CIVIL-WAR ELECTION; US PUSHED CENTRIST UNITY", result: "POPULISTS 62, LIBERALS 56, EPEK 45; PLASTIRAS GOVT UNDER EMBASSY PRESSURE"),
+    // TUR (1950, 5, 14): DEEPENED. src: Nohlen
+        ElectionDef(date: (1950, 5, 14), tag: ("TUR"), stake: "FIRST FREE ELECTION", result: "MENDERES DP 408 OF 487"),
+    // KOR (1950, 5, 30): NONE. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1950, 5, 30), tag: ("KOR"), stake: "SECOND NATIONAL ASSEMBLY", result: "INDEPENDENTS BEAT RHEE'S SUPPORTERS"),
+    // BRA (1950, 10, 3): NONE. src: Nohlen, Americas
+        ElectionDef(date: (1950, 10, 3), tag: ("BRA"), stake: "PRESIDENCY", result: "VARGAS 48.7%"),
+    // GTM (1950, 11, 10): SHALLOWED. src: Nohlen, Americas
+        ElectionDef(date: (1950, 11, 10), tag: ("GTM"), stake: "PRESIDENCY", result: "ARBENZ 65%"),
+    // BOL (1951, 5, 6): NONE. src: Nohlen, Americas
+        ElectionDef(date: (1951, 5, 6), tag: ("BOL"), stake: "PRESIDENCY", result: "PAZ ESTENSSORO PLURALITY; JUNTA ANNULS"),
+    // FRA (1951, 6, 17): NONE. src: Nohlen
+        ElectionDef(date: (1951, 6, 17), tag: ("FRA"), stake: "ASSEMBLY UNDER APPARENTEMENTS", result: "PCF 26% LARGEST, RPF 22%, THIRD FORCE HOLDS"),
+    // ISR (1951, 7, 30): DEEPENED. src: Nohlen
+        ElectionDef(date: (1951, 7, 30), tag: ("ISR"), stake: "SECOND KNESSET", result: "MAPAI 45; ISRAEL VOTING WITH THE WEST SINCE KOREA"),
+    // GBR (1951, 10, 25): NONE. src: Nohlen
+        ElectionDef(date: (1951, 10, 25), tag: ("GBR"), stake: "CHURCHILL RETURNS", result: "CONSERVATIVES 321"),
+    // IND (1952, 2, 21): NONE. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1952, 2, 21), tag: ("IND"), stake: "FIRST GENERAL ELECTION", result: "CONGRESS 364 OF 489"),
+    // CHL (1952, 9, 4): NONE. src: Nohlen, Americas
+        ElectionDef(date: (1952, 9, 4), tag: ("CHL"), stake: "PRESIDENCY", result: "IBANEZ 47%, ANTI-PARTY POPULISM"),
+    // JAP (1952, 10, 1): NONE. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1952, 10, 1), tag: ("JAP"), stake: "FIRST POST-OCCUPATION DIET", result: "LIBERALS 240, YOSHIDA"),
+    // GRC (1952, 11, 16): DEEPENED. src: Nohlen
+        ElectionDef(date: (1952, 11, 16), tag: ("GRC"), stake: "MAJORITY SYSTEM URGED BY PEURIFOY", result: "PAPAGOS GREEK RALLY 82% OF SEATS"),
+    // ITA (1953, 6, 7): NONE. src: Nohlen
+        ElectionDef(date: (1953, 6, 7), tag: ("ITA"), stake: "LEGGE TRUFFA BONUS NEEDS 50%", result: "DC COALITION MISSES BY 57,000 VOTES; DE GASPERI FALLS"),
+    // FRG (1953, 9, 6): DEEPENED. src: Nohlen
+        ElectionDef(date: (1953, 9, 6), tag: ("FRG"), stake: "WESTBINDUNG V NEUTRALIST SPD", result: "CDU/CSU 45%, 244 SEATS"),
+    // PHL (1953, 11, 10): DEEPENED. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1953, 11, 10), tag: ("PHL"), stake: "PRESIDENCY; LANSDALE BACKING", result: "MAGSAYSAY 68%"),
+    // SYR (1954, 9, 24): SHALLOWED. src: Nohlen; Seale
+        ElectionDef(date: (1954, 9, 24), tag: ("SYR"), stake: "FIRST POST-SHISHAKLI PARLIAMENT", result: "PEOPLE'S PARTY 30, BA'ATH 22, BAKDASH FIRST ARAB COMMUNIST MP"),
+    // JAP (1955, 2, 27): NONE. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1955, 2, 27), tag: ("JAP"), stake: "HATOYAMA V YOSHIDA", result: "DEMOCRATS 185; SOCIALISTS REUNIFY IN OCTOBER"),
+    // IDN (1955, 9, 29): SHALLOWED. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1955, 9, 29), tag: ("IDN"), stake: "FIRST PARLIAMENTARY ELECTION", result: "PNI 57, MASYUMI 57, NU 45, PKI 39 SEATS (16%)"),
+    // BRA (1955, 10, 3): NONE. src: Nohlen, Americas
+        ElectionDef(date: (1955, 10, 3), tag: ("BRA"), stake: "PRESIDENCY", result: "KUBITSCHEK 36%; LOTT'S PREVENTIVE COUP IN NOVEMBER"),
+    // FRA (1956, 1, 2): NONE. src: Nohlen
+        ElectionDef(date: (1956, 1, 2), tag: ("FRA"), stake: "ASSEMBLY", result: "REPUBLICAN FRONT; POUJADISTS 52; MOLLET PM"),
+    // FIN (1956, 1, 16): NONE. src: Nohlen
+        ElectionDef(date: (1956, 1, 16), tag: ("FIN"), stake: "PRESIDENTIAL ELECTORS", result: "KEKKONEN 151-149 OVER FAGERHOLM"),
+    // GRC (1956, 2, 19): NONE. src: Nohlen
+        ElectionDef(date: (1956, 2, 19), tag: ("GRC"), stake: "KARAMANLIS'S FIRST TEST", result: "ERE WINS SEATS, DEMOCRATIC UNION WINS VOTES"),
+    // LKA (1956, 4, 10): SHALLOWED. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1956, 4, 10), tag: ("LKA"), stake: "PARLIAMENT", result: "BANDARANAIKE MEP 51; UNP CRUSHED"),
+    // MMR (1956, 4, 27): NONE. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1956, 4, 27), tag: ("MMR"), stake: "PARLIAMENT", result: "AFPFL HOLDS; NUF ABOUT 30% OF THE VOTE"),
+    // AUT (1956, 5, 13): NONE. src: Nohlen
+        ElectionDef(date: (1956, 5, 13), tag: ("AUT"), stake: "FIRST POST-TREATY ELECTION", result: "OVP 82; GRAND COALITION CONTINUES"),
+    // BOL (1956, 6, 17): DEEPENED. src: Nohlen, Americas
+        ElectionDef(date: (1956, 6, 17), tag: ("BOL"), stake: "PRESIDENCY", result: "SILES ZUAZO 84%; US STABILISATION PLAN FOLLOWS"),
+    // ISL (1956, 6, 24): SHALLOWED. src: Nohlen
+        ElectionDef(date: (1956, 6, 24), tag: ("ISL"), stake: "ALTHING AFTER THE 28 MAR BASE RESOLUTION", result: "LEFT COALITION, HERMANN JONASSON PM"),
+    // IND (1957, 3, 14): NONE. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1957, 3, 14), tag: ("IND"), stake: "SECOND GENERAL ELECTION", result: "CONGRESS 371 OF 494; CPI WINS KERALA"),
+    // LBN (1957, 6, 23): DEEPENED. src: Eveland, Ropes of Sand
+        ElectionDef(date: (1957, 6, 23), tag: ("LBN"), stake: "PARLIAMENT; CIA CASH VIA CHAMOUN", result: "PRO-CHAMOUN SWEEP; JUMBLATT, KARAMI, SALAM OUSTED"),
+    // FRG (1957, 9, 15): DEEPENED. src: Nohlen
+        ElectionDef(date: (1957, 9, 15), tag: ("FRG"), stake: "BUNDESTAG", result: "CDU/CSU ABSOLUTE MAJORITY 50.2%"),
+    // TUR (1957, 10, 27): NONE. src: Nohlen
+        ElectionDef(date: (1957, 10, 27), tag: ("TUR"), stake: "DP UNDER STRAIN", result: "DP 424 SEATS ON 48%"),
+    // ARG (1958, 2, 23): NONE. src: Nohlen, Americas
+        ElectionDef(date: (1958, 2, 23), tag: ("ARG"), stake: "PRESIDENCY", result: "FRONDIZI 45% WITH PERONIST VOTES"),
+    // GRC (1958, 5, 11): NONE. src: Nohlen
+        ElectionDef(date: (1958, 5, 11), tag: ("GRC"), stake: "PARLIAMENT", result: "ERE 171; EDA 79 SEATS ON 24.4%, SECOND PARTY"),
+    // ITA (1958, 5, 25): NONE. src: Nohlen
+        ElectionDef(date: (1958, 5, 25), tag: ("ITA"), stake: "PARLIAMENT", result: "DC 42.4%, PCI 22.7%"),
+    // FIN (1958, 7, 7): SHALLOWED. src: Nohlen; Jakobson
+        ElectionDef(date: (1958, 7, 7), tag: ("FIN"), stake: "EDUSKUNTA", result: "SKDL LARGEST WITH 50; FAGERHOLM GOVT DRAWS THE SOVIET NIGHT FROST, FALLS IN DECEMBER"),
+    // CHL (1958, 9, 4): NONE. src: Nohlen, Americas
+        ElectionDef(date: (1958, 9, 4), tag: ("CHL"), stake: "PRESIDENCY", result: "ALESSANDRI 31.6% BEATS ALLENDE 28.9% BY 33,000 VOTES"),
+    // FRA (1958, 11, 30): NONE. src: Nohlen
+        ElectionDef(date: (1958, 11, 30), tag: ("FRA"), stake: "FIFTH REPUBLIC ASSEMBLY", result: "UNR SWEEP; PCF 10 SEATS"),
+    // VEN (1958, 12, 7): DEEPENED. src: Nohlen, Americas
+        ElectionDef(date: (1958, 12, 7), tag: ("VEN"), stake: "FIRST POST-JUNTA ELECTION", result: "BETANCOURT 49%"),
+    // ISL (1959, 10, 26): DEEPENED. src: Nohlen
+        ElectionDef(date: (1959, 10, 26), tag: ("ISL"), stake: "SECOND ELECTION OF 1959", result: "INDEPENDENCE-SDP VIDREISN GOVT; BASE ISSUE CLOSED"),
+    // MMR (1960, 2, 6): NONE. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1960, 2, 6), tag: ("MMR"), stake: "RETURN TO CIVILIAN RULE", result: "U NU'S CLEAN AFPFL WINS"),
+    // KOR (1960, 3, 15): NONE. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1960, 3, 15), tag: ("KOR"), stake: "RIGGED PRESIDENTIAL POLL", result: "APRIL REVOLUTION; RHEE RESIGNS 26 APR"),
+    // LKA (1960, 7, 20): SHALLOWED. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1960, 7, 20), tag: ("LKA"), stake: "SECOND ELECTION OF 1960", result: "SIRIMAVO SLFP; NATIONALISATIONS; US AID CUT 1963"),
+    // BRA (1960, 10, 3): SHALLOWED. src: Nohlen, Americas
+        ElectionDef(date: (1960, 10, 3), tag: ("BRA"), stake: "PRESIDENCY", result: "QUADROS 48%; INDEPENDENT FOREIGN POLICY; RESIGNS 25 AUG 1961"),
+    // JAP (1960, 11, 20): DEEPENED. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1960, 11, 20), tag: ("JAP"), stake: "POST-ANPO DIET", result: "LDP 296, JSP 145; IKEDA"),
+    // FRG (1961, 9, 17): NONE. src: Nohlen
+        ElectionDef(date: (1961, 9, 17), tag: ("FRG"), stake: "POST-WALL BUNDESTAG", result: "CDU LOSES ITS MAJORITY; FDP COALITION"),
+    // TUR (1961, 10, 15): NONE. src: Nohlen
+        ElectionDef(date: (1961, 10, 15), tag: ("TUR"), stake: "POST-COUP ELECTION", result: "CHP 173, AP 158; INONU COALITION"),
+    // GRC (1961, 10, 29): NONE. src: Nohlen
+        ElectionDef(date: (1961, 10, 29), tag: ("GRC"), stake: "VIOLENCE-AND-FRAUD ELECTION", result: "ERE 176; CENTRE UNION'S RELENTLESS STRUGGLE"),
+    // FIN (1962, 2, 5): NONE. src: Nohlen
+        ElectionDef(date: (1962, 2, 5), tag: ("FIN"), stake: "POST-NOTE-CRISIS EDUSKUNTA", result: "AGRARIANS GAIN; SDP PUNISHED"),
+    // DOM (1962, 12, 20): NONE. src: Nohlen, Americas
+        ElectionDef(date: (1962, 12, 20), tag: ("DOM"), stake: "FIRST FREE ELECTION", result: "BOSCH 59%; OVERTHROWN 25 SEP 1963"),
+    // ITA (1963, 4, 28): NONE. src: Nohlen
+        ElectionDef(date: (1963, 4, 28), tag: ("ITA"), stake: "APERTURA A SINISTRA", result: "DC 38.3%, PCI 25.3%; MORO CENTRE-LEFT IN DECEMBER"),
+    // ARG (1963, 7, 7): NONE. src: Nohlen, Americas
+        ElectionDef(date: (1963, 7, 7), tag: ("ARG"), stake: "PRESIDENCY, PERONISTS BANNED", result: "ILLIA 25% PLURALITY"),
+    // GRC (1963, 11, 3): NONE. src: Nohlen
+        ElectionDef(date: (1963, 11, 3), tag: ("GRC"), stake: "PARLIAMENT", result: "CENTRE UNION 138, ERE 132"),
+    // VEN (1963, 12, 1): DEEPENED. src: Nohlen, Americas
+        ElectionDef(date: (1963, 12, 1), tag: ("VEN"), stake: "PRESIDENCY UNDER FALN TERROR", result: "LEONI 33%"),
+    // GRC (1964, 2, 16): NONE. src: Nohlen
+        ElectionDef(date: (1964, 2, 16), tag: ("GRC"), stake: "REPEAT ELECTION", result: "CENTRE UNION 171 ON 52.7%"),
+    // BOL (1964, 5, 31): NONE. src: Nohlen, Americas
+        ElectionDef(date: (1964, 5, 31), tag: ("BOL"), stake: "PRESIDENCY", result: "PAZ UNOPPOSED; BARRIENTOS COUP 4 NOV 1964"),
+    // CHL (1964, 9, 4): DEEPENED. src: Church Committee, Covert Action in Chile
+        ElectionDef(date: (1964, 9, 4), tag: ("CHL"), stake: "PRESIDENCY; CIA $2.6M FOR FREI", result: "FREI 56% V ALLENDE 39%"),
+    // LKA (1965, 3, 22): DEEPENED. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1965, 3, 22), tag: ("LKA"), stake: "PARLIAMENT", result: "DUDLEY SENANAYAKE UNP; US AID RESUMES"),
+    // TUR (1965, 10, 10): NONE. src: Nohlen
+        ElectionDef(date: (1965, 10, 10), tag: ("TUR"), stake: "PARLIAMENT", result: "DEMIREL AP 240"),
+    // PHL (1965, 11, 9): NONE. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1965, 11, 9), tag: ("PHL"), stake: "PRESIDENCY", result: "MARCOS 52%; PHILCAG TO VIETNAM 1966"),
+    // FRA (1965, 12, 19): NONE. src: Nohlen
+        ElectionDef(date: (1965, 12, 19), tag: ("FRA"), stake: "PRESIDENCY", result: "DE GAULLE 55% OVER MITTERRAND; NATO EXIT MAR 1966"),
+    // GTM (1966, 3, 6): NONE. src: Nohlen, Americas
+        ElectionDef(date: (1966, 3, 6), tag: ("GTM"), stake: "PRESIDENCY", result: "MENDEZ MONTENEGRO 45%, BOUND BY THE ARMY PACT"),
+    // KOR (1967, 5, 3): NONE. src: Nohlen, Asia-Pacific
+        ElectionDef(date: (1967, 5, 3), tag: ("KOR"), stake: "PRESIDENCY", result: "PARK 51%"),
+    // FRG (1969, 9, 28): SHALLOWED. src: Nohlen
+        ElectionDef(date: (1969, 9, 28), tag: ("FRG"), stake: "BUNDESTAG", result: "BRANDT SPD-FDP; OSTPOLITIK"),
+    // CHL (1970, 9, 4): FLIPPED. src: Church Committee
+        ElectionDef(date: (1970, 9, 4), tag: ("CHL"), stake: "PRESIDENCY", result: "ALLENDE 36.6%; CONGRESS CONFIRMS 24 OCT DESPITE TRACK I/II"),
+    ],
+)

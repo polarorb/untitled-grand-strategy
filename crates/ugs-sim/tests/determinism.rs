@@ -69,6 +69,9 @@ fn snapshot(app: &App) -> String {
             .digest(),
         world.resource::<ugs_sim::economy::EconomyStatic>().digest(),
         world.resource::<ugs_sim::events::FiredEvents>().digest()
+    ) + &format!(
+        "|inf:{:x}",
+        world.resource::<ugs_sim::influence::Influence>().digest()
     )
 }
 
@@ -82,6 +85,28 @@ fn scripted_commands(tick: u64) -> Vec<SimCommand> {
             SimCommand::DebugAdjustTension(300),
         ],
         1720 => vec![SimCommand::DebugAdjustTension(-500)],
+        // Influence verbs under divergence checking: a program, a
+        // presence unlock is data-driven so SOV runs it, a coup.
+        300 => vec![
+            SimCommand::SetPlayerCountry {
+                country: Some(ugs_data::CountryTag("USA".into())),
+            },
+            SimCommand::StartProgram {
+                sponsor: ugs_data::CountryTag("USA".into()),
+                target: ugs_data::CountryTag("IRN".into()),
+                kind: ugs_sim::influence::ProgramKind::Aid,
+                tier: 2,
+            },
+            SimCommand::SetNetworkFunding {
+                target: ugs_data::CountryTag("GTM".into()),
+                level: 3,
+            },
+        ],
+        1500 => vec![SimCommand::LaunchInfluenceOp {
+            sponsor: ugs_data::CountryTag("USA".into()),
+            target: ugs_data::CountryTag("GTM".into()),
+            kind: ugs_sim::influence::InfluenceOpKind::SponsorCoup,
+        }],
         _ => vec![],
     }
 }

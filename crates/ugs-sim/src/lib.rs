@@ -21,6 +21,7 @@ pub mod demography;
 pub mod deterrence;
 pub mod economy;
 pub mod events;
+pub mod influence;
 pub mod intel;
 pub mod military;
 pub mod nuclear;
@@ -114,6 +115,7 @@ impl Plugin for SimPlugin {
         app.init_resource::<deterrence::Deterrence>();
         app.init_resource::<crisis::Crises>();
         app.init_resource::<intel::Intel>();
+        app.init_resource::<influence::Influence>();
         app.init_resource::<settlement::Settlements>();
         app.init_resource::<construction::RegionalIndustry>();
         app.init_resource::<construction::Construction>();
@@ -139,6 +141,7 @@ impl Plugin for SimPlugin {
             (
                 tension::decay_tension,
                 events::update_events,
+                influence::update_influence,
                 settlement::update_settlements,
                 nuclear::update_nuclear,
                 deterrence::update_deterrence,
@@ -187,6 +190,9 @@ fn advance_clock(mut clock: ResMut<SimClock>) {
 /// This is the only application path: `run_ticks` and the presentation
 /// layer both call it; nothing applies commands inside a tick.
 pub fn flush_commands(world: &mut bevy_ecs::world::World) {
+    // Influence seeds before the first command can be judged against it
+    // (slots, locks, positions all come from data).
+    influence::ensure_seeded(world);
     world
         .run_system_cached(command::apply_commands)
         .expect("apply_commands system params always present");

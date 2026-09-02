@@ -45,6 +45,9 @@ pub(crate) enum MapMode {
     /// The triage map: regions tinted by their binding economic
     /// constraint, in severity bands.
     Economy,
+    /// The map painted by alignment: diverging hue by position, depth
+    /// by saturation, locks hatched dark, contested windows bright.
+    Influence,
 }
 
 /// Marker for spawned map layer entities (fill + borders).
@@ -109,6 +112,7 @@ impl Plugin for MapPlugin {
             Ok("strategic") => MapMode::Strategic,
             Ok("war") => MapMode::War,
             Ok("economy") => MapMode::Economy,
+            Ok("influence") => MapMode::Influence,
             _ => MapMode::Political,
         });
         // The map underlies both the nation-select screen and the game.
@@ -196,6 +200,41 @@ fn wobbled(rgb: (u8, u8, u8), province_id: u32) -> Color {
 }
 
 /// National color from data.
+/// Influence-mode tint: hue from the sign of the position, saturation
+/// from depth, darkened when locked, lifted when a contest is open.
+fn influence_color(
+    influence: &ugs_sim::influence::Influence,
+    tick: u64,
+    tag: &CountryTag,
+) -> (u8, u8, u8) {
+    let pos = influence.position_of(tag) as i32;
+    let depth = pos.unsigned_abs().min(1000) as i32; // 0..1000
+                                                     // Olive base for the non-aligned middle; blend toward the pole.
+    let (base, pole) = if pos >= 0 {
+        ((92i32, 96i32, 60i32), (44i32, 88i32, 168i32))
+    } else {
+        ((92i32, 96i32, 60i32), (168i32, 48i32, 40i32))
+    };
+    let mix = |a: i32, b: i32| a + (b - a) * depth / 1000;
+    let mut r = mix(base.0, pole.0);
+    let mut g = mix(base.1, pole.1);
+    let mut b = mix(base.2, pole.2);
+    if influence.is_locked(tag, tick) {
+        r = r * 55 / 100;
+        g = g * 55 / 100;
+        b = b * 55 / 100;
+    }
+    if influence.is_contested(tag, tick) {
+        r = (r + 70).min(255);
+        g = (g + 70).min(255);
+        b = (b + 40).min(255);
+    }
+    if influence.dormant.contains(tag) {
+        return (28, 30, 34);
+    }
+    (r as u8, g as u8, b as u8)
+}
+
 fn owner_color(data: &ScenarioData, tag: &CountryTag, province_id: u32) -> Color {
     let rgb = data
         .countries
@@ -548,6 +587,12 @@ fn spawn_hud(
                     "ECONOMY",
                     "The triage map: every region tinted by its binding constraint -- amber for power-starved, blue-gray for materials, violet for labor -- brightening with severity. Click a region's province, then open its dossier from the econ panel.",
                 ),
+                (
+                    MapMode::Influence,
+                    "ui/icon_influence.jpg",
+                    "INFLUENCE",
+                    "The map painted by alignment: blue leans West, red leans East, olive is non-aligned; deeper color is deeper commitment. Dark and dim: locked by treaty or garrison. Bright: an open contest. Open the politics panel (P) for the ledger and verbs.",
+                ),
             ] {
                 bar.spawn((
                     Button,
@@ -583,7 +628,7 @@ fn spawn_hud(
     commands.spawn((
         HudRoot,
         Text::new(
-            "Space: pause - 1-5: speed - E: economy - R: war room - N: the monthly - M: map mode - F5/F9: save/load - WASD/drag: pan - scroll: zoom",
+            "Space: pause - 1-5: speed - E: economy - R: war room - P: politics - I: intelligence - B: atomic - N: the monthly - M: map mode - F5/F9: save/load - WASD/drag: pan - scroll: zoom",
         ),
         crate::font(&fonts.body, 12.0),
         TextColor(HUD_DIM),
@@ -788,7 +833,8 @@ fn handle_input(
             MapMode::Power => MapMode::Strategic,
             MapMode::Strategic => MapMode::War,
             MapMode::War => MapMode::Economy,
-            MapMode::Economy => MapMode::Political,
+            MapMode::Economy => MapMode::Influence,
+            MapMode::Influence => MapMode::Political,
         };
     }
     for (key, level) in [
@@ -898,6 +944,9 @@ fn apply_map_mode(
     player: Option<Res<PlayerNation>>,
     fill: Option<Res<MapFill>>,
     snaps: Res<ugs_sim::construction::RegionSnapshots>,
+    influence: Res<ugs_sim::influence::Influence>,
+    clock: Res<ugs_sim::SimClock>,
+    mut influence_hash: Local<u64>,
     mut occupation_hash: Local<u64>,
     mut war_hash: Local<u64>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -915,6 +964,27 @@ fn apply_map_mode(
     let occupation_changed = occ_hash != *occupation_hash;
     if occupation_changed {
         *occupation_hash = occ_hash;
+    }
+    // Influence mode repaints when positions, locks or windows move —
+    // a cheap fold, not change detection (the resource is touched hourly).
+    let inf_hash = {
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        for (t, p) in &influence.position {
+            for b in t.0.bytes() {
+                h = (h ^ b as u64).wrapping_mul(0x0000_0100_0000_01b3);
+            }
+            h = (h ^ (*p as i64 as u64)).wrapping_mul(0x0000_0100_0000_01b3);
+        }
+        h = (h
+            ^ influence.lock.len() as u64
+            ^ (influence.contested_until.len() as u64) << 8
+            ^ (influence.dormant.len() as u64) << 16)
+            .wrapping_mul(0x0000_0100_0000_01b3);
+        h ^ (clock.tick / (24 * 30))
+    };
+    let influence_changed = inf_hash != *influence_hash;
+    if influence_changed {
+        *influence_hash = inf_hash;
     }
     // War mode repaints when the player's theater picture moves (painting
     // a province, objectives, wars joining/ending) — not every tick.
@@ -954,6 +1024,7 @@ fn apply_map_mode(
         && !(*mode == MapMode::Strategic && deterrence.is_changed())
         && !(*mode == MapMode::War && (war_changed || occupation_changed))
         && !(*mode == MapMode::Economy && snaps.is_changed())
+        && !(*mode == MapMode::Influence && (influence_changed || occupation_changed))
     {
         return;
     }
@@ -1031,6 +1102,10 @@ fn apply_map_mode(
                     Some((ConstraintKind::Funding, _)) => (60, 60, 68),
                     None => (20, 24, 28),
                 };
+                wobbled(rgb, *id)
+            }
+            MapMode::Influence => {
+                let rgb = influence_color(&influence, clock.tick, &effective_owner);
                 wobbled(rgb, *id)
             }
             MapMode::War => {

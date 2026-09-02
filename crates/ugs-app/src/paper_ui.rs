@@ -140,7 +140,19 @@ fn roman(n: i32) -> String {
     out
 }
 
-/// Rebuild the page when open (on open and at each month rollover).
+/// The sim state the paper reads (bundled: Bevy systems take at most
+/// sixteen parameters, and the paper reads more sources than that).
+#[derive(bevy::ecs::system::SystemParam)]
+struct Sources<'w> {
+    military: Res<'w, Military>,
+    settlements: Res<'w, Settlements>,
+    snaps: Res<'w, RegionSnapshots>,
+    econ: Res<'w, Economies>,
+    tension: Res<'w, GlobalTension>,
+    intel: Res<'w, ugs_sim::intel::Intel>,
+    influence: Res<'w, ugs_sim::influence::Influence>,
+}
+
 #[allow(clippy::too_many_arguments)]
 fn refresh_paper(
     mut commands: Commands,
@@ -148,12 +160,7 @@ fn refresh_paper(
     clock: Res<SimClock>,
     world: Res<World1950>,
     fired: Res<FiredEvents>,
-    military: Res<Military>,
-    settlements: Res<Settlements>,
-    snaps: Res<RegionSnapshots>,
-    econ: Res<Economies>,
-    tension: Res<GlobalTension>,
-    intel: Res<ugs_sim::intel::Intel>,
+    sources: Sources,
     fonts: Res<Fonts>,
     player: Option<Res<PlayerNation>>,
     last: Res<LastEdition>,
@@ -164,6 +171,15 @@ fn refresh_paper(
         *shown_month = 0;
         return;
     }
+    let Sources {
+        military,
+        settlements,
+        snaps,
+        econ,
+        tension,
+        intel,
+        influence,
+    } = sources;
     let idx = month_index(&clock);
     if !page.is_empty() && *shown_month == idx {
         return;
@@ -386,6 +402,56 @@ fn refresh_paper(
                             ));
                         }
                     }
+                    // THE COLONIAL QUESTION: open contests, believed lean.
+                    let now = (clock.date.year, clock.date.month, clock.date.day);
+                    let mut contests: Vec<(String, String)> = Vec::new();
+                    for tag in data.countries.keys() {
+                        let name = data.countries[tag].name.to_uppercase();
+                        if let Some(until) = influence.contested_until.get(tag) {
+                            if *until > clock.tick {
+                                let months = (*until - clock.tick) / (30 * 24);
+                                let lean = match military.alignment_of(&data, tag) {
+                                    Alignment::WesternBloc => "LEANS WEST",
+                                    Alignment::EasternBloc => "LEANS EAST",
+                                    Alignment::NonAligned => match influence.position_of(tag) {
+                                        p if p > 50 => "TILTS WEST",
+                                        p if p < -50 => "TILTS EAST",
+                                        _ => "UNDECIDED",
+                                    },
+                                };
+                                contests.push((name, format!("{months} MONTHS -- {lean}")));
+                                continue;
+                            }
+                        }
+                        if influence.dormant.contains(tag)
+                            && data.influence.seeds.iter().any(|s| {
+                                &s.tag == tag && s.announced.is_some_and(|d| d <= now)
+                            })
+                        {
+                            contests.push((name, "INDEPENDENCE ANNOUNCED".into()));
+                        }
+                    }
+                    if !contests.is_empty() {
+                        col.spawn((
+                            Text::new("THE COLONIAL QUESTION"),
+                            font(&fonts.display, 14.0),
+                            TextColor(INK),
+                        ));
+                        for (name, line) in contests.iter().take(7) {
+                            col.spawn((
+                                Text::new(format!("{name}: {line}")),
+                                font(&fonts.mono, 9.5),
+                                TextColor(INK),
+                            ));
+                        }
+                        if contests.len() > 7 {
+                            col.spawn((
+                                Text::new(format!("AND {} MORE FLAGS TO BE DECIDED.", contests.len() - 7)),
+                                font(&fonts.mono, 9.5),
+                                TextColor(INK_DIM),
+                            ));
+                        }
+                    }
                 });
                 // LEAD COLUMN.
                 body.spawn(Node {
@@ -482,6 +548,74 @@ fn refresh_paper(
                             font(&fonts.mono_bold, 10.0),
                             TextColor(INK),
                         ));
+                    }
+                    // INFLUENCE STANDINGS: the reserved page, now printed.
+                    if !influence.standings.is_empty() {
+                        col.spawn((
+                            Text::new("INFLUENCE STANDINGS"),
+                            font(&fonts.display, 14.0),
+                            TextColor(INK),
+                        ));
+                        let pop = {
+                            let mut m: std::collections::BTreeMap<ugs_data::CountryTag, u64> = Default::default();
+                            for p in data.provinces.values() {
+                                *m.entry(military.owner_of(p.id, &p.owner)).or_default() += p.population_k as u64;
+                            }
+                            m
+                        };
+                        let totals = ugs_sim::influence::bloc_totals(&influence, &military, &data, &pop);
+                        let sig2 = |n: u64| -> u64 {
+                            if n < 100 { n } else {
+                                let d = (n as f64).log10() as u32 + 1;
+                                let step = 10u64.pow(d - 2);
+                                n / step * step
+                            }
+                        };
+                        col.spawn((
+                            Text::new(format!(
+                                "WEST {} STATES, {}M SOULS. EAST {} STATES, {}M. NON-ALIGNED {} STATES, {}M.",
+                                totals[0].0, sig2(totals[0].1 / 1000), totals[1].0, sig2(totals[1].1 / 1000), totals[2].0, sig2(totals[2].1 / 1000)
+                            )),
+                            font(&fonts.mono, 10.0),
+                            TextColor(INK),
+                        ));
+                        for (region, s) in &influence.standings {
+                            let line = match (s.west_verdict, s.east_verdict) {
+                                (w, e) if w > e => format!("WEST {}", w.label()),
+                                (w, e) if e > w => format!("EAST {}", e.label()),
+                                _ => "CONTESTED".to_string(),
+                            };
+                            col.spawn((
+                                Text::new(format!("{}: {line} ({}W/{}E/{}N)", region.replace('_', " "), s.west, s.east, s.denied)),
+                                font(&fonts.mono, 9.5),
+                                TextColor(INK),
+                            ));
+                        }
+                        if let Some(cp) = influence.checkpoints.last() {
+                            col.spawn((
+                                Text::new(format!("ON THE RECORD SINCE THE {} RECKONING.", cp.year)),
+                                font(&fonts.mono, 9.0),
+                                TextColor(INK_DIM),
+                            ));
+                        }
+                        for (leader, list) in &influence.chequebook {
+                            let who = if leader.0 == "USA" { "WASHINGTON" } else { "MOSCOW" };
+                            let names: Vec<String> = list.iter().filter_map(|(t, k)| data.countries.get(t).map(|c| format!("{} ({})", c.name.to_uppercase(), k.label()))).collect();
+                            if !names.is_empty() {
+                                col.spawn((
+                                    Text::new(format!("{who}'S CHEQUEBOOK: {}", names.join(", "))),
+                                    font(&fonts.mono, 9.5),
+                                    TextColor(INK_DIM),
+                                ));
+                            }
+                        }
+                        for l in influence.last_month.iter().take(4) {
+                            col.spawn((
+                                Text::new(format!("- {l}")),
+                                font(&fonts.mono, 9.5),
+                                TextColor(INK_DIM),
+                            ));
+                        }
                     }
                     if let Some(m) = &me {
                         col.spawn((

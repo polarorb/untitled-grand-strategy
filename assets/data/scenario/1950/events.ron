@@ -68,6 +68,9 @@
         body: "MOSCOW -- FLASH -- USSR AND PEOPLES REPUBLIC OF CHINA SIGN TREATY OF FRIENDSHIP ALLIANCE AND MUTUAL ASSISTANCE. STALIN AND MAO COMMIT TO MUTUAL DEFENSE FOR THIRTY YEARS. SOVIET CREDITS AND TECHNICAL AID TO FOLLOW. THE SOCIALIST CAMP NOW SPANS FROM THE ELBE TO THE SOUTH CHINA SEA.",
         effects: [
             AdjustTension(30),
+            // Influence: the alliance locks Peking's position (influence.md);
+            // it lapses with the open split of 1961.
+            LockAlignment(country: ("PRC"), months: 132, label: "SINO-SOVIET TREATY"),
         ],
     ),
     EventDef(

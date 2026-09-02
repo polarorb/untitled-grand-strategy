@@ -69,7 +69,7 @@
             EventOption(
                 label: "COMMONWEALTH FIRST -- LEAN WEST",
                 effects: [
-                    SetAlignment(country: ("GHA"), alignment: "WesternBloc"),
+                    ShiftAlignment(country: ("GHA"), delta: 250),
                     GrantIndustry(country: ("GHA"), centi: 300),
                     GrantLegitimacy(country: ("GHA"), amount: -10),
                 ],
@@ -77,7 +77,7 @@
             EventOption(
                 label: "LOOK EAST -- SOCIALIST DEVELOPMENT",
                 effects: [
-                    SetAlignment(country: ("GHA"), alignment: "EasternBloc"),
+                    ShiftAlignment(country: ("GHA"), delta: -250),
                     GrantIndustry(country: ("GHA"), centi: 400),
                     AdjustTension(15),
                     AdjustStability(country: ("GHA"), delta: -10),
@@ -110,7 +110,8 @@
             EventOption(
                 label: "TAKE THE SOVIET CREDITS",
                 effects: [
-                    SetAlignment(country: ("GIN"), alignment: "EasternBloc"),
+                    ShiftAlignment(country: ("GIN"), delta: -250),
+                    SetArmyPatron(country: ("GIN"), patron: "East"),
                     GrantIndustry(country: ("GIN"), centi: 400),
                     AdjustTension(10),
                 ],

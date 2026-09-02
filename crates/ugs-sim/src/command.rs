@@ -213,6 +213,30 @@ pub enum SimCommand {
         country: CountryTag,
         level: u8,
     },
+    /// Influence (influence.md): open a standing program in a slot.
+    StartProgram {
+        sponsor: CountryTag,
+        target: CountryTag,
+        kind: crate::influence::ProgramKind,
+        tier: u8,
+    },
+    /// Influence: close a program. Withdrawing delivering aid is Aswan.
+    StopProgram {
+        sponsor: CountryTag,
+        target: CountryTag,
+    },
+    /// Influence: prepare an election push or a coup through the
+    /// sponsor's intelligence network.
+    LaunchInfluenceOp {
+        sponsor: CountryTag,
+        target: CountryTag,
+        kind: crate::influence::InfluenceOpKind,
+    },
+    /// Influence: clean abort of a preparing operation.
+    CancelInfluenceOp {
+        sponsor: CountryTag,
+        target: CountryTag,
+    },
     /// Fund a collection network against a target (owner = player).
     SetNetworkFunding {
         target: CountryTag,
@@ -267,6 +291,7 @@ pub fn apply_commands(
     mut nuclear: ResMut<crate::nuclear::NuclearPrograms>,
     mut intel: ResMut<crate::intel::Intel>,
     mut settlements: ResMut<crate::settlement::Settlements>,
+    mut influence: ResMut<crate::influence::Influence>,
     mut econ_ctx: EconCtx,
     deterrence: Res<crate::deterrence::Deterrence>,
     scenario: Option<Res<SimScenario>>,
@@ -793,6 +818,7 @@ pub fn apply_commands(
                         &mut econ_ctx.stat,
                         &mut econ_ctx.regional,
                         &econ_ctx.demo,
+                        &mut influence,
                         &scenario.0,
                         clock.date.year as i64 * 12 + clock.date.month as i64,
                         clock.tick,
@@ -834,6 +860,60 @@ pub fn apply_commands(
                 if let Some(owner) = player.0.clone() {
                     crate::intel::queue_operation(&mut intel, owner, target, kind);
                 }
+            }
+            SimCommand::StartProgram {
+                sponsor,
+                target,
+                kind,
+                tier,
+            } => {
+                if let Some(scenario) = &scenario {
+                    crate::influence::start_program(
+                        &mut influence,
+                        &military,
+                        &scenario.0,
+                        &clock,
+                        sponsor,
+                        target,
+                        kind,
+                        tier,
+                    );
+                }
+            }
+            SimCommand::StopProgram { sponsor, target } => {
+                if let Some(scenario) = &scenario {
+                    crate::influence::stop_program(
+                        &mut influence,
+                        &mut military,
+                        &scenario.0,
+                        &mut tension,
+                        &clock,
+                        sponsor,
+                        target,
+                    );
+                }
+            }
+            SimCommand::LaunchInfluenceOp {
+                sponsor,
+                target,
+                kind,
+            } => {
+                if let Some(scenario) = &scenario {
+                    crate::influence::launch_op(
+                        &mut influence,
+                        &military,
+                        &mut intel,
+                        &tension,
+                        &scenario.0,
+                        &clock,
+                        sponsor,
+                        target,
+                        kind,
+                    );
+                }
+            }
+            SimCommand::CancelInfluenceOp { sponsor, target } => {
+                crate::influence::cancel_op(&mut influence, &clock, sponsor, target);
             }
             SimCommand::SetAlertLevel { country, level } => {
                 if let Some(p) = nuclear.programs.get_mut(&country) {

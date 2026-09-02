@@ -7,6 +7,85 @@ otherwise. Newest first.
 
 ---
 
+## 2026-09-02 — The map is painted by alignment: the influence pillar
+
+The last pillar still at `sketch` is playable. A 7-analyst swarm plus
+two adversarial skeptics ([readup](research/influence.md)) converged on
+twelve principles and, more usefully, killed four ideas before they
+shipped: living-standard drift (the West paints the world for free),
+neutral gravity (a hundred countries decay to non-aligned before
+Korea), per-country cash aid (the HoI4 bank by the back door), and the
+three-faction triad four analysts proposed and none could seed. The
+[design doc](design/systems/influence.md) went sketch → designed →
+implemented in one session; the shape:
+
+- **One signed position per country** (−1000 East … +1000 West) behind
+  the existing `alignment_of` accessor. The bloc enum is *derived*, with
+  hysteresis (enter at 300, leave at 150) so a country cannot ping-pong,
+  and every one of the eleven existing consumers — basing, patrons,
+  red lines, the masthead — kept working untouched. Scripted
+  `SetAlignment` became a band-edge shove; new effects shift, lock,
+  crush, set the army's patron, and open contests; a new trigger lets
+  chains branch on who actually won.
+- **Verbs priced in slots, not cash.** Three standing programs and one
+  active operation for a 1950 superpower (unlocked further by the
+  Mutual Security Act, NSC 5412, the KGB's founding, the
+  Khrushchev–Bulganin tour). AID draws from your construction pool —
+  Iran's dam is a factory not built at home — lands an announcement
+  step, and *withdrawing* it is Aswan: a shove the other way and +5.0
+  tension. PRESENCE is near-free and halved in closed regimes. ELECTION
+  PUSH is offered only within six months of a sourced ballot (66 rows,
+  1950–1970) and nudges the roll by three points' worth. SPONSOR COUP
+  is gated on visible facts — stability under 50, an army not equipped
+  by the rival, no lock, the region open at this tension — prepares for
+  ninety days, and resolves on a printed frontier ("STAB 38 · ARMY:
+  US-EQUIPPED · NETWORK L2") into a four-rung ladder in Kent's
+  estimative words. Even a clean flip pays tension and legitimacy; an
+  exposed failure moves the target against you. Both ops spend the
+  espionage network that also collects.
+- **Decolonization is a contest.** Every Independence opens a 24-month
+  window — doubled rates, no hysteresis — and programs may target the
+  tag from the day the date was announced (Gold Coast: 18 September
+  1956). The seed table gives each of the 37 newborns a birth lean, an
+  army patron, and the announcement date.
+- **The AI is a published chequebook**, not a rival with a knife: one
+  deterministic allocator per bloc leader over overt verbs, reading a
+  month-start snapshot, printed in the paper ("MOSCOW'S CHEQUEBOOK:
+  INDONESIA, INDIA, YUGOSLAVIA"). AI coups stay timeline events. Said
+  plainly in the doc, first in the return queue.
+- **Standings and the reckoning.** Presence / Domination / Control per
+  region over a sourced 41-country battleground set, non-aligned
+  counted as *denied* to both, frozen at 1955, 1960 and 1965 — the
+  first real victory surface.
+- **Surfaces**: an INFLUENCE map mode (hue by pole, saturation by
+  depth, dark where locked, bright where contested), a politics panel
+  (P) with a twelve-row triage ledger and a one-page dossier whose
+  disabled verbs print why, and the newspaper's reserved INFLUENCE
+  STANDINGS page plus THE COLONIAL QUESTION. Foreign positions render
+  through political-domain penetration — the first consumer that
+  domain has had.
+
+The data pass was the historian agent's: 86 sourced 1950 seed rows
+(which also caught five NATO founders the map generator had tagged
+non-aligned), the newborn table, the battleground weights, the
+election calendar, and forty-nine dated unlocks. The calibration
+harness now runs fifteen hands-off years and checks forty anchor bands
+against history — it caught the one real tuning bug (an unopposed
+presence program painted Syria to +569 by 1965; consolidation now runs
+at half rate inside the sponsor's band) and otherwise landed: NATO
+Europe locked, Austria and Finland neutral, Egypt East after the arms
+deal and Aswan, Iraq non-aligned after 1958, Guinea gained and lost,
+Cuba East by 1965. Also fixed along the way: the Intelligence panel
+written in the espionage session was never registered in the app, and
+counterintel floors read static 1950 alignment (Cuba after 1961 stayed
+"open"). The sim-reviewer pass caught five more before commit: state
+unseeded on the paused boot screen, coup gates never re-checked at
+resolution, seeded locks lapsing on 30-day months, mid-month causes
+wiped before the rollover attributed a band change, and checkpoint
+standings missing from the digest. 90 tests green.
+
+---
+
 ## 2026-08-26 — Read all about it: the Monthly Paper
 
 Press **N**: the map dims under a full-screen period newspaper

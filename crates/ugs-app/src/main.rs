@@ -7,6 +7,8 @@ mod atomic_ui;
 mod audio;
 mod econ_ui;
 mod endgame;
+mod influence_ui;
+mod intel_ui;
 mod map;
 mod menu;
 mod paper_ui;
@@ -166,11 +168,15 @@ fn main() {
         widgets::WidgetsPlugin,
         paper_ui::PaperUiPlugin,
         atomic_ui::AtomicUiPlugin,
+        intel_ui::IntelUiPlugin,
+        influence_ui::InfluenceUiPlugin,
         endgame::EndgamePlugin,
     ));
     // Spawn the camera before the first state transition: initial OnEnter
     // systems (screen framing) run before Startup would.
     app.world_mut().spawn(Camera2d);
+    // The paused boot screen already shows alignment: seed it now.
+    ugs_sim::influence::ensure_seeded(app.world_mut());
     // Dev shortcut: UGS_NATION=TAG plays that nation (with UGS_SCREEN=game).
     if let Ok(tag) = std::env::var("UGS_NATION") {
         app.world_mut()

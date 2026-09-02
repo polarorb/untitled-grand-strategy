@@ -100,6 +100,18 @@ swallow the annexation. Or impose your own peace and hold ground the
 world never recognizes. Frozen conflicts, trusteeships, neutralized
 unifications, and revanchist rump states are all reachable endings.
 
+The map is painted by alignment now. Every country carries a signed
+position between the poles; you move it with capped standing programs
+(aid drawn from your own construction pool, radio and missions) and
+priced covert operations (a push on a sourced election, a coup gated
+on the target's stability and who equips its army, resolved in Sherman
+Kent's estimative words). Every independence opens a 24-month contest
+both blocs bid on; Moscow's chequebook is printed in your paper; the
+standings — Presence, Domination, Control per region — freeze at 1955,
+1960 and 1965 as the era's score.
+
+![The influence map mode and the politics ledger](media/influence-ledger.png)
+
 ![The war room's theater directives, mid-war](media/war-room-theaters.png)
 ![The forces ledger: stockpile, upkeep, named divisions](media/war-room-forces.png)
 
@@ -130,6 +142,7 @@ unifications, and revanchist rump states are all reachable endings.
 - [War legibility — making a war readable while you watch it](research/war-legibility.md)
 - [Nuclear weapons — the program, the brink, and the bomb](research/nuclear-weapons.md)
 - [Espionage — knowing things, doing things, the price of being caught](research/espionage.md)
+- [Influence — alignment as a contest, priced in slots and escalation](research/influence.md)
 - [Geodata sources & licensing](research/geodata.md)
 - [The 1950 sovereignty mapping](research/sovereignty-1950.md)
 

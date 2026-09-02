@@ -127,6 +127,7 @@
             EventOption(
                 label: "JOIN NATO -- RAISE THE BUNDESWEHR",
                 effects: [
+                    LockAlignment(country: ("FRG"), months: 600, label: "NATO"),
                     SpawnForces(owner: ("FRG"), province_owner: ("FRG"), province: "Nordrhein-Westfalen", archetype: "Infantry", divisions: 2, quality: 1000),
                     GrantStock(country: ("FRG"), amount: 15),
                     GrantLegitimacy(country: ("FRG"), amount: 10),
@@ -151,6 +152,7 @@
         body: "VIENNA -- FOREIGN MINISTERS OF THE FOUR OCCUPYING POWERS SIGN THE STATE TREATY AT THE BELVEDERE. FIGL SHOWS THE SIGNED INSTRUMENT FROM THE BALCONY TO A WEEPING CROWD. ALL OCCUPATION FORCES OUT BY OCTOBER -- AUSTRIA PLEDGES PERMANENT NEUTRALITY ON THE SWISS MODEL. THE FIRST SOVIET MILITARY WITHDRAWAL IN EUROPE SINCE THE WAR.",
         effects: [
             SetAlignment(country: ("AUT"), alignment: "NonAligned"),
+            LockAlignment(country: ("AUT"), months: 600, label: "STATE TREATY"),
             GrantLegitimacy(country: ("AUT"), amount: 15),
             AdjustStability(country: ("AUT"), delta: 10),
             AdjustTension(-25),
@@ -281,6 +283,8 @@
             EventOption(
                 label: "WITHDRAW FROM INTEGRATED COMMAND",
                 effects: [
+                    LockAlignment(country: ("FRA"), months: 0, label: ""),
+                    ShiftAlignment(country: ("FRA"), delta: -150),
                     AdjustTension(15),
                     GrantLegitimacy(country: ("FRA"), amount: 10),
                     AdjustStability(country: ("FRA"), delta: 5),

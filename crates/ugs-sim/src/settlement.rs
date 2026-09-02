@@ -919,6 +919,7 @@ fn execute(
     data: &ScenarioData,
     clock: &SimClock,
     military: &mut Military,
+    influence: &mut crate::influence::Influence,
     econ: &mut Economies,
     tension: &mut GlobalTension,
     fired: &mut crate::events::FiredEvents,
@@ -968,6 +969,7 @@ fn execute(
             }
             Clause::Dmz { .. } => {} // read from the treaty record
             Clause::ClientState { state, patron } => {
+                influence.client_state(military, data, state, patron, clock.tick);
                 military.log(
                     clock.tick,
                     format!("{} ENTERS {}'S ORBIT BY TREATY", state.0, patron.0),
@@ -985,6 +987,7 @@ fn execute(
             }
             Clause::Neutralization { state } => {
                 settlements.neutralized.insert(state.clone());
+                influence.neutralize(military, data, state, clock.tick);
             }
             Clause::Unification { absorbed, under }
             | Clause::Incorporation {
@@ -1081,6 +1084,7 @@ pub fn update_settlements(
     mut tension: ResMut<GlobalTension>,
     mut fired: ResMut<crate::events::FiredEvents>,
     mut settlements: ResMut<Settlements>,
+    mut influence: ResMut<crate::influence::Influence>,
 ) {
     let Some(scenario) = scenario else { return };
     let data = &scenario.0;
@@ -1092,6 +1096,7 @@ pub fn update_settlements(
             &clock,
             &mut rng,
             &mut military,
+            &mut influence,
             &mut econ,
             &mut settlements,
         );
@@ -1159,6 +1164,7 @@ pub fn update_settlements(
                 data,
                 &clock,
                 &mut military,
+                &mut influence,
                 &mut econ,
                 &mut tension,
                 &mut fired,
@@ -1235,6 +1241,7 @@ fn update_zones(
     clock: &SimClock,
     rng: &mut SimRng,
     military: &mut Military,
+    influence: &mut crate::influence::Influence,
     econ: &mut Economies,
     settlements: &mut Settlements,
 ) {
@@ -1252,6 +1259,17 @@ fn update_zones(
         }
     }
     membership.retain(|_, v| v.len() >= tuning::ZONE_MIN_PROVINCES);
+    // A released zone flows its popular disposition into the country
+    // position, through the holder's bloc frame (influence.md).
+    let released: Vec<((CountryTag, CountryTag), i16)> = settlements
+        .zones
+        .iter()
+        .filter(|(k, _)| !membership.contains_key(k))
+        .map(|(k, z)| (k.clone(), z.alignment))
+        .collect();
+    for ((holder, original), align) in released {
+        influence.zone_released(military, data, &holder, &original, align, clock.tick);
+    }
     settlements.zones.retain(|k, _| membership.contains_key(k));
     for key in membership.keys() {
         settlements.zones.entry(key.clone()).or_default();

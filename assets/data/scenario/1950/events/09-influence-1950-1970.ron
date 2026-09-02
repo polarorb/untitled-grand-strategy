@@ -1,0 +1,275 @@
+// Influence pillar 1950-1970 (docs/design/systems/influence.md) — the dated unlocks and pull events
+// that open the verbs, plus the Soviet economic offensive and the non-aligned founding.
+// Sources: Wikipedia: Campaign of Truth; Wikipedia: Stockholm Appeal; Wikipedia: Point Four Program;
+// Wikipedia: Mutual Security Act; Wikipedia: KGB; Wikipedia: NSC 5412; Wikipedia: Czechoslovak arms deal (1955);
+// Wikipedia: Nikita Khrushchev (1955 South Asia tour); Wikipedia: Non-Aligned Movement (Belgrade 1961).
+[
+    // SOURCE: Wikipedia "Campaign of Truth". Truman's speech to the American Society of Newspaper Editors, 20 April 1950, launched the Campaign of Truth and the expansion of Voice of America; RFE followed on 4 July 1950.
+    EventDef(
+        id: "campaign-of-truth",
+        trigger: Date((1950, 4, 20, 12)),
+        title: "TRUMAN LAUNCHES A CAMPAIGN OF TRUTH",
+        body: "WASHINGTON -- THE PRESIDENT TELLS THE NEWSPAPER EDITORS THAT THE COLD WAR IS A STRUGGLE FOR THE MINDS OF MEN AND ASKS CONGRESS FOR THE TRANSMITTERS TO FIGHT IT. VOICE OF AMERICA WILL DOUBLE ITS LANGUAGES; A RADIO FREE EUROPE IS BEING READIED IN MUNICH. THE STATE DEPARTMENT NOW HAS A BUDGET FOR PERSUASION.",
+        effects: [
+            UnlockPresence(country: ("USA")),
+        ],
+    ),
+    // SOURCE: Wikipedia "Stockholm Appeal". The World Peace Council's petition against atomic weapons opened 19 March 1950 and gathered hundreds of millions of signatures, chiefly in the Eastern bloc and among Western communist parties.
+    EventDef(
+        id: "stockholm-appeal",
+        trigger: Date((1950, 3, 19, 12)),
+        title: "STOCKHOLM APPEAL CIRCULATES IN THE WEST",
+        body: "STOCKHOLM -- THE WORLD PEACE COUNCIL OPENS A PETITION DEMANDING THE ABSOLUTE PROHIBITION OF THE ATOMIC BOMB. PARTY BRANCHES IN PARIS AND ROME ARE COLLECTING SIGNATURES DOOR TO DOOR. WASHINGTON CALLS IT A SOVIET INSTRUMENT; MILLIONS ARE SIGNING ANYWAY. MOSCOW HAS FOUND A LANGUAGE THE WEST'S STREETS UNDERSTAND.",
+        effects: [
+            GrantLegitimacy(country: ("SOV"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Point Four Program". The Act for International Development was signed 5 June 1950, creating the technical-assistance program Truman had announced in his January 1949 inaugural.
+    EventDef(
+        id: "point-four",
+        trigger: Date((1950, 6, 5, 12)),
+        title: "POINT FOUR SIGNED INTO LAW",
+        body: "WASHINGTON -- THE PRESIDENT SIGNS THE ACT FOR INTERNATIONAL DEVELOPMENT. AMERICAN ENGINEERS, AGRONOMISTS AND DOCTORS ARE TO GO WHERE THE MARSHALL PLAN NEVER REACHED -- THE VILLAGES OF ASIA, THE MIDDLE EAST AND LATIN AMERICA. THE APPROPRIATION IS SMALL. THE CLAIM IS LARGE: THAT FREE MEN CAN FEED THEMSELVES.",
+        effects: [
+            GrantLegitimacy(country: ("USA"), amount: 5),
+        ],
+    ),
+    // SOURCE: Wikipedia "Mutual Security Act". Signed 10 October 1951, it consolidated military, economic and technical aid under one authority and replaced the Marshall Plan's ECA with the Mutual Security Agency.
+    EventDef(
+        id: "mutual-security-act",
+        trigger: Date((1951, 10, 10, 12)),
+        title: "MUTUAL SECURITY ACT PASSES",
+        body: "WASHINGTON -- CONGRESS FOLDS MILITARY, ECONOMIC AND TECHNICAL AID INTO ONE MUTUAL SECURITY PROGRAM UNDER A SINGLE DIRECTOR. THE MARSHALL PLAN'S ECA IS DISSOLVED; ITS SUCCESSOR HAS A WIDER MAP AND A LONGER LIST. EVERY EMBASSY NOW HAS SOMETHING TO OFFER.",
+        effects: [
+            GrantInfluenceSlot(country: ("USA")),
+        ],
+    ),
+    // SOURCE: Wikipedia "KGB". The Committee for State Security was established 13 March 1954, separating foreign intelligence and covert action from the MVD.
+    EventDef(
+        id: "kgb-founded",
+        trigger: Date((1954, 3, 13, 12)),
+        title: "MOSCOW CREATES THE KGB",
+        body: "MOSCOW -- THE PRESIDIUM DETACHES STATE SECURITY FROM THE INTERIOR MINISTRY AND CONSTITUTES A COMMITTEE FOR STATE SECURITY UNDER SEROV. ITS FIRST CHIEF DIRECTORATE INHERITS THE FOREIGN NETWORKS AND A MANDATE FOR ACTIVE MEASURES ABROAD. THE ORGANS HAVE BEEN REORGANIZED BEFORE. THIS TIME THE NAME WILL LAST.",
+        effects: [
+            GrantInfluenceSlot(country: ("SOV"), ops: true),
+        ],
+    ),
+    // SOURCE: Wikipedia "NSC 5412". Approved 15 March 1954, NSC 5412 made the CIA responsible for covert operations abroad and defined them as deniable actions; the 5412 Committee (later the Special Group) reviewed them.
+    EventDef(
+        id: "nsc-5412",
+        trigger: Date((1954, 3, 15, 12)),
+        title: "NSC 5412: COVERT ACTION HAS A CHARTER",
+        body: "WASHINGTON -- THE NATIONAL SECURITY COUNCIL APPROVES A DIRECTIVE ASSIGNING COVERT OPERATIONS ABROAD TO THE CENTRAL INTELLIGENCE AGENCY, DEFINED AS ACTIONS THE GOVERNMENT CAN PLAUSIBLY DISCLAIM. A SMALL COMMITTEE WILL REVIEW THEM. AFTER IRAN, THE INSTRUMENT HAS A DOCTRINE.",
+        effects: [
+            GrantInfluenceSlot(country: ("USA"), ops: true),
+        ],
+    ),
+    // SOURCE: Wikipedia "Czechoslovak arms deal (1955)". Announced by Nasser on 27 September 1955: Soviet-bloc arms via Czechoslovakia, paid in cotton, after Washington and London had refused his terms. The Soviet economic offensive in the Third World begins here.
+    EventDef(
+        id: "czech-egyptian-arms-deal",
+        trigger: Date((1955, 9, 27, 12)),
+        title: "NASSER BUYS ARMS FROM PRAGUE",
+        body: "CAIRO -- PRESIDENT NASSER ANNOUNCES AN ARMS AGREEMENT WITH CZECHOSLOVAKIA: MIG FIGHTERS, ILYUSHIN BOMBERS, TANKS AND ARTILLERY, TO BE PAID FOR IN EGYPTIAN COTTON. WASHINGTON AND LONDON HAD SET CONDITIONS; MOSCOW SET NONE. THE SOVIET UNION HAS LEAPT THE NORTHERN TIER AND LANDED ON THE NILE.",
+        effects: [
+            SetArmyPatron(country: ("EGY"), patron: "East"),
+            ShiftAlignment(country: ("EGY"), delta: -150),
+            AdjustTension(10),
+        ],
+    ),
+    // SOURCE: Wikipedia "Nikita Khrushchev" / "Soviet Union-India relations". Khrushchev and Bulganin toured India, Burma and Afghanistan from 18 November to 21 December 1955, offering the Bhilai steel plant and $100M to Kabul: the economic offensive as policy.
+    EventDef(
+        id: "khrushchev-bulganin-tour",
+        trigger: Date((1955, 11, 18, 12)),
+        title: "KHRUSHCHEV AND BULGANIN TOUR THE SOUTH",
+        body: "NEW DELHI -- THE SOVIET LEADERS ARE GREETED BY CROWDS OF A MILLION. THEY OFFER A STEEL WORKS AT BHILAI, SPEAK OF KASHMIR AS INDIAN, AND FLY ON TO RANGOON AND KABUL WITH CREDITS IN THEIR LUGGAGE. THE FOREIGN MINISTRY HAS DISCOVERED THAT THE THIRD WORLD CAN BE COURTED, AND HAS OPENED AN ACCOUNT.",
+        effects: [
+            GrantInfluenceSlot(country: ("SOV")),
+            ShiftAlignment(country: ("IND"), delta: -50),
+            ShiftAlignment(country: ("AFG"), delta: -100),
+            ShiftAlignment(country: ("MMR"), delta: -50),
+        ],
+    ),
+    // SOURCE: Wikipedia "Non-Aligned Movement". The first Conference of Heads of State of Non-Aligned Countries met in Belgrade 1-6 September 1961, twenty-five states under Tito, Nehru, Nasser, Sukarno and Nkrumah.
+    EventDef(
+        id: "belgrade-conference",
+        trigger: Date((1961, 9, 1, 12)),
+        title: "THE NON-ALIGNED MEET AT BELGRADE",
+        body: "BELGRADE -- TWENTY-FIVE HEADS OF STATE, TITO'S GUESTS, DECLARE THEMSELVES OUTSIDE BOTH BLOCS AND ADDRESS AN APPEAL TO KENNEDY AND KHRUSHCHEV TO STOP TESTING. NEHRU, NASSER, SUKARNO AND NKRUMAH SIT AT ONE TABLE. THE MIDDLE OF THE MAP HAS A MOVEMENT, A SECRETARIAT AND A PRESS OFFICE.",
+        effects: [
+            GrantLegitimacy(country: ("YUG"), amount: 10),
+            GrantLegitimacy(country: ("IND"), amount: 5),
+            GrantLegitimacy(country: ("EGY"), amount: 5),
+            GrantLegitimacy(country: ("IDN"), amount: 5),
+        ],
+    ),
+
+    // SOURCE: Public Law 81-897, 29 December 1950, Yugoslav Emergency Relief Assistance Act ($50M food aid); Lees, Keeping Tito Afloat (1997).
+    EventDef(
+        id: "yugoslav-emergency-relief",
+        trigger: Date((1950, 12, 29, 12)),
+        title: "WASHINGTON FEEDS TITO",
+        body: "WASHINGTON -- CONGRESS VOTES FIFTY MILLION DOLLARS IN FOOD FOR A COMMUNIST COUNTRY. YUGOSLAVIA'S HARVEST HAS FAILED AND ITS FORMER FRIENDS HAVE CLOSED THE BORDER. THE PRESIDENT SAYS A TITO WHO CAN FEED HIS PEOPLE IS A TITO WHO CAN KEEP THIRTY DIVISIONS OUT OF STALIN'S ORDER OF BATTLE. THE HERESY IS NOW A LINE ITEM.",
+        effects: [
+            ShiftAlignment(country: ("YUG"), delta: 150),
+            GrantLegitimacy(country: ("USA"), amount: 5),
+        ],
+    ),
+    // SOURCE: Lees (1997): US-Yugoslav Military Assistance Agreement, 14 November 1951.
+    EventDef(
+        id: "yugoslav-map",
+        trigger: Date((1951, 11, 14, 12)),
+        title: "AMERICAN ARMS FOR THE YUGOSLAV ARMY",
+        body: "BELGRADE -- A MILITARY ASSISTANCE AGREEMENT IS SIGNED. AMERICAN TANKS AND JETS WILL EQUIP AN ARMY THAT STILL PARADES UNDER THE RED STAR. TITO GIVES NO BASES AND JOINS NO PACT. THE PENTAGON CALLS IT THE BEST BARGAIN IN EUROPE.",
+        effects: [
+            SetArmyPatron(country: ("YUG"), patron: "West"),
+        ],
+    ),
+    // SOURCE: Mutual Defense Treaty between the United States and the Republic of the Philippines, signed Washington 30 August 1951.
+    EventDef(
+        id: "us-philippines-mdt",
+        trigger: Date((1951, 8, 30, 12)),
+        title: "MUTUAL DEFENSE TREATY WITH MANILA",
+        body: "WASHINGTON -- THE UNITED STATES AND THE PHILIPPINES SIGN A MUTUAL DEFENSE TREATY. THE BASES AGREEMENT OF 1947 NOW HAS AN ALLIANCE AROUND IT. QUIRINO GETS HIS GUARANTEE; WASHINGTON GETS CLARK AND SUBIC FOR THE DURATION.",
+        effects: [
+            LockAlignment(country: ("PHL"), months: 600, label: "MUTUAL DEFENSE TREATY"),
+            ShiftAlignment(country: ("PHL"), delta: 250),
+        ],
+    ),
+    // SOURCE: ANZUS Treaty, signed San Francisco 1 September 1951 (Avalon Project).
+    EventDef(
+        id: "anzus",
+        trigger: Date((1951, 9, 1, 12)),
+        title: "ANZUS SIGNED AT SAN FRANCISCO",
+        body: "SAN FRANCISCO -- AUSTRALIA, NEW ZEALAND AND THE UNITED STATES SIGN A PACIFIC SECURITY TREATY. CANBERRA WANTED IT AS THE PRICE OF A SOFT PEACE WITH JAPAN. LONDON IS NOT A PARTY AND IS NOT PLEASED. THE SOUTHERN DOMINIONS HAVE A NEW SENIOR PARTNER.",
+        effects: [
+            LockAlignment(country: ("AUS"), months: 600, label: "ANZUS"),
+            ShiftAlignment(country: ("AUS"), delta: 250),
+            LockAlignment(country: ("NZL"), months: 600, label: "ANZUS"),
+            ShiftAlignment(country: ("NZL"), delta: 250),
+        ],
+    ),
+    // SOURCE: NATO accession protocol for Greece and Turkey, in force 18 February 1952.
+    EventDef(
+        id: "greece-turkey-nato",
+        trigger: Date((1952, 2, 18, 12)),
+        title: "GREECE AND TURKEY JOIN NATO",
+        body: "LISBON -- THE ATLANTIC ALLIANCE EXTENDS TO THE AEGEAN AND THE STRAITS. ATHENS AND ANKARA, WHOSE BRIGADES ARE FIGHTING IN KOREA, TAKE THEIR SEATS. THE SOUTHERN FLANK NOW RUNS FROM THE NORTH CAPE TO THE SOVIET CAUCASUS BORDER.",
+        effects: [
+            LockAlignment(country: ("GRC"), months: 600, label: "NATO"),
+            ShiftAlignment(country: ("GRC"), delta: 250),
+            LockAlignment(country: ("TUR"), months: 600, label: "NATO"),
+            ShiftAlignment(country: ("TUR"), delta: 250),
+        ],
+    ),
+    // SOURCE: Treaty of Mutual Cooperation and Security between the United States and Japan (1951), in force with the peace treaty 28 April 1952.
+    EventDef(
+        id: "us-japan-security-treaty",
+        trigger: Date((1952, 4, 28, 12)),
+        title: "JAPAN SOVEREIGN -- THE SECURITY TREATY TAKES EFFECT",
+        body: "TOKYO -- THE OCCUPATION ENDS AT MIDNIGHT. THE SECURITY TREATY SIGNED AT SAN FRANCISCO TAKES ITS PLACE: AMERICAN FORCES STAY, JAPAN REARMS SLOWLY, AND YOSHIDA GETS HIS COUNTRY BACK ON WASHINGTON'S TERMS. THE SOCIALISTS CALL IT A NEW OCCUPATION BY CONSENT.",
+        effects: [
+            LockAlignment(country: ("JAP"), months: 600, label: "SECURITY TREATY"),
+        ],
+    ),
+    // SOURCE: Pact of Madrid, 26 September 1953: US bases in Spain in exchange for aid; Payne, The Franco Regime.
+    EventDef(
+        id: "pact-of-madrid",
+        trigger: Date((1953, 9, 26, 12)),
+        title: "PACT OF MADRID: BASES FOR FRANCO",
+        body: "MADRID -- THE UNITED STATES AND SPAIN SIGN AGREEMENTS GIVING THE STRATEGIC AIR COMMAND FOUR BASES IN EXCHANGE FOR ECONOMIC AND MILITARY AID. FRANCO IS OUT OF QUARANTINE. EUROPE'S DEMOCRACIES OBJECT AND SAY NOTHING.",
+        effects: [
+            LockAlignment(country: ("ESP"), months: 600, label: "PACT OF MADRID"),
+            ShiftAlignment(country: ("ESP"), delta: 250),
+            SetArmyPatron(country: ("ESP"), patron: "West"),
+            GrantLegitimacy(country: ("USA"), amount: -3),
+        ],
+    ),
+    // SOURCE: US-ROK Mutual Defense Treaty, signed 1 October 1953.
+    EventDef(
+        id: "us-rok-mdt",
+        trigger: Date((1953, 10, 1, 12)),
+        title: "MUTUAL DEFENSE TREATY WITH SEOUL",
+        body: "WASHINGTON -- DULLES AND PYUN SIGN A MUTUAL DEFENSE TREATY. RHEE, WHO WANTED TO MARCH NORTH, GETS AN AMERICAN GARRISON INSTEAD. THE ARMISTICE LINE NOW HAS A GUARANTOR.",
+        effects: [
+            LockAlignment(country: ("KOR"), months: 600, label: "MUTUAL DEFENSE TREATY"),
+            ShiftAlignment(country: ("KOR"), delta: 250),
+        ],
+    ),
+    // SOURCE: Sino-American Mutual Defense Treaty, signed 2 December 1954.
+    EventDef(
+        id: "us-roc-mdt",
+        trigger: Date((1954, 12, 2, 12)),
+        title: "MUTUAL DEFENSE TREATY WITH TAIPEI",
+        body: "WASHINGTON -- THE UNITED STATES SIGNS A MUTUAL DEFENSE TREATY WITH THE REPUBLIC OF CHINA COVERING FORMOSA AND THE PESCADORES. THE OFFSHORE ISLANDS ARE LEFT DELIBERATELY VAGUE. CHIANG HAS HIS GUARANTEE; PEKING HAS ITS GRIEVANCE.",
+        effects: [
+            LockAlignment(country: ("ROC"), months: 600, label: "MUTUAL DEFENSE TREATY"),
+            ShiftAlignment(country: ("ROC"), delta: 250),
+        ],
+    ),
+    // SOURCE: Pact of Mutual Cooperation (Baghdad Pact), Turkey-Iraq 24 February 1955; Britain, Pakistan and Iran acceded later in 1955. Nasser's answer was the Czech arms deal.
+    EventDef(
+        id: "baghdad-pact",
+        trigger: Date((1955, 2, 24, 12)),
+        title: "BAGHDAD PACT SIGNED",
+        body: "BAGHDAD -- TURKEY AND IRAQ SIGN A PACT OF MUTUAL COOPERATION; BRITAIN, PAKISTAN AND IRAN ARE EXPECTED TO FOLLOW. THE NORTHERN TIER HAS A TREATY. NASSER CALLS IT A BRITISH PLOT TO SPLIT THE ARABS AND BEGINS LOOKING FOR ARMS ELSEWHERE.",
+        effects: [
+            ShiftAlignment(country: ("IRQ"), delta: 150),
+            ShiftAlignment(country: ("PAK"), delta: 200),
+            ShiftAlignment(country: ("EGY"), delta: -100),
+            AdjustTension(5),
+        ],
+    ),
+    // SOURCE: Althing resolution of 28 March 1956 calling for the departure of US forces from Keflavik; reversed after Hungary (December 1956). Ingimundarson, The Struggle for Western Integration.
+    EventDef(
+        id: "iceland-base-vote",
+        trigger: Date((1956, 3, 28, 12)),
+        title: "ALTHING VOTES TO SEND THE AMERICANS HOME",
+        body: "REYKJAVIK -- THE ICELANDIC PARLIAMENT RESOLVES THAT THE AMERICAN GARRISON AT KEFLAVIK SHOULD LEAVE. MOSCOW OFFERS TO BUY THE FISH. THE ALLIANCE'S NORTHERN HINGE HAS A MAJORITY AGAINST IT.",
+        effects: [
+            ShiftAlignment(country: ("ISL"), delta: -300),
+        ],
+    ),
+    // SOURCE: Ingimundarson; FRUS 1955-57 XXVII d179. After Hungary, the Icelandic government agreed in December 1956 that the Keflavik force would stay.
+    EventDef(
+        id: "iceland-base-reversal",
+        trigger: EventFired(id: "iceland-base-vote", days_after: 250),
+        title: "REYKJAVIK KEEPS THE GARRISON AFTER ALL",
+        body: "REYKJAVIK -- WITH SOVIET TANKS IN BUDAPEST, THE GOVERNMENT QUIETLY AGREES THAT THE AMERICANS AT KEFLAVIK WILL STAY. THE RESOLUTION OF MARCH IS NOT REPEALED, MERELY FORGOTTEN.",
+        effects: [
+            ShiftAlignment(country: ("ISL"), delta: 300),
+        ],
+    ),
+    // SOURCE: FRUS 1955-57 XV: Dulles withdrew the Aswan High Dam offer on 19 July 1956; Nasser nationalized the Canal Company on 26 July.
+    EventDef(
+        id: "aswan-withdrawal",
+        trigger: Date((1956, 7, 19, 12)),
+        title: "DULLES WITHDRAWS THE ASWAN OFFER",
+        body: "WASHINGTON -- THE SECRETARY OF STATE INFORMS THE EGYPTIAN AMBASSADOR THAT THE OFFER TO FINANCE THE HIGH DAM IS WITHDRAWN. LONDON AND THE WORLD BANK FOLLOW WITHIN HOURS. THE NOTE IS COLDLY WORDED AND WIDELY PRINTED. CAIRO HAS A GRIEVANCE, A CANAL, AND A WEEK TO THINK.",
+        effects: [
+            ShiftAlignment(country: ("EGY"), delta: -200),
+            AdjustTension(10),
+            GrantLegitimacy(country: ("USA"), amount: -5),
+        ],
+    ),
+    // SOURCE: Schmidt, Cold War and Decolonization in Guinea (2007): Ambassador Solod expelled 16 December 1961 after the teachers' plot.
+    EventDef(
+        id: "guinea-expels-solod",
+        trigger: Date((1961, 12, 16, 12)),
+        title: "CONAKRY EXPELS THE SOVIET AMBASSADOR",
+        body: "CONAKRY -- SEKOU TOURE DECLARES AMBASSADOR SOLOD PERSONA NON GRATA, ACCUSING MOSCOW OF STIRRING THE TEACHERS' PLOT AGAINST HIM. THE FIRST SOVIET CLIENT IN AFRICA HAS SHOWN THE FIRST SOVIET ADVISERS THE DOOR. AID BOUGHT ACCESS; IT DID NOT BUY LOYALTY.",
+        effects: [
+            ShiftAlignment(country: ("GIN"), delta: 250),
+            GrantLegitimacy(country: ("SOV"), amount: -5),
+        ],
+    ),
+    // SOURCE: OAS Eighth Meeting of Consultation, Punta del Este, 31 January 1962: Cuba excluded from the inter-American system.
+    EventDef(
+        id: "punta-del-este",
+        trigger: Date((1962, 1, 31, 12)),
+        title: "CUBA EXPELLED FROM THE INTER-AMERICAN SYSTEM",
+        body: "PUNTA DEL ESTE -- THE FOREIGN MINISTERS VOTE FOURTEEN TO ONE, WITH SIX ABSTENTIONS, THAT MARXISM-LENINISM IS INCOMPATIBLE WITH THE INTER-AMERICAN SYSTEM AND EXCLUDE HAVANA. THE RIO TREATY NO LONGER COVERS CUBA. IT NO LONGER BINDS IT EITHER.",
+        effects: [
+            LockAlignment(country: ("CUB"), months: 0, label: ""),
+        ],
+    ),
+]
