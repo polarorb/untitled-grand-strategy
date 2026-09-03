@@ -722,6 +722,19 @@ impl Military {
             fold_tag(&mut h, tag);
             fold(&mut h, *st as u64);
         }
+        // The record the era score reads (scoring.md).
+        for (a, b) in &self.wars {
+            fold_tag(&mut h, a);
+            fold_tag(&mut h, b);
+        }
+        for (tag, v) in &self.casualties {
+            fold_tag(&mut h, tag);
+            fold(&mut h, *v);
+        }
+        for (tag, v) in self.battles_won.iter().chain(self.battles_lost.iter()) {
+            fold_tag(&mut h, tag);
+            fold(&mut h, *v as u64);
+        }
         h
     }
 }

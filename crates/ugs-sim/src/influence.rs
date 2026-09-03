@@ -101,7 +101,7 @@ pub mod tuning {
     /// Wire lines emitted per month at most.
     pub const WIRE_PER_MONTH: usize = 6;
     /// Era checkpoints (first tick of January).
-    pub const CHECKPOINT_YEARS: [i32; 3] = [1955, 1960, 1965];
+    pub const CHECKPOINT_YEARS: [i32; 4] = [1955, 1960, 1965, 1970];
     /// Settlement clause teeth: client-state edge and lock, neutrality lock.
     pub const CLIENT_LOCK_MONTHS: u64 = 60;
     pub const NEUTRAL_LOCK_MONTHS: u64 = 120;
@@ -1267,7 +1267,7 @@ pub fn ensure_seeded(world: &mut bevy_ecs::world::World) {
 }
 
 /// Per-country population (thousands) by current holder.
-fn population_by_holder(data: &ScenarioData, military: &Military) -> BTreeMap<CountryTag, u64> {
+pub fn population_by_holder(data: &ScenarioData, military: &Military) -> BTreeMap<CountryTag, u64> {
     let mut out: BTreeMap<CountryTag, u64> = BTreeMap::new();
     for p in data.provinces.values() {
         let holder = military.owner_of(p.id, &p.owner);
@@ -2147,6 +2147,16 @@ pub fn band_word(a: Alignment) -> &'static str {
 }
 
 fn compute_standings(influence: &mut Influence, military: &Military, data: &ScenarioData) {
+    influence.standings = standings_from(influence, military, data);
+}
+
+/// The regional standings over the battleground set for the current
+/// bands, as a pure function (the score's par reads it at tick 0).
+pub fn standings_from(
+    influence: &Influence,
+    military: &Military,
+    data: &ScenarioData,
+) -> BTreeMap<String, RegionStanding> {
     let mut out: BTreeMap<String, RegionStanding> = BTreeMap::new();
     for t in &data.influence.thresholds {
         out.insert(t.region.clone(), RegionStanding::default());
@@ -2168,10 +2178,12 @@ fn compute_standings(influence: &mut Influence, military: &Military, data: &Scen
             s.east_verdict = verdict(s.east, s.west, t);
         }
     }
-    influence.standings = out;
+    out
 }
 
-fn verdict(mine: u8, rival: u8, t: &ugs_data::RegionThresholdDef) -> Verdict {
+/// The regional verdict for a pole holding `mine` battlegrounds
+/// against a rival holding `rival`.
+pub fn verdict(mine: u8, rival: u8, t: &ugs_data::RegionThresholdDef) -> Verdict {
     if mine >= t.control && rival == 0 {
         Verdict::Control
     } else if mine >= t.domination && mine > rival {
@@ -2354,6 +2366,8 @@ mod tests {
                 stake: "A TEST BALLOT".into(),
                 result: "THE COALITION HOLDS".into(),
             }],
+            region_values: Vec::new(),
+            scorecards: Vec::new(),
         };
         data
     }

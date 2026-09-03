@@ -1324,6 +1324,7 @@ fn update_ui_text(
     tension: Res<GlobalTension>,
     military: Res<Military>,
     nukes: Res<ugs_sim::nuclear::NuclearPrograms>,
+    ledger: Res<ugs_sim::score::Ledger>,
     player: Option<Res<PlayerNation>>,
     mode: Res<MapMode>,
     mut clock_text: Query<&mut Text, (With<ClockText>, Without<TensionText>)>,
@@ -1368,11 +1369,25 @@ fn update_ui_text(
             .filter(|prog| prog.stockpile > 0)
             .map(|prog| format!("ATOMIC {:04}    ", prog.assembled))
             .unwrap_or_default();
+        // The standing chip: one word, never a number (scoring.md).
+        let standing = player
+            .as_ref()
+            .map(|p| {
+                let (w, steady) = ledger.word_of(&p.0);
+                let arrow = match (w, steady) {
+                    (ugs_sim::score::Word::Gaining, true) => " ^",
+                    (ugs_sim::score::Word::Slipping, true) => " v",
+                    _ => "",
+                };
+                format!("STANDING {}{}    ", w.label(), arrow)
+            })
+            .unwrap_or_default();
         text.0 = format!(
-            "{}{}{}TENSION {:.1} ({})    MAP: {:?}",
+            "{}{}{}{}TENSION {:.1} ({})    MAP: {:?}",
             wars,
             army,
             atomic,
+            standing,
             tension.displayed(),
             tension.band(),
             *mode

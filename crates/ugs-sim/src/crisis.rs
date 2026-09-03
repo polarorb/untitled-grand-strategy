@@ -137,6 +137,11 @@ pub struct Crises {
     pub resolve: BTreeMap<CountryTag, i64>,
     /// Flashpoints already used (slug).
     pub used: Vec<String>,
+    /// Crisis outcomes per country (scoring.md attribution).
+    #[serde(default)]
+    pub prevailed: BTreeMap<CountryTag, u16>,
+    #[serde(default)]
+    pub stood_down: BTreeMap<CountryTag, u16>,
     /// Cursor into FiredEvents.resolved.
     resolved_cursor: usize,
     next_id: u32,
@@ -206,6 +211,10 @@ impl Crises {
         }
         for slug in &self.used {
             h = fold(h, slug);
+        }
+        for (tag, n) in self.prevailed.iter().chain(self.stood_down.iter()) {
+            h = fold(h, &tag.0);
+            h = (h ^ *n as u64).wrapping_mul(0x0000_0100_0000_01b3);
         }
         (h ^ self.next_id as u64).wrapping_mul(0x0000_0100_0000_01b3)
     }
@@ -325,6 +334,8 @@ pub fn update_crises(
                 } * climbed.max(1);
                 *crises.resolve.entry(actor.clone()).or_insert(START_RESOLVE) -= cost;
                 *crises.resolve.entry(other.clone()).or_insert(START_RESOLVE) += VICTORY_RESOLVE;
+                *crises.stood_down.entry(actor.clone()).or_default() += 1;
+                *crises.prevailed.entry(other.clone()).or_default() += 1;
                 tension.apply(CRISIS_END_TENSION);
                 fired.notices.push((
                     format!("{} ENDS", crisis.title),

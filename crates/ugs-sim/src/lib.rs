@@ -28,6 +28,7 @@ pub mod nuclear;
 pub mod planning;
 pub mod rng;
 pub mod savegame;
+pub mod score;
 pub mod settlement;
 pub mod tension;
 
@@ -116,6 +117,7 @@ impl Plugin for SimPlugin {
         app.init_resource::<crisis::Crises>();
         app.init_resource::<intel::Intel>();
         app.init_resource::<influence::Influence>();
+        app.init_resource::<score::Ledger>();
         app.init_resource::<settlement::Settlements>();
         app.init_resource::<construction::RegionalIndustry>();
         app.init_resource::<construction::Construction>();
@@ -159,6 +161,7 @@ impl Plugin for SimPlugin {
                 .chain()
                 .in_set(TickSet::Military),
         );
+        app.add_systems(SimTick, score::update_score.in_set(TickSet::Resolve));
         app.add_systems(
             SimTick,
             (
@@ -193,6 +196,7 @@ pub fn flush_commands(world: &mut bevy_ecs::world::World) {
     // Influence seeds before the first command can be judged against it
     // (slots, locks, positions all come from data).
     influence::ensure_seeded(world);
+    score::ensure_seeded(world);
     world
         .run_system_cached(command::apply_commands)
         .expect("apply_commands system params always present");

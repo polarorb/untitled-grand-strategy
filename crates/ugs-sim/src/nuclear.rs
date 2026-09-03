@@ -224,6 +224,12 @@ pub struct NuclearPrograms {
     /// One-way global flag: once a nuclear weapon is used in anger,
     /// every later use is cheaper for everyone (Tannenwald's taboo).
     pub taboo_broken: bool,
+    /// Who broke it, and when (scoring.md attribution).
+    #[serde(default)]
+    pub first_use: Option<(CountryTag, u64)>,
+    /// Attributed uses per country.
+    #[serde(default)]
+    pub uses: BTreeMap<CountryTag, u16>,
     /// Commander-request bookkeeping (the MacArthur chain).
     pub use_request_seq: u32,
     /// Calendar month index of the last request (0 = never).
@@ -271,6 +277,18 @@ impl NuclearPrograms {
             ] {
                 h = (h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
             }
+        }
+        if let Some((t, tick)) = &self.first_use {
+            for b in t.0.bytes() {
+                h = (h ^ b as u64).wrapping_mul(0x0000_0100_0000_01b3);
+            }
+            h = (h ^ *tick).wrapping_mul(0x0000_0100_0000_01b3);
+        }
+        for (t, n) in &self.uses {
+            for b in t.0.bytes() {
+                h = (h ^ b as u64).wrapping_mul(0x0000_0100_0000_01b3);
+            }
+            h = (h ^ *n as u64).wrapping_mul(0x0000_0100_0000_01b3);
         }
         h
     }
@@ -578,6 +596,10 @@ pub fn update_nuclear_use(
                     p.stockpile = p.stockpile.saturating_sub(1);
                 }
                 programs.taboo_broken = true;
+                if programs.first_use.is_none() {
+                    programs.first_use = Some((me.clone(), clock.tick));
+                }
+                *programs.uses.entry(me.clone()).or_default() += 1;
                 tension.apply(TACTICAL_USE_TENSION);
                 military.log(
                     clock.tick,

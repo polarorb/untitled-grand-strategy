@@ -151,6 +151,7 @@ struct Sources<'w> {
     tension: Res<'w, GlobalTension>,
     intel: Res<'w, ugs_sim::intel::Intel>,
     influence: Res<'w, ugs_sim::influence::Influence>,
+    ledger: Res<'w, ugs_sim::score::Ledger>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -179,6 +180,7 @@ fn refresh_paper(
         tension,
         intel,
         influence,
+        ledger,
     } = sources;
     let idx = month_index(&clock);
     if !page.is_empty() && *shown_month == idx {
@@ -461,6 +463,7 @@ fn refresh_paper(
                     ..default()
                 })
                 .with_children(|col| {
+                    score_pages(col, &ledger, &influence, &military, &econ, &intel, &data, &clock, &fonts, me.as_ref(), organ);
                     if stories.is_empty() {
                         col.spawn((
                             Text::new("A QUIET MONTH"),
@@ -532,6 +535,15 @@ fn refresh_paper(
                         font(&fonts.mono, 10.0),
                         TextColor(INK),
                     ));
+                    if let Some(m) = &me {
+                        for line in standing_lines(&ledger, &intel, &clock, m) {
+                            col.spawn((
+                                Text::new(line),
+                                font(&fonts.mono_bold, 10.0),
+                                TextColor(INK),
+                            ));
+                        }
+                    }
                     col.spawn((
                         Text::new(format!("WARS IN PROGRESS: {wars_now}")),
                         font(&fonts.mono, 10.0),
@@ -710,4 +722,448 @@ fn refresh_paper(
                 TextColor(INK_DIM),
             ));
         });
+}
+
+// --- The score surfaces (docs/design/systems/scoring.md) --------------------
+
+use ugs_sim::score::{self, Cause, Class, Grade, Ledger, Word};
+
+fn name_of(data: &ugs_data::ScenarioData, tag: &ugs_data::CountryTag) -> String {
+    data.nations_meta
+        .get(tag)
+        .map(|m| m.display_name.to_uppercase())
+        .or_else(|| data.countries.get(tag).map(|c| c.name.to_uppercase()))
+        .unwrap_or_else(|| tag.0.clone())
+}
+
+fn rival_of(
+    military: &Military,
+    data: &ugs_data::ScenarioData,
+    me: &ugs_data::CountryTag,
+) -> ugs_data::CountryTag {
+    match military.alignment_of(data, me) {
+        Alignment::EasternBloc => ugs_data::CountryTag("USA".into()),
+        _ => ugs_data::CountryTag("SOV".into()),
+    }
+}
+
+fn cause_text(cause: &Cause) -> String {
+    match cause {
+        Cause::None => "NOTHING MOVES".into(),
+        Cause::Map(r) => format!("{} RUNS THE LEDGER [P]", r.replace('_', " ")),
+        Cause::Output => "THE FACTORIES [E]".into(),
+        Cause::Standing => "OUR STANDING AT THE TABLE [R]".into(),
+        Cause::Peace => "THE PEACE, AND ITS PRICE [B]".into(),
+    }
+}
+
+fn months_until_reckoning(clock: &SimClock) -> Option<(i32, i64)> {
+    let next = ugs_sim::influence::tuning::CHECKPOINT_YEARS
+        .iter()
+        .copied()
+        .find(|y| *y > clock.date.year)?;
+    let months = (next as i64 - clock.date.year as i64) * 12 - (clock.date.month as i64 - 1);
+    Some((next, months.max(0)))
+}
+
+/// THE STANDING: one line, a word and a cause; a second for the poles.
+fn standing_lines(
+    ledger: &Ledger,
+    intel: &ugs_sim::intel::Intel,
+    clock: &SimClock,
+    me: &ugs_data::CountryTag,
+) -> Vec<String> {
+    let mut out = Vec::new();
+    if matches!(ledger.end, Some(score::CampaignEnd::Reckoning { .. })) {
+        out.push("THE RECORD IS CLOSED. SEE THE FINAL EDITION.".into());
+        return out;
+    }
+    let (word, steady) = ledger.word_of(me);
+    let cause = ledger
+        .provisional
+        .get(me)
+        .map(|c| cause_text(&c.cause))
+        .unwrap_or_else(|| "THE RECORD BEGINS".into());
+    let next = months_until_reckoning(clock)
+        .map(|(y, m)| format!(" -- NEXT RECKONING JAN {y} ({m} MONTHS)"))
+        .unwrap_or_default();
+    let arrow = match (word, steady) {
+        (Word::Gaining, true) => " (AND RISING)",
+        (Word::Slipping, true) => " (AND FALLING)",
+        _ => "",
+    };
+    out.push(format!(
+        "OUR STANDING: {}{arrow} -- {cause}{next}",
+        word.label()
+    ));
+    if me.0 == "USA" || me.0 == "SOV" {
+        let h = ledger.head_to_head();
+        let mine_ahead = (me.0 == "USA" && h > 0) || (me.0 == "SOV" && h < 0);
+        let rival = if me.0 == "USA" {
+            "MOSCOW"
+        } else {
+            "WASHINGTON"
+        };
+        let rival_tag = ugs_data::CountryTag(if me.0 == "USA" {
+            "SOV".into()
+        } else {
+            "USA".into()
+        });
+        let pen = intel.knowledge(me, &rival_tag, ugs_sim::intel::Domain::Economic);
+        let word = if h == 0 || pen < 250 {
+            "EVEN".to_string()
+        } else if mine_ahead {
+            format!(
+                "{} LEADING {rival}",
+                if pen >= 750 {
+                    "ALMOST CERTAINLY"
+                } else {
+                    "PROBABLY"
+                }
+            )
+        } else {
+            format!(
+                "{} TRAILING {rival}",
+                if pen >= 750 {
+                    "ALMOST CERTAINLY"
+                } else {
+                    "PROBABLY"
+                }
+            )
+        };
+        out.push(format!("HEAD TO HEAD: {word} (EST.)"));
+    }
+    if let Some(e) = ledger.eras.last() {
+        out.push(format!("ON THE RECORD SINCE THE {} RECKONING.", e.year));
+    }
+    out
+}
+
+fn sig2(n: u64) -> u64 {
+    if n < 100 {
+        n
+    } else {
+        let d = (n as f64).log10() as u32 + 1;
+        let step = 10u64.pow(d - 2);
+        n / step * step
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn score_pages(
+    col: &mut ChildSpawnerCommands,
+    ledger: &Ledger,
+    influence: &ugs_sim::influence::Influence,
+    military: &Military,
+    econ: &Economies,
+    intel: &ugs_sim::intel::Intel,
+    data: &ugs_data::ScenarioData,
+    clock: &SimClock,
+    fonts: &Fonts,
+    me: Option<&ugs_data::CountryTag>,
+    organ: bool,
+) {
+    let Some(me) = me else { return };
+    let head = |col: &mut ChildSpawnerCommands, t: &str| {
+        col.spawn((
+            Text::new(t.to_string()),
+            font(&fonts.display, 20.0),
+            TextColor(INK),
+        ));
+    };
+    let line = |col: &mut ChildSpawnerCommands, t: String, bold: bool| {
+        col.spawn((
+            Text::new(t),
+            font(if bold { &fonts.mono_bold } else { &fonts.mono }, 10.0),
+            TextColor(INK),
+        ));
+    };
+    let rule = |col: &mut ChildSpawnerCommands| {
+        col.spawn(Node {
+            width: Val::Percent(60.0),
+            height: Val::Px(1.0),
+            ..default()
+        })
+        .insert(BackgroundColor(RULE));
+    };
+    let scale = score::scale_of(data, me);
+    let rival = rival_of(military, data, me);
+
+    // --- HOW THE CENTURY IS SCORED: the founding edition only.
+    if clock.date.year == 1950 && clock.date.month == 1 {
+        head(col, "HOW THE CENTURY IS SCORED");
+        line(col, "THE RECORD IS KEPT IN FOUR TERMS AT FOUR DATES: 1 JANUARY 1955, 1960, 1965 AND 1970. THE MAP, COUNTED AS WHAT HAS CHANGED SINCE THIS MORNING IN THE REGIONS WE REACH; THE FACTORIES, AS GROWTH AGAINST THE RIVAL; OUR STANDING IN THE CHANCELLERIES; AND THE PEACE, WHICH CREDITS TREATIES AND DEBITS OUR DEAD. A STATE THAT JOINS NEITHER CAMP COUNTS AGAINST BOTH. A NUCLEAR WEAPON USED IS NEVER FORGIVEN. A GENERAL EXCHANGE ENDS THE RECORD FOR EVERYONE.".into(), false);
+        let reach = score::reach_of(data, me);
+        if reach.is_empty() {
+            line(col, "THIS NATION IS NOT ON THE CONTESTED MAP. ITS LEDGER MOVES ON STANDING AND THE PEACE [R] [B].".into(), true);
+        } else {
+            line(
+                col,
+                format!(
+                    "WE REACH: {}. SCALE {}.",
+                    reach
+                        .iter()
+                        .map(|r| r.replace('_', " "))
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    scale
+                ),
+                true,
+            );
+        }
+        rule(col);
+    }
+
+    // --- THE FINAL EDITION: the record is closed.
+    if let Some(score::CampaignEnd::Reckoning { year, .. }) = &ledger.end {
+        let class = ledger.class_of(me, scale);
+        let word = class.map(|c| c.label()).unwrap_or("NO CLASS");
+        head(col, &format!("THE FINAL EDITION, {year}: {}", word));
+        let total = ledger.campaign_total(me);
+        if class == Some(Class::Costly) {
+            line(col, format!("THE LEDGER READ {} ({total:+}), AT A PRICE THAT CAPS THE VERDICT: A WEAPON USED, OR OUR OWN DEAD BEYOND COUNTING.", ledger.ledger_class(me, scale).label()), true);
+        } else {
+            line(col, format!("THE ERAS SUM TO {total:+} SINCE 1950.",), true);
+        }
+        // Three bylines.
+        let me_name = name_of(data, me);
+        let rival_name = name_of(data, &rival);
+        let own = match class {
+            Some(Class::Won) => format!("{me_name} HAS WON THE CENTURY WITHOUT ENDING THE WORLD."),
+            Some(Class::Held) => format!(
+                "{me_name} HELD THE LINE. THE WORLD IS MUCH AS IT WAS, WHICH WAS THE POINT."
+            ),
+            Some(Class::Lost) => {
+                format!("{me_name} LOST GROUND IN EVERY REGION THAT MATTERED AND KEPT THE PEACE.")
+            }
+            Some(Class::Costly) => {
+                format!("{me_name} PAID FOR WHAT IT HOLDS IN A COIN THE WORLD DOES NOT FORGIVE.")
+            }
+            None => "THERE IS NO ONE LEFT TO WRITE THIS.".into(),
+        };
+        line(
+            col,
+            format!(
+                "{}: {own}",
+                if organ {
+                    "THE PARTY ORGAN"
+                } else {
+                    "OUR OWN PAGE"
+                }
+            ),
+            false,
+        );
+        let rival_view = match class {
+            Some(Class::Won) => format!("{rival_name} SAYS THE MAP LIES AND THE FACTORIES DO NOT."),
+            Some(Class::Lost) => format!("{rival_name} PRINTS THE MAP IN FULL COLOUR."),
+            _ => format!("{rival_name} CLAIMS THE SAME DECADE AS ITS OWN."),
+        };
+        line(
+            col,
+            format!(
+                "{}: {rival_view}",
+                if organ {
+                    "THE HERALD"
+                } else {
+                    "THE PEOPLE'S OBSERVER"
+                }
+            ),
+            false,
+        );
+        line(
+            col,
+            "THE NATIONAL GAZETTE: THE NON-ALIGNED COUNTED THE YEARS THEY WERE NOT ASKED.".into(),
+            false,
+        );
+        // The three things that decided it.
+        line(col, "THE THREE THINGS THAT DECIDED IT:".into(), true);
+        for (year, term, v) in ledger.decisive_terms(me) {
+            line(col, format!("  {year}: {term} {v:+}"), false);
+        }
+        // The era grid.
+        let mut grid = String::new();
+        for e in &ledger.eras {
+            if let Some(c) = e.cards.get(me) {
+                let (g, s) = score::grade(c, scale);
+                grid.push_str(&format!(
+                    "{}: {}{}  ",
+                    e.year,
+                    g.label(),
+                    if g == Grade::Stalemate {
+                        ""
+                    } else if s > 0 {
+                        " GAIN"
+                    } else {
+                        " LOSS"
+                    }
+                ));
+            }
+        }
+        line(col, grid, false);
+        // Belief beside the record.
+        line(col, "BELIEF BESIDE THE RECORD:".into(), true);
+        if let Some(last) = ledger.eras.last() {
+            if let Some(rc) = last.cards.get(&rival) {
+                line(
+                    col,
+                    format!(
+                        "  {rival_name} INDUSTRY PER HEAD: CLAIMED {}, RECORDED {}.",
+                        sig2(rc.ipc_reported),
+                        sig2(rc.ipc)
+                    ),
+                    false,
+                );
+            }
+            if let Some(oc) = last.cards.get(me) {
+                if oc.ipc_reported != oc.ipc {
+                    line(
+                        col,
+                        format!(
+                            "  OUR OWN BUREAU CLAIMED {}; THE RECORD SAYS {}.",
+                            sig2(oc.ipc_reported),
+                            sig2(oc.ipc)
+                        ),
+                        false,
+                    );
+                }
+            }
+        }
+        rule(col);
+        return;
+    }
+
+    // --- THE RECKONING: the page stays for a year after the freeze.
+    let Some(era) = ledger.eras.last() else {
+        return;
+    };
+    if clock.tick.saturating_sub(era.tick) > 365 * 24 {
+        return;
+    }
+    let Some(card) = era.cards.get(me) else {
+        return;
+    };
+    let (g, s) = score::grade(card, scale);
+    let grade_word = format!(
+        "{}{}",
+        g.label(),
+        if g == Grade::Stalemate {
+            ""
+        } else if s > 0 {
+            " GAIN"
+        } else {
+            " LOSS"
+        }
+    );
+    head(col, &format!("THE {} RECKONING: {grade_word}", era.year));
+    if card.catastrophe == score::Catastrophe::Scarred {
+        line(
+            col,
+            "SCARRED. THE CLASS IS CAPPED AT COSTLY FROM HERE.".into(),
+            true,
+        );
+    }
+    line(col, "WHERE WE STAND".into(), true);
+    let rc = era.cards.get(&rival);
+    let pen_econ = intel.knowledge(me, &rival, ugs_sim::intel::Domain::Economic);
+    let theirs_map = rc
+        .map(|c| format!("{:+}", c.map))
+        .unwrap_or_else(|| "?".into());
+    line(
+        col,
+        format!("  THE MAP       OURS {:+}   THEIRS {theirs_map}", card.map),
+        false,
+    );
+    let ours_out = econ.dashboard_industry_centi(me);
+    let theirs_out = if pen_econ >= 500 {
+        let obs = econ.observed_industry_centi(&rival, pen_econ);
+        format!("{} (EST.)", sig2(obs / 100))
+    } else {
+        "?".into()
+    };
+    let out_word = if score::tuning::OUTPUT_GATED {
+        " (CONTEXT ONLY)"
+    } else {
+        ""
+    };
+    line(
+        col,
+        format!(
+            "  THE FACTORIES INDUSTRY OURS {}{}   THEIRS {theirs_out}{out_word}",
+            sig2(ours_out / 100),
+            if econ.system.get(me) == Some(&EconomicSystem::Planned) {
+                " (AS REPORTED)"
+            } else {
+                ""
+            }
+        ),
+        false,
+    );
+    line(
+        col,
+        format!(
+            "  OUR STANDING  {:+} THIS ERA (LEGITIMACY {})",
+            card.standing, card.legitimacy
+        ),
+        false,
+    );
+    line(
+        col,
+        format!(
+            "  THE PEACE     {:+}: {} FALLEN (EXACT), {} TREATIES, {}",
+            card.peace,
+            fmt_men(card.dead),
+            card.treaties,
+            if card.uses > 0 {
+                "THE TABOO BROKEN BY OUR HAND"
+            } else {
+                "THE TABOO INTACT"
+            }
+        ),
+        false,
+    );
+    line(col, "THE MAP BY REGION".into(), true);
+    if let Some(cp) = influence.checkpoints.iter().find(|c| c.year == era.year) {
+        for (region, st) in &cp.standings {
+            let mine = match military.alignment_of(data, me) {
+                Alignment::EasternBloc => st.east_verdict,
+                _ => st.west_verdict,
+            };
+            let prize = if era.prize.as_deref() == Some(region.as_str()) {
+                "  -- THE PRIZE"
+            } else {
+                ""
+            };
+            line(
+                col,
+                format!(
+                    "  {}: {} ({}W/{}E/{}N){prize}",
+                    region.replace('_', " "),
+                    mine.label(),
+                    st.west,
+                    st.east,
+                    st.denied
+                ),
+                false,
+            );
+        }
+    }
+    if let Some(rc) = rc {
+        line(
+            col,
+            format!(
+                "AS THEY SEE IT: {} COUNTS ITS MAP AT {:+} AND ITS INDUSTRY AT {} PER HEAD.",
+                name_of(data, &rival),
+                rc.map,
+                sig2(rc.ipc_reported)
+            ),
+            false,
+        );
+    }
+    let sum: i32 = ledger.campaign_total(me);
+    line(
+        col,
+        format!("THE ERAS SO FAR SUM TO THE BOARD SINCE 1950: {sum:+}."),
+        true,
+    );
+    rule(col);
 }

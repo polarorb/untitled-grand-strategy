@@ -177,6 +177,7 @@ fn main() {
     app.world_mut().spawn(Camera2d);
     // The paused boot screen already shows alignment: seed it now.
     ugs_sim::influence::ensure_seeded(app.world_mut());
+    ugs_sim::score::ensure_seeded(app.world_mut());
     // Dev shortcut: UGS_NATION=TAG plays that nation (with UGS_SCREEN=game).
     if let Ok(tag) = std::env::var("UGS_NATION") {
         app.world_mut()

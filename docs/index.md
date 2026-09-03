@@ -112,6 +112,16 @@ standings — Presence, Domination, Control per region — freeze at 1955,
 
 ![The influence map mode and the politics ledger](media/influence-ledger.png)
 
+And the century is scored. The record is kept in words at four dates,
+1955 through 1970, in four terms — the map as a delta from 1950 in
+your own column, the factories, your standing in the chancelleries,
+and the peace — with one formula for every nation from Washington to
+Luxembourg. A HUD chip reads GAINING or SLIPPING, the paper prints why
+and which panel to open, each reckoning arrives as a teletype special,
+and the final edition of 1970 prints WON, HELD or LOST beside what
+your intelligence believed. Break the taboo and the best you can do
+is COSTLY. End the world and there is no verdict for anyone.
+
 ![The war room's theater directives, mid-war](media/war-room-theaters.png)
 ![The forces ledger: stockpile, upkeep, named divisions](media/war-room-forces.png)
 
@@ -143,6 +153,7 @@ standings — Presence, Domination, Control per region — freeze at 1955,
 - [Nuclear weapons — the program, the brink, and the bomb](research/nuclear-weapons.md)
 - [Espionage — knowing things, doing things, the price of being caught](research/espionage.md)
 - [Influence — alignment as a contest, priced in slots and escalation](research/influence.md)
+- [Scoring — how contemporaries kept score, and how the verdict is kept in words](research/scoring.md)
 - [Geodata sources & licensing](research/geodata.md)
 - [The 1950 sovereignty mapping](research/sovereignty-1950.md)
 

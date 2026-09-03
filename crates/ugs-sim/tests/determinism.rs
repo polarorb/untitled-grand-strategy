@@ -70,8 +70,9 @@ fn snapshot(app: &App) -> String {
         world.resource::<ugs_sim::economy::EconomyStatic>().digest(),
         world.resource::<ugs_sim::events::FiredEvents>().digest()
     ) + &format!(
-        "|inf:{:x}",
-        world.resource::<ugs_sim::influence::Influence>().digest()
+        "|inf:{:x}|led:{:x}",
+        world.resource::<ugs_sim::influence::Influence>().digest(),
+        world.resource::<ugs_sim::score::Ledger>().digest()
     )
 }
 

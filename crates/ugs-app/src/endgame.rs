@@ -133,6 +133,20 @@ fn the_end(
                 font(&fonts.mono, 12.0),
                 TextColor(Color::srgb(0.5, 0.5, 0.5)),
             ));
+            // The one line the ledger adds: when the record last spoke.
+            let (ly, lm) = if clock.date.month == 1 {
+                (clock.date.year - 1, 12)
+            } else {
+                (clock.date.year, clock.date.month - 1)
+            };
+            s.spawn((
+                Text::new(format!(
+                    "THE LAST EDITION OF THE PAPER WAS {}/{ly}. THERE IS NO LEDGER.",
+                    lm
+                )),
+                font(&fonts.mono, 11.0),
+                TextColor(Color::srgb(0.45, 0.45, 0.45)),
+            ));
             s.spawn((
                 Text::new(""),
                 font(&fonts.mono, 14.0),

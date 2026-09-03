@@ -44,17 +44,23 @@ Every mechanic must serve at least one pillar; anything serving none gets cut.
 - Not a strict historical railroad. 1950 is the shared opening position;
   history diverges from the player's first decision.
 
-## Victory (working theory)
+## Victory
 
-No single "win by conquering X." Era-scored victory across checkpoints
-(1955, 1960, ...) measuring bloc alignment, economic output, prestige, and
-avoided catastrophes. Losing Armageddon is shared; "winning" one is pyrrhic.
+No single "win by conquering X." The record is kept in words at four
+dates — 1 January 1955, 1960, 1965 and 1970 — in four terms: the map
+(as a delta from 1950 in the nation's own column), the factories,
+standing in the chancelleries, and the peace. Every nation is scored
+by the same formula; the verdict is WON / HELD / LOST, capped at
+COSTLY for anyone who broke the taboo or bled beyond counting, and
+there is no verdict for anyone after a general exchange. See
+[Era scoring & the verdict](systems/scoring.md).
 
 ## Design doc index
 
 - [Time & map](systems/time-and-map.md)
 - [Escalation & nuclear war](systems/escalation.md)
 - [Influence & ideology](systems/influence.md)
+- [Era scoring & the verdict](systems/scoring.md)
 - [Intelligence & covert ops](systems/espionage.md)
 - [Economy](systems/economy.md)
 - [Military](systems/military.md)

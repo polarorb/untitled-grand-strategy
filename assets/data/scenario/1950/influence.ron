@@ -479,4 +479,25 @@
     // CHL (1970, 9, 4): FLIPPED. src: Church Committee
         ElectionDef(date: (1970, 9, 4), tag: ("CHL"), stake: "PRESIDENCY", result: "ALLENDE 36.6%; CONGRESS CONFIRMS 24 OCT DESPITE TRACK I/II"),
     ],
+    // Era-score point values (scoring.md): Twilight Struggle Deluxe 10.1 region values,
+    // Europe Control capped at 12 (no auto-win). Battleground counts add +1 each.
+    region_values: [
+        RegionValueDef(region: "EUROPE", presence: 3, domination: 7, control: 12),
+        RegionValueDef(region: "MIDDLE_EAST", presence: 3, domination: 5, control: 7),
+        RegionValueDef(region: "ASIA", presence: 3, domination: 7, control: 10),
+        RegionValueDef(region: "AFRICA", presence: 1, domination: 4, control: 6),
+        RegionValueDef(region: "CENTRAL_AMERICA", presence: 1, domination: 3, control: 5),
+        RegionValueDef(region: "SOUTH_AMERICA", presence: 2, domination: 5, control: 6),
+    ],
+    // Scorecards: reach regions and scale (1 superpower, 2 middle, 3 minor). Absent = own region, scale 3.
+    scorecards: [
+        ScorecardDef(tag: ("USA"), reach: ["EUROPE", "MIDDLE_EAST", "ASIA", "AFRICA", "CENTRAL_AMERICA", "SOUTH_AMERICA"], scale: 1),
+        ScorecardDef(tag: ("SOV"), reach: ["EUROPE", "MIDDLE_EAST", "ASIA", "AFRICA", "CENTRAL_AMERICA", "SOUTH_AMERICA"], scale: 1),
+        ScorecardDef(tag: ("GBR"), reach: ["EUROPE", "MIDDLE_EAST", "ASIA", "AFRICA"], scale: 2),
+        ScorecardDef(tag: ("FRA"), reach: ["EUROPE", "AFRICA", "MIDDLE_EAST"], scale: 2),
+        ScorecardDef(tag: ("PRC"), reach: ["ASIA"], scale: 2),
+        ScorecardDef(tag: ("IND"), reach: ["ASIA"], scale: 2),
+        ScorecardDef(tag: ("EGY"), reach: ["MIDDLE_EAST", "AFRICA"], scale: 2),
+        ScorecardDef(tag: ("YUG"), reach: ["EUROPE"], scale: 2),
+    ],
 )

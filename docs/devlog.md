@@ -7,6 +7,59 @@ otherwise. Newest first.
 
 ---
 
+## 2026-09-03 — The record is kept in words: era scoring and the verdict
+
+The vision promised era-scored victory and nothing read the standings
+the influence pillar froze. A 6-analyst swarm plus two skeptics
+([readup](research/scoring.md)) converged fast on what not to build:
+no hands-off "historical par" (one seed's sample, graded passivity as
+history), no per-nation expectation rows (a second scoring system in
+data), no write-backs that compound, no score-reading AI (a reverse
+thermostat), and — the fatal one, which three analysts had shipped —
+no winner under the mushroom cloud. The
+[design doc](design/systems/scoring.md) shipped in a day:
+
+- **Four terms at four dates.** MAP is the board delta since 1950 in
+  the nation's own column, over its reach, using the regional
+  Presence / Domination / Control verdicts and Twilight Struggle's
+  region values; the field denies verdicts but a state born non-aligned
+  moves neither pole's board. STANDING is the legitimacy band delta,
+  PEACE credits executed treaties and debits own dead per capita,
+  attributed nuclear use, and months at the Brink. OUTPUT is computed
+  and printed but gated: the hands-off economy grows Soviet industry
+  per head ten times faster than American in every era, so the term
+  would decide the century alone until the economy doc calibrates it.
+- **Catastrophe above the score.** UNSCARRED / SCARRED / EXCHANGE. A
+  weapon used by your hand or your own dead beyond thirty per ten
+  thousand caps the class at COSTLY with the bill printed; the exchange
+  removes the class for everyone, and the funeral screen gained exactly
+  one line.
+- **One formula for 86 nations**, all asymmetry in two data fields:
+  reach regions and a scale (1 / 2 / 3). Luxembourg's ledger moves on
+  standing and the peace, and the paper says so.
+- **Words, not numbers.** A HUD chip reading GAINING / HOLDING /
+  SLIPPING; THE STANDING line in the paper with the term that moved it
+  and the key of the panel that owns it; HOW THE CENTURY IS SCORED in
+  the founding edition; THE RECKONING as a pausing teletype special
+  plus a page that stays a year; THE FINAL EDITION at 1970 with three
+  bylines, the three things that decided it, and belief beside the
+  record.
+- **Attribution the sim lacked**: who broke the taboo and when, who
+  prevailed and who stood down in a crisis, who proposed a treaty; and
+  the military's casualties and battles joined its digest, where they
+  had been divergence-invisible.
+
+Hands off, the poles read 1955 West NARROW GAIN, 1960 and 1965 East
+CLEAR, 1970 STALEMATE — both HELD, both UNSCARRED, the US Korean dead
+73,000 on the record — after two real fixes the harness forced: the
+board rule subtracting the best other column (the 1955 East read −8
+with nothing flipped) and per-capita dead divided by population in
+thousands (Korea scarred the United States). `TickSet::Resolve`, empty
+since the first commit and documented as the home for victory checks,
+finally has a system. 97 tests green.
+
+---
+
 ## 2026-09-02 — The map is painted by alignment: the influence pillar
 
 The last pillar still at `sketch` is playable. A 7-analyst swarm plus

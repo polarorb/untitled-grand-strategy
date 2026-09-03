@@ -390,6 +390,30 @@ pub struct InfluenceData {
     /// Sourced election calendar for the battleground democracies.
     #[serde(default)]
     pub elections: Vec<ElectionDef>,
+    /// Era-score point values per region (scoring.md): Presence /
+    /// Domination / Control, Twilight Struggle's, Europe capped.
+    #[serde(default)]
+    pub region_values: Vec<RegionValueDef>,
+    /// Per-nation scorecard: reach regions and scale. Absent = own
+    /// region, scale 3.
+    #[serde(default)]
+    pub scorecards: Vec<ScorecardDef>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegionValueDef {
+    pub region: String,
+    pub presence: i32,
+    pub domination: i32,
+    pub control: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScorecardDef {
+    pub tag: CountryTag,
+    pub reach: Vec<String>,
+    /// 1 superpower, 2 middle power, 3 minor.
+    pub scale: u8,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -989,6 +1013,49 @@ impl ScenarioData {
                     "thresholds {}: presence <= domination <= control required",
                     t.region
                 )));
+            }
+        }
+        for rv in &inf.region_values {
+            if !regions.contains(rv.region.as_str()) {
+                return Err(DataError::Validation(format!(
+                    "region_values {}: region has no thresholds row",
+                    rv.region
+                )));
+            }
+            if !(rv.presence <= rv.domination && rv.domination <= rv.control) {
+                return Err(DataError::Validation(format!(
+                    "region_values {}: presence <= domination <= control required",
+                    rv.region
+                )));
+            }
+        }
+        let mut sc_seen = std::collections::BTreeSet::new();
+        for sc in &inf.scorecards {
+            if !self.countries.contains_key(&sc.tag) {
+                return Err(DataError::Validation(format!(
+                    "scorecard for unknown country {}",
+                    sc.tag.0
+                )));
+            }
+            if !sc_seen.insert(sc.tag.clone()) {
+                return Err(DataError::Validation(format!(
+                    "duplicate scorecard {}",
+                    sc.tag.0
+                )));
+            }
+            if !(1..=3).contains(&sc.scale) {
+                return Err(DataError::Validation(format!(
+                    "scorecard {}: scale must be 1-3",
+                    sc.tag.0
+                )));
+            }
+            for r in &sc.reach {
+                if !regions.contains(r.as_str()) {
+                    return Err(DataError::Validation(format!(
+                        "scorecard {}: unknown region {r}",
+                        sc.tag.0
+                    )));
+                }
             }
         }
         let mut last: Option<(i32, u8, u8)> = None;

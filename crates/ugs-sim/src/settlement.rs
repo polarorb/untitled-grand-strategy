@@ -237,6 +237,9 @@ pub struct Treaty {
     pub clauses: Vec<Clause>,
     pub signatories: BTreeSet<CountryTag>,
     pub tick: u64,
+    /// Who brought the package to the table (scoring.md attribution).
+    #[serde(default)]
+    pub proposer: Option<CountryTag>,
 }
 
 /// Armistice without a treaty: the era's signature outcome.
@@ -418,6 +421,10 @@ impl Settlements {
             }
             for c in &t.clauses {
                 fold_clause(&mut h, c);
+            }
+            fold(&mut h, t.tick);
+            if let Some(p) = &t.proposer {
+                fold_tag(&mut h, p);
             }
         }
         for f in &self.frozen {
@@ -1059,6 +1066,7 @@ fn execute(
         clauses: proposal.clauses.clone(),
         signatories: signatories.iter().cloned().collect(),
         tick: clock.tick,
+        proposer: Some(proposal.proposer.clone()),
     });
     let names: Vec<&str> = signatories.iter().map(|t| t.0.as_str()).collect();
     fired.notices.push((
