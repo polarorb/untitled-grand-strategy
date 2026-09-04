@@ -1326,7 +1326,7 @@ pub fn update_influence(
         }
         let sponsor = CountryTag(parts[2].into());
         let target = CountryTag(parts[3].into());
-        if option == 0 {
+        if option == 1 {
             *settlements.legitimacy.entry(sponsor.clone()).or_default() +=
                 tuning::RECOGNISE_LEGITIMACY;
             if let Some(pole) = Pole::of(military.alignment_of(data, &sponsor)) {
@@ -1527,7 +1527,7 @@ fn resolve_coup(
                     kent_word(p)
                 ),
                 country: sponsor.clone(),
-                options: vec!["RECOGNISE AT ONCE".into(), "STAY QUIET".into()],
+                options: vec!["STAY QUIET".into(), "RECOGNISE AT ONCE".into()],
                 deadline_tick: clock.tick + 72,
             });
         }

@@ -397,7 +397,7 @@ pub fn update_espionage(
     intel.spy_cursor = fired.resolved.len();
     for (_, option) in answered {
         match option {
-            0 => {
+            1 => {
                 // Public show trial: domestic cohesion up, tension up,
                 // the rival embarrassed.
                 tension.apply(25);
@@ -581,9 +581,11 @@ pub fn update_espionage(
                     owner.0
                 ),
                 country: defender.clone(),
+                // The cautious default first: an unanswered case is
+                // expelled quietly at the deadline.
                 options: vec![
-                    "PUBLIC SHOW TRIAL".into(),
                     "QUIET EXPULSION".into(),
+                    "PUBLIC SHOW TRIAL".into(),
                 ],
                 deadline_tick: clock.tick + 96,
             });

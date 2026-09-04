@@ -109,6 +109,14 @@ pub fn load_save(world: &mut World, save: &SaveGame) {
         }
         world.run_schedule(crate::SimTick);
     }
+    // The replay regenerates every teletype notice of the intervening
+    // years; a loaded game should not re-read them. Notices are derived
+    // narrative (not digested), so clearing them changes no state that
+    // matters. Live decisions stay.
+    world
+        .resource_mut::<crate::events::FiredEvents>()
+        .notices
+        .clear();
 }
 
 #[cfg(test)]

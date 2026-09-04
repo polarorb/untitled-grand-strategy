@@ -732,6 +732,19 @@ mod tests {
         app
     }
 
+    /// Advance a day at a time until the theater commander asks for the
+    /// bomb (requests expire at their deadline, so a fixed wait can miss
+    /// the window).
+    fn wait_for_request(app: &mut App, max_days: u64) {
+        for _ in 0..max_days {
+            run_ticks(app, 24);
+            let fired = app.world().resource::<FiredEvents>();
+            if fired.dynamic.iter().any(|d| d.id.starts_with("nuke-use-")) {
+                return;
+            }
+        }
+    }
+
     #[test]
     fn programs_seed_the_1950_balance() {
         let mut app = app_with_scenario();
@@ -787,7 +800,7 @@ mod tests {
             });
         // Through the invasion and the summer retreat: the KPA takes
         // ROK provinces, the commander asks for the bomb.
-        run_ticks(&mut app, 24 * 245);
+        wait_for_request(&mut app, 245);
         let fired = app.world().resource::<FiredEvents>();
         let request = fired
             .dynamic
@@ -846,7 +859,7 @@ mod tests {
             .push(crate::command::SimCommand::SetPlayerCountry {
                 country: Some(CountryTag("USA".into())),
             });
-        run_ticks(&mut app, 24 * 245);
+        wait_for_request(&mut app, 245);
         let request_id = {
             let fired = app.world().resource::<FiredEvents>();
             fired

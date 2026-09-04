@@ -58,6 +58,16 @@ thousands (Korea scarred the United States). `TickSet::Resolve`, empty
 since the first commit and documented as the home for victory checks,
 finally has a system. 97 tests green.
 
+Taking the screenshots for this entry turned up two old quirks, both
+fixed the next morning: a loaded save left the top bar reading
+"Observer" because the HUD was built once on entering the game, before
+the load handed over the nation (it now rebuilds after any load); and
+sim-generated decisions — the commander's atomic request, a captured
+spy, a junta asking for recognition — never expired, so an unanswered
+one followed a replay for years with "0 HOURS" on the card. They now
+lapse at their deadline to the cautious default, and every such card
+lists that default first: refuse release, expel quietly, stay quiet.
+
 ---
 
 ## 2026-09-02 — The map is painted by alignment: the influence pillar

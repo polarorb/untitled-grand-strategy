@@ -136,6 +136,7 @@ impl Plugin for MapPlugin {
             Update,
             (
                 handle_input,
+                spawn_hud,
                 save_load,
                 camera_controls,
                 drive_sim,
@@ -1172,6 +1173,7 @@ fn dev_autoload(world: &mut World, done: &mut bool) {
         load_save(world, &save);
         if let Some(tag) = &save.player {
             world.insert_resource(PlayerNation(CountryTag(tag.clone())));
+            respawn_hud(world);
             // The replayed log may predate the player pick; tell the sim
             // who is in charge so the armistice AI never decides for us.
             world
@@ -1181,6 +1183,18 @@ fn dev_autoload(world: &mut World, done: &mut bool) {
                 });
         }
         info!("autoloaded {path} at tick {}", save.current_tick);
+    }
+}
+
+/// Tear the HUD down so `spawn_hud` (also registered in Update) rebuilds
+/// it for the nation a save just handed us.
+fn respawn_hud(world: &mut World) {
+    let roots: Vec<Entity> = world
+        .query_filtered::<Entity, With<HudRoot>>()
+        .iter(world)
+        .collect();
+    for e in roots {
+        world.despawn(e);
     }
 }
 
@@ -1226,6 +1240,7 @@ fn save_load(world: &mut World, mut autoloaded: Local<bool>) {
                 world.remove_resource::<PlayerNation>();
             }
         }
+        respawn_hud(world);
         world.resource_mut::<GameSpeed>().paused = true;
         info!("loaded quicksave at tick {}", save.current_tick);
     }

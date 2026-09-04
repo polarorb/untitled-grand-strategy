@@ -185,7 +185,10 @@ Shipped in `crates/ugs-sim/src/intel.rs` (+ `intel_ui.rs`):
   exposure track — exposure lives on the network strength that ops
   spend. Blown ops emit a grievance notice but do not yet auto-open a
   crisis (the pretext is banked as tension + notice).
-- Spy trials offer trial/expel (no turn-the-agent yet — that's v1.5).
+- Spy trials offer expel/trial (no turn-the-agent yet — that's v1.5);
+  quiet expulsion is listed first and is what happens if the case is
+  left unanswered at its deadline (sim-generated choices expire to
+  option 0, 2026-09-04).
 - Embassy floor applies to all country pairs (no relations model yet).
 
 ## Deferred sequencing

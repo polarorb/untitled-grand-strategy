@@ -493,6 +493,21 @@ pub fn update_events(
         }
     }
 
+    // Sim-generated choices expire too: past the deadline the cautious
+    // default (option 0) applies and the owning module reads it from
+    // `resolved` like any answer. Crises enforce their own deadlines.
+    let expired_dynamic: Vec<String> = fired
+        .dynamic
+        .iter()
+        .filter(|d| clock.tick >= d.deadline_tick && !d.id.starts_with("crisis-"))
+        .map(|d| d.id.clone())
+        .collect();
+    for id in expired_dynamic {
+        fired.dynamic.retain(|d| d.id != id);
+        fired.resolved.push((id.clone(), 0));
+        fired.resolved_ticks.insert(id, (0, clock.tick));
+    }
+
     // Fire new events. Chance-gated triggers roll once per day.
     for event in &data.events {
         if fired.fired.iter().any(|id| id == &event.id) {
@@ -760,6 +775,38 @@ mod tests {
                 "the war's ending must leave an outcome object"
             );
         }
+    }
+
+    #[test]
+    fn unanswered_dynamic_choices_expire_to_the_cautious_default() {
+        let mut app = app_with_scenario();
+        run_ticks(&mut app, 1);
+        app.world_mut()
+            .resource_mut::<FiredEvents>()
+            .dynamic
+            .push(DynamicChoice {
+                id: "test-dynamic-1".into(),
+                title: "A REQUEST".into(),
+                body: "ANSWER OR DO NOT.".into(),
+                country: CountryTag("USA".into()),
+                options: vec!["REFUSE".into(), "PROCEED".into()],
+                deadline_tick: 1 + 48,
+            });
+        run_ticks(&mut app, 47);
+        assert!(
+            app.world().resource::<FiredEvents>().dynamic.len() == 1,
+            "still open"
+        );
+        run_ticks(&mut app, 2);
+        let fired = app.world().resource::<FiredEvents>();
+        assert!(fired.dynamic.is_empty(), "expired at the deadline");
+        assert!(
+            fired
+                .resolved
+                .iter()
+                .any(|(id, o)| id == "test-dynamic-1" && *o == 0),
+            "the cautious default was recorded"
+        );
     }
 
     #[test]
