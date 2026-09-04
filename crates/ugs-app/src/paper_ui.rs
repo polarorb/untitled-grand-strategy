@@ -241,7 +241,15 @@ fn refresh_paper(
         .into_iter()
         .map(|(_, t, b)| (t, b))
         .collect();
-    stories.truncate(4);
+    // A reckoning page or the final edition takes the lead column.
+    let score_page_showing = matches!(
+        ledger.end,
+        Some(ugs_sim::score::CampaignEnd::Reckoning { .. })
+    ) || ledger
+        .eras
+        .last()
+        .is_some_and(|e| clock.tick.saturating_sub(e.tick) <= 365 * 24);
+    stories.truncate(if score_page_showing { 2 } else { 4 });
     let more_stories = fired
         .fired_ticks
         .values()

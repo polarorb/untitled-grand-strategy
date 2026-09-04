@@ -122,6 +122,9 @@ and the final edition of 1970 prints WON, HELD or LOST beside what
 your intelligence believed. Break the taboo and the best you can do
 is COSTLY. End the world and there is no verdict for anyone.
 
+![The 1955 reckoning in the monthly paper](media/reckoning-1955.png)
+![The founding edition: how the century is scored](media/paper-founding-1950.png)
+
 ![The war room's theater directives, mid-war](media/war-room-theaters.png)
 ![The forces ledger: stockpile, upkeep, named divisions](media/war-room-forces.png)
 

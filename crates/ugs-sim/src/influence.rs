@@ -337,9 +337,12 @@ impl Influence {
 
     /// Display depth for the current position (locks read as treaty).
     pub fn depth_label(&self, tag: &CountryTag, tick: u64) -> &'static str {
-        let p = self.position_of(tag).abs();
-        if self.is_locked(tag, tick) || p >= tuning::DEPTH_TREATY {
-            if self.position_of(tag) < 0 {
+        let pos = self.position_of(tag);
+        let p = pos.abs();
+        if self.is_locked(tag, tick) && p < tuning::BAND_ENTER {
+            "LOCKED NEUTRAL"
+        } else if self.is_locked(tag, tick) || p >= tuning::DEPTH_TREATY {
+            if pos < 0 {
                 "SATELLITE"
             } else {
                 "TREATY"

@@ -132,7 +132,9 @@ finishing any feature:
 - `UGS_LOAD=path.ron` — auto-load a save on the first in-game frame
   (adopts the save's player nation). `saves/war-jul-1950.ron` is a
   mid-Korean-War fixture (regenerate via the ignored `make_midwar_save`
-  test in `crates/ugs-sim/src/events.rs`).
+  test in `crates/ugs-sim/src/events.rs`); `saves/reckoning-1955.ron`
+  boots as the USA two days after the first era reckoning (the ignored
+  `make_reckoning_save` test in `crates/ugs-sim/src/score.rs`).
 
 ## Conventions
 

@@ -1237,6 +1237,26 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "dev helper: writes saves/reckoning-1955.ron"]
+    fn make_reckoning_save() {
+        let mut app = boot(1950);
+        app.world_mut()
+            .resource_mut::<PendingCommands>()
+            .push(SimCommand::SetPlayerCountry {
+                country: Some(tag("USA")),
+            });
+        run_ticks(&mut app, 24 * (365 * 5 + 2)); // 1955-01-03: the first reckoning is on the record
+        let save = crate::savegame::SaveGame::capture(app.world(), Some("USA".into()));
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../saves");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("reckoning-1955.ron"),
+            ron::to_string(&save).unwrap(),
+        )
+        .unwrap();
+    }
+
+    #[test]
     fn the_ledger_is_deterministic() {
         fn run() -> u64 {
             let mut app = boot(1950);
